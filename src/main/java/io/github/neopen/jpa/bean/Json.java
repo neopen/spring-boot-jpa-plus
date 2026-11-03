@@ -1,8 +1,6 @@
 package io.github.neopen.jpa.bean;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -11,31 +9,21 @@ import java.util.*;
 /**
  * Json
  *
- * @author he.hp
+ * @author neopen
  * @version 1.0
  * @date 2019年5月22日 上午9:41:19
  * @description 返回的json对象（swagger输出属性包含注释）
  */
 @Data
 @JsonInclude(JsonInclude.Include.ALWAYS)
-@ApiModel("返回的json数据类")
 @NoArgsConstructor
 @SuppressWarnings("all")
 public class Json<V> {
-
-    @ApiModelProperty(value = "总记录数")
     @JsonInclude(JsonInclude.Include.NON_NULL)
     private Long count;
-
-    @ApiModelProperty(value = "实体对象或对象结果集")
     private V data;
-
-    @ApiModelProperty(value = "成功标记")
     private boolean success;
-
-    @ApiModelProperty(value = "错误编码")
     private Integer code;
-    @ApiModelProperty(value = "错误信息")
     private String message;
 
     public static <T> Json<T> getSucc() {
@@ -53,7 +41,7 @@ public class Json<V> {
      * @param <T>
      * @param data
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年9月17日 下午3:30:33
      */
     public static <T> Json<T> getSuccs(T data) {
@@ -74,7 +62,7 @@ public class Json<V> {
      *
      * @param <T>
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年5月18日 下午3:21:00
      */
     public static <T> Json<T> getSucc(String msg, Integer code, T data, Long count) {
@@ -101,7 +89,7 @@ public class Json<V> {
      *
      * @param <T>
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年5月18日 下午3:20:37
      */
     public static <T> Json<T> getError(String msg, Integer code) {
@@ -118,7 +106,7 @@ public class Json<V> {
      *
      * @param result
      * @return com.citycloud.sanitation.common.bean.model.Json<T>
-     * @Author He.hp
+     * @author neopen
      * @Date 2021/4/2 15:20
      */
     public static <T> Json<T> getJson(boolean result) {
@@ -132,7 +120,7 @@ public class Json<V> {
     /**
      * @param v
      * @return
-     * @author He.hp
+     * @author neopen
      * @Description data设置默认值（防止序列化该属性）
      * @date 2019年7月5日 下午5:45:05
      */
@@ -147,7 +135,7 @@ public class Json<V> {
      * @param <V>
      * @param v
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年7月22日 下午7:36:12
      */
     @SuppressWarnings("unchecked")

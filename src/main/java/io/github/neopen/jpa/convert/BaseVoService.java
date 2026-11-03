@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * @param <V> 需要返回的vo对象，一般来自vo包，如：ParkBaseInfoVo
  * @param <T> 需要转换为vo的实体对象，一般来自entity包，如：ParkBaseInfo
- * @author he.hp
+ * @author neopen
  * @email Haeng2015@163.com
  * @time 2018年11月2日 上午10:34:30
  * @do >>> 基本接口（提供了一些通用的方法，可选择重写自己需要的）
@@ -20,7 +20,7 @@ public interface BaseVoService<@NotNull T, @NotNull V extends BaseVo> extends Ba
      * @param entity
      * @return
      * @
-     * @author He.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description 基本vo设置
      * @date 2019年5月28日 下午3:15:08
@@ -33,7 +33,7 @@ public interface BaseVoService<@NotNull T, @NotNull V extends BaseVo> extends Ba
      * @param entity 传入的bo实体对象
      * @return
      * @
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @time 2018年11月1日 上午10:50:33
      * @do >>> bo转vo对象
@@ -47,7 +47,7 @@ public interface BaseVoService<@NotNull T, @NotNull V extends BaseVo> extends Ba
      * @param isTrue 需要转换的其他对象（如关联的外键对象）
      * @return
      * @
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @time 2018年12月24日 下午1:46:37
      * @do >>> bo转vo对象
@@ -62,7 +62,7 @@ public interface BaseVoService<@NotNull T, @NotNull V extends BaseVo> extends Ba
      * @param map    其他map对象
      * @return
      * @
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description bo转vo对象
      * @date 2019年5月24日 下午3:51:23
@@ -77,7 +77,7 @@ public interface BaseVoService<@NotNull T, @NotNull V extends BaseVo> extends Ba
      * @param params 其他参数对象
      * @return
      * @
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description bo转vo对象
      * @date 2019年5月24日 下午3:51:23

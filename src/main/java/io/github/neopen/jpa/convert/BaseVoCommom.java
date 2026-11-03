@@ -18,7 +18,7 @@ public interface BaseVoCommom<T, V extends BaseVo> {
     /**
      * @param entity
      * @throws Exception
-     * @author He.hp
+     * @author neopen
      * @Description 设置 vo基本信息
      * @date 2019年5月28日 下午2:36:59
      */

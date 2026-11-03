@@ -1,7 +1,5 @@
 package io.github.neopen.jpa.bean.param;
 
-import io.swagger.annotations.ApiModel;
-import io.swagger.annotations.ApiModelProperty;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.Size;
@@ -16,11 +14,10 @@ import org.springframework.util.StringUtils;
  * <p>
  * 适用于jpa和mybatis
  *
- * @author He.hp
+ * @author neopen
  * @version 1.0
  * @date 2020年3月16日 下午2:12:27
  */
-@ApiModel("分页参数")
 public class PageParam extends BaseParam {
     /**
      * 默认排序字段名: id
@@ -30,22 +27,16 @@ public class PageParam extends BaseParam {
      * 默认每页记录数: 10
      */
     public static final int DEFAULT_ROW = 10;
-
-    @ApiModelProperty("第几页（默认1）")
+    /** Prevents unbounded page sizes from exhausting memory. */
+    public static final int MAX_PAGE_SIZE = 500;
     @Min(value = 0, message = "页数不能小于1")
-    @Max(value = Integer.MAX_VALUE >> 12, message = "页数过大")
+    @Max(value = Integer.MAX_VALUE / MAX_PAGE_SIZE + 1, message = "页数过大")
     private int start = 1; // 第几页
-
-    @ApiModelProperty("每页大小（默认10）")
     @Min(value = 1, message = "每页大小过小")
-    @Max(value = Integer.MAX_VALUE >> 2, message = "每页大小过大")
+    @Max(value = MAX_PAGE_SIZE, message = "每页大小过大")
     private int limit = DEFAULT_ROW; // 每页大小
-
-    @ApiModelProperty("排序字段(如：需要根据name排序时，为该属性传入值name,默认ID)")
     @Size(max = 20, message = "排序字段过大")
     private String sort = DEFAULT_SORT_FEILD; // 排序字段
-
-    @ApiModelProperty("排序顺序(倒序传值0, 顺序传值1, 默认倒序)")
     @Max(value = 1, message = "排序参数错误")
     @Min(value = 0, message = "排序参数错误")
     private int order = 0; // 排序顺序
@@ -59,11 +50,11 @@ public class PageParam extends BaseParam {
      * <p> 经过转换，适用于 mybatis分页， 使用方式，如：LIMIT #{start }, #{limit }
      *
      * @return int
-     * @Author He.hp
+     * @author neopen
      * @Date 2021/3/23 15:50
      */
     public int myStart() {
-        return start <= 0 ? 0 : (start - 1) * getLimit();
+        return Math.toIntExact(((long) Math.max(start, 1) - 1L) * getLimit());
     }
 
     public void setStart(int start) {
@@ -71,7 +62,7 @@ public class PageParam extends BaseParam {
     }
 
     public int getLimit() {
-        return limit < 5 ? DEFAULT_ROW : limit;
+        return limit <= 0 ? DEFAULT_ROW : Math.min(limit, MAX_PAGE_SIZE);
     }
 
     public void setLimit(int limit) {
@@ -79,7 +70,7 @@ public class PageParam extends BaseParam {
     }
 
     public String getSort() {
-        return StringUtils.isEmpty(sort) ? DEFAULT_SORT_FEILD : sort;
+        return !StringUtils.hasText(sort) ? DEFAULT_SORT_FEILD : sort.trim();
     }
 
     public void setSort(String sort) {
@@ -102,22 +93,20 @@ public class PageParam extends BaseParam {
 
     /**
      * @return
-     * @author he.hp
+     * @author neopen
      * @time 2019年1月15日 上午10:25:38
      * @do >>> jpa排序顺序
      */
-    @ApiModelProperty(hidden = true)
     private Direction orderDirection() {
         return getOrder() > 0 ? Direction.ASC : Direction.DESC;
     }
 
     /**
      * @return
-     * @author he.hp
+     * @author neopen
      * @time 2019年1月15日 上午10:25:42
      * @do >>> jpa排序字段
      */
-    @ApiModelProperty(hidden = true)
     private Sort orderSort() {
         return Sort.by(orderDirection(), getSort());
     }
@@ -141,7 +130,7 @@ public class PageParam extends BaseParam {
      * @param sort
      * @return
      * @throws Exception
-     * @author He.hp
+     * @author neopen
      * @date 2019年7月4日 上午11:22:48
      */
     public PageRequest pageRequest(Sort sort) throws Exception {
@@ -154,7 +143,7 @@ public class PageParam extends BaseParam {
      * <p>
      *
      * @return org.springframework.data.domain.PageRequest
-     * @Author He.hp
+     * @author neopen
      * @Date 2021/3/23 15:57
      */
     public PageRequest defaultPage() throws Exception {

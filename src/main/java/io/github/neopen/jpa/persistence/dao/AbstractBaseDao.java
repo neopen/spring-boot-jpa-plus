@@ -1,6 +1,5 @@
 package io.github.neopen.jpa.persistence.dao;
 
-import cn.hutool.core.util.StrUtil;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -38,7 +37,7 @@ public abstract class AbstractBaseDao implements HibernateDao {
 		if (list == null || list.isEmpty())
 			return "";
 
-		return StrUtil.join(",", list.toArray());
+		return list.stream().map(String::valueOf).collect(Collectors.joining(","));
 	}
 
 	/*

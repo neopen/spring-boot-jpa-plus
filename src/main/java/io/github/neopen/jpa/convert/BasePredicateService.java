@@ -14,7 +14,7 @@ import java.util.Map;
 /**
  * @param <T> 需要转换为vo的实体对象，一般来自entity包，如：ParkBaseInfo
  * @param <P> param参数对象，一般来自params包，如：ParkBaseInfoParam
- * @author he.hp
+ * @author neopen
  * @email Haeng2015@163.com
  * @time 2018年11月2日 上午10:34:30
  * @do >>> 基本接口（提供了一些通用的方法，可选择重写自己需要的）
@@ -29,7 +29,7 @@ public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServic
      * @param param param参数对象（从客户端接收数据的对象）
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description 获得Predicate列表（jpa的多条件查询方法）
      * @date 2019年5月24日 下午1:27:14
@@ -77,7 +77,7 @@ public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServic
      * @param isParam 其他参数
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description jpa的多条件查询方法
      * @date 2019年5月24日 下午1:26:15
@@ -95,7 +95,7 @@ public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServic
      * @param map   其他参数
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description jpa的多条件查询方法
      * @date 2019年5月24日 下午1:26:15
@@ -113,7 +113,7 @@ public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServic
      * @param params 其他参数
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Description jpa的多条件查询方法
      * @date 2019年5月24日 下午1:26:15

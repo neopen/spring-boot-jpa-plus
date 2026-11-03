@@ -4,7 +4,7 @@ package io.github.neopen.jpa.convert;
  * <b> 基本业务工厂接口
  * <p>
  *
- * @Author He.hp
+ * @author neopen
  * @Email hehp@citycloud.com.cn
  * @Date 2021/4/13 14:37
  */

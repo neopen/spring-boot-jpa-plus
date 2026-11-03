@@ -2,7 +2,6 @@ package io.github.neopen.jpa.persistence.dao.manager;
 
 import io.github.neopen.jpa.persistence.dao.AbstractBaseDao;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
@@ -15,12 +14,11 @@ import java.util.Map;
  * <b> jpa hql语句 占位符传参
  * <p>
  *
- * @author He.hp
+ * @author neopen
  * @version 1.0
  * @date 2020年7月30日 上午10:17:48
  */
 @SuppressWarnings("all")
-@Repository("hqlDao")
 public class EntityManagerHqlDao extends AbstractBaseDao {
 
     @PersistenceContext
@@ -61,11 +59,9 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
      */
     @Override
     public <T> List<T> findPage(String hql, PageRequest page, Class<T> resultClass, Object... params) throws Exception {
+        if (page == null) throw new IllegalArgumentException("page must not be null");
         Query query = resultClass == null ? getQuery(hql, params) : getQuery(hql, resultClass, params);
-        if (query == null)
-            return null;
-
-        return query.setFirstResult((int) page.getOffset()).setMaxResults((int) page.getPageSize()).getResultList();
+        return query.setFirstResult(Math.toIntExact(page.getOffset())).setMaxResults((int) page.getPageSize()).getResultList();
     }
 
     /*
@@ -117,11 +113,9 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
      */
     @Override
     public <T> List<T> findPage(String hql, PageRequest page, Class<T> resultClass, Map<String, Object> params) throws Exception {
+        if (page == null) throw new IllegalArgumentException("page must not be null");
         Query query = resultClass == null ? getQuery(hql, params) : getQuery(hql, resultClass, params);
-        if (query == null)
-            return null;
-
-        return query.setFirstResult((int) page.getOffset()).setMaxResults((int) page.getPageSize()).getResultList();
+        return query.setFirstResult(Math.toIntExact(page.getOffset())).setMaxResults((int) page.getPageSize()).getResultList();
 
     }
 
@@ -147,12 +141,12 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
      * @param hql
      * @param resultClass
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年7月30日 上午11:08:04
      */
     private <T> TypedQuery<T> getQuery(String hql, Class<T> resultClass, Object... params) {
-        if (hql == null || hql.isEmpty())
-            return null;
+        if (hql == null || hql.trim().isEmpty())
+            throw new IllegalArgumentException("HQL must not be blank");
 
         TypedQuery<T> query = em.createQuery(hql, resultClass);
 
@@ -162,8 +156,8 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
     }
 
     private <T> Query getQuery(String hql, Object... params) {
-        if (hql == null || hql.isEmpty())
-            return null;
+        if (hql == null || hql.trim().isEmpty())
+            throw new IllegalArgumentException("HQL must not be blank");
 
         Query query = em.createQuery(hql);
 
@@ -180,12 +174,12 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
      * @param hql
      * @param resultClass
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年7月30日 上午11:08:04
      */
     private <T> TypedQuery<T> getQuery(String hql, Class<T> resultClass, Map<String, Object> params) {
-        if (hql == null || hql.isEmpty())
-            return null;
+        if (hql == null || hql.trim().isEmpty())
+            throw new IllegalArgumentException("HQL must not be blank");
 
         TypedQuery<T> query = em.createQuery(hql, resultClass);
 
@@ -201,14 +195,14 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
      *
      * @param hql
      * @param params
-     * @Author He.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Date 2021/4/15 16:47
      * @return javax.persistence.Query
      */
     private <T> Query getQuery(String hql, Map<String, Object> params) {
-        if (hql == null || hql.isEmpty())
-            return null;
+        if (hql == null || hql.trim().isEmpty())
+            throw new IllegalArgumentException("HQL must not be blank");
 
         Query query = em.createQuery(hql);
         setQueryParameter(query, params);
@@ -217,33 +211,62 @@ public class EntityManagerHqlDao extends AbstractBaseDao {
         return query;
     }
 
+    @Override
+    public int executeUpdate(String hql, Object... params) {
+        if (hql == null || hql.trim().isEmpty()) {
+            throw new IllegalArgumentException("HQL must not be blank");
+        }
+        Query query = em.createQuery(hql);
+        setQueryParameter(query, params);
+        return query.executeUpdate();
+    }
+
+    @Override
+    public int executeUpdate(String hql, Map<String, Object> params) {
+        if (hql == null || hql.trim().isEmpty()) {
+            throw new IllegalArgumentException("HQL must not be blank");
+        }
+        Query query = em.createQuery(hql);
+        setQueryParameter(query, params);
+        return query.executeUpdate();
+    }
+
+    /**
+     * Persists entities in chunks and flushes after each chunk.
+     * The caller owns the transaction and persistence-context lifecycle.
+     */
+    public <T> int persistAll(java.util.Collection<T> entities) {
+        return persistAll(entities, 50);
+    }
+
+    public <T> int persistAll(java.util.Collection<T> entities, int batchSize) {
+        if (entities == null || entities.isEmpty()) {
+            return 0;
+        }
+        if (batchSize < 1) {
+            throw new IllegalArgumentException("batchSize must be greater than zero");
+        }
+
+        int persisted = 0;
+        for (T entity : entities) {
+            em.persist(entity);
+            persisted++;
+            if (persisted % batchSize == 0 || persisted == entities.size()) {
+                em.flush();
+            }
+        }
+        return persisted;
+    }
+
     /*
      * (non-Javadoc)
      *
      * @see com.citycloud.sanitation.common.dao.HibernateDao#insertAll(java.util.List)
      */
     @Override
-    public <T> int insertAll(List<T> params) throws Exception {
-        if (params == null || params.isEmpty())
-            return 0;
-
-        int j = 0;
-
-        for (T t : params) {
-            em.persist(t);
-            j++;
-            if (j % 50 == 0 || j == params.size()) {
-                try {
-                    em.flush();
-                } catch (Exception e) {
-                    e.printStackTrace();
-                } finally {
-                    em.clear();
-                }
-            }
-        }
-
-        return j;
+    @Deprecated
+    public <T> int insertAll(List<T> params) {
+        return persistAll(params, 50);
     }
 
 }

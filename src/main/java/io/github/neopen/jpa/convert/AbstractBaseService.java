@@ -18,7 +18,7 @@ import java.util.function.Consumer;
  * 基本接口实现，抽象类（供继承，实现了批量转换vo、分页、jpa条件查询方法，无需改动），P参数可以为null
  * </p>
  *
- * @author He.hp
+ * @author neopen
  * @date 2019年5月8日 下午3:58:31
  */
 @Slf4j
@@ -28,7 +28,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param entityList 传入的bo实体列表对象
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @time 2018年11月1日 上午10:50:33
      * @do >>> 批量bo转vo列表对象
      */
@@ -58,7 +58,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param isTrue     是否忽略某些对象的转换（如外键对象）
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @time 2018年12月21日 下午1:57:46
      * @do >>> 批量bo转vo列表对象
      */
@@ -88,7 +88,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param map        其他map对象
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Description 批量bo转vo列表对象
      * @date 2019年5月24日 下午3:53:07
      */
@@ -113,72 +113,59 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param maps 传入的bo实体列表对象，根据指定的某属性kry，分组转为vos
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Description 批量bo转vo列表对象
      * @date 2019年5月24日 下午3:53:07
      */
     protected final Map<Object, List<V>> batchParseMapsVo(Map<Object, List<T>> maps, boolean sort) throws Exception {
-        if (maps == null || maps.isEmpty())
+        if (maps == null || maps.isEmpty()) {
             return Collections.emptyMap();
+        }
 
-        Map<Object, List<V>> entityMapsVos = sort? new TreeMap<>() : new HashMap<>(maps.size());
+        Map<Object, List<V>> result = sort ? new TreeMap<>() : new HashMap<>(maps.size());
+        for (Map.Entry<Object, List<T>> entry : maps.entrySet()) {
+            List<T> entities = entry.getValue();
+            if (entities == null || entities.isEmpty()) {
+                result.put(entry.getKey(), Collections.emptyList());
+                continue;
+            }
 
-        maps.forEach((k, v) -> {
-
-            if (v == null || v.isEmpty())
-                return;
-
-            List<V> vos = new ArrayList<>(v.size());
-
-            v.forEach(t -> {
-
-                V vo = null;
-                try {
-                    vo = parseVo(t);
-                } catch (Exception e) {
-                    return;
+            List<V> values = new ArrayList<>(entities.size());
+            for (T entity : entities) {
+                V vo = parseVo(entity);
+                if (vo != null) {
+                    values.add(vo);
                 }
-                if (vo != null)
-                    vos.add(vo);
-            });
-
-            entityMapsVos.put(k, vos);
-        });
-
-        return entityMapsVos;
+            }
+            result.put(entry.getKey(), values);
+        }
+        return result;
     }
 
     /**
      * @param map 传入的bo实体列表对象，根据指定的某属性kry，分组转为vos
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Description 批量bo转vo列表对象
      * @date 2019年5月24日 下午3:53:07
      */
     protected final List<V> batchParseMapVo(Map<Object, T> map) throws Exception {
-        if (map == null || map.isEmpty())
+        if (map == null || map.isEmpty()) {
             return Collections.emptyList();
+        }
 
-        List<V> vos = new ArrayList<>(map.size());
-
-        map.forEach((k, v) -> {
-
-            if (v == null)
-                return;
-
-            V vo = null;
-            try {
-                vo = parseVo(v);
-            } catch (Exception e) {
-                return;
+        List<V> values = new ArrayList<>(map.size());
+        for (T entity : map.values()) {
+            if (entity == null) {
+                continue;
             }
-
-            if (vo != null)
-                vos.add(vo);
-        });
-
-        return vos;
+            V vo = parseVo(entity);
+            if (vo != null) {
+                values.add(vo);
+            }
+        }
+        return values;
     }
 
     /**
@@ -186,7 +173,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param params     其他参数对象
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @Description 批量bo转vo列表对象
      * @date 2019年5月24日 下午3:53:07
      */
@@ -211,26 +198,21 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param param param参数对象（从客户端接收数据的对象）
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @time 2018年12月11日 下午3:28:26
      * @do >>> jpa的多条件查询方法(SQL拼接，连表查询搜索)
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(Z param) throws Exception {
         return (root, query, cb) -> {
-            List<Predicate> predicates = null;
             try {
-                predicates = getPredicates(root, query, cb, param);
-                if (predicates == null)
-                    predicates = new ArrayList<>(10);
-
-                return cb.and(predicates.toArray(new Predicate[predicates.size()]));
+                List<Predicate> predicates = getPredicates(root, query, cb, param);
+                if (predicates == null || predicates.isEmpty()) {
+                    return cb.conjunction();
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
             } catch (Exception e) {
-                log.error("getPredicates() Exception occured : " + e.getMessage());
-            } finally {
-                if (predicates != null)
-                    predicates.clear();
+                throw new IllegalStateException("Failed to build JPA query predicates", e);
             }
-            return null;
         };
     }
 
@@ -239,26 +221,21 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param otherProp 其他参数
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @time 2018年12月11日 下午3:28:26
      * @do >>> jpa的多条件查询方法
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(Z param, boolean otherProp) throws Exception {
         return (root, query, cb) -> {
-            List<Predicate> predicates = null;
             try {
-                predicates = getPredicates(root, query, cb, param, otherProp);
-                if (predicates == null)
-                    predicates = new ArrayList<>(10);
-
-                return cb.and(predicates.toArray(new Predicate[predicates.size()]));
+                List<Predicate> predicates = getPredicates(root, query, cb, param, otherProp);
+                if (predicates == null || predicates.isEmpty()) {
+                    return cb.conjunction();
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
             } catch (Exception e) {
-                log.error("getPredicates() Exception occured : " + e.getMessage());
-            } finally {
-                if (predicates != null)
-                    predicates.clear();
+                throw new IllegalStateException("Failed to build JPA query predicates", e);
             }
-            return null;
         };
     }
 
@@ -267,26 +244,21 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param params 其他参数
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @time 2018年12月11日 下午3:28:26
      * @do >>> jpa的多条件查询方法
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(Z param, @Nullable Object... params) throws Exception {
         return (root, query, cb) -> {
-            List<Predicate> predicates = null;
             try {
-                predicates = getPredicates(root, query, cb, param, params);
-                if (predicates == null)
-                    predicates = new ArrayList<>(10);
-
-                return cb.and(predicates.toArray(new Predicate[predicates.size()]));
+                List<Predicate> predicates = getPredicates(root, query, cb, param, params);
+                if (predicates == null || predicates.isEmpty()) {
+                    return cb.conjunction();
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
             } catch (Exception e) {
-                log.error("getPredicates() Exception occured : " + e.getMessage());
-            } finally {
-                if (predicates != null)
-                    predicates.clear();
+                throw new IllegalStateException("Failed to build JPA query predicates", e);
             }
-            return null;
         };
     }
 
@@ -295,26 +267,21 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param map   其他参数
      * @return
      * @throws Exception
-     * @author he.hp
+     * @author neopen
      * @time 2018年12月11日 下午3:28:26
      * @do >>> jpa的多条件查询方法
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(Z param, @Nullable Map<String, Object> map) throws Exception {
         return (root, query, cb) -> {
-            List<Predicate> predicates = null;
             try {
-                predicates = getPredicates(root, query, cb, param, map);
-                if (predicates == null)
-                    predicates = new ArrayList<>(10);
-
-                return cb.and(predicates.toArray(new Predicate[predicates.size()]));
+                List<Predicate> predicates = getPredicates(root, query, cb, param, map);
+                if (predicates == null || predicates.isEmpty()) {
+                    return cb.conjunction();
+                }
+                return cb.and(predicates.toArray(new Predicate[0]));
             } catch (Exception e) {
-                log.error("getPredicates() Exception occured : " + e.getMessage());
-            } finally {
-                if (predicates != null)
-                    predicates.clear();
+                throw new IllegalStateException("Failed to build JPA query predicates", e);
             }
-            return null;
         };
     }
 
@@ -325,7 +292,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param vos
      * @param count
      * @return com.citycloud.sanitation.common.bean.model.Json<java.util.List < V>>
-     * @Author He.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Date 2021/4/15 14:59
      */
@@ -343,7 +310,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param list
      * @param count
      * @return com.citycloud.sanitation.common.bean.model.Json<java.util.List < V>>
-     * @Author He.hp
+     * @author neopen
      * @Email hehp@citycloud.com.cn
      * @Date 2021/4/15 14:59
      */
@@ -358,7 +325,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param commonPage
      * @return
      * @throws Exception
-     * @author He.hp
+     * @author neopen
      * @Description 获得分页数据对象
      * @date 2019年6月6日 下午4:52:29
      */
@@ -373,7 +340,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param commonPage
      * @return
      * @throws Exception
-     * @author He.hp
+     * @author neopen
      * @Description 获得分页数据对象
      * @date 2019年6月6日 下午4:52:29
      */
@@ -388,7 +355,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param commonPage
      * @return
      * @throws Exception
-     * @author He.hp
+     * @author neopen
      * @Description 获得分页数据对象
      * @date 2019年6月6日 下午4:52:29
      */
@@ -403,7 +370,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param commonPage
      * @return
      * @throws Exception
-     * @author He.hp
+     * @author neopen
      * @Description 获得分页数据对象
      * @date 2019年6月6日 下午4:52:29
      */
@@ -419,7 +386,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * <p>
      *
      * @return com.citycloud.sanitation.common.bean.model.Json<java.util.List < V>>
-     * @Author He.hp
+     * @author neopen
      * @Date 2021/4/13 14:41
      */
     protected final Json<List<V>> getEmptyPage() throws Exception {
@@ -431,7 +398,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param consumer
      * @param clazz
      * @return
-     * @author He.hp
+     * @author neopen
      * @Description >>> 异常解决方法
      * @date 2019年4月2日 下午2:06:38
      */
@@ -454,7 +421,7 @@ public abstract class AbstractBaseService<@NotNull V extends BaseVo, @NotNull T,
      * @param throwingConsumer
      * @param exceptionClass
      * @return
-     * @author He.hp
+     * @author neopen
      * @email Haeng2015@163.com
      * @Description >>> 异常解决方法(自定义接口方法)
      * @date 2019年4月2日 下午2:15:11

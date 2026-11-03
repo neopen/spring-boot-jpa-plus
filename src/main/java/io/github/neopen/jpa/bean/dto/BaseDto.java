@@ -5,7 +5,7 @@ import java.io.Serializable;
 /**
  * <b>
  * 
- * @author He.hp
+ * @author neopen
  * @date 2020年5月27日 上午11:12:37
  */
 public abstract class BaseDto implements Serializable {

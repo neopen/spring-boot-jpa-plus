@@ -9,7 +9,7 @@ import lombok.NoArgsConstructor;
  * <b> 统计基础对象
  * <p>
  *
- * @author He.hp
+ * @author neopen
  * @version 1.0
  * @date 2020年5月18日 下午2:12:39
  */

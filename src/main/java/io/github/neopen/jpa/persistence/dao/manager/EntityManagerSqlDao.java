@@ -2,12 +2,10 @@ package io.github.neopen.jpa.persistence.dao.manager;
 
 import io.github.neopen.jpa.persistence.dao.AbstractBaseDao;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
 import jakarta.persistence.Query;
-import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 
@@ -15,12 +13,11 @@ import java.util.Map;
  * <b> jpa 占位符传参
  * <p>
  *
- * @author He.hp
+ * @author neopen
  * @version 1.0
  * @date 2020年7月30日 上午10:17:48
  */
 @SuppressWarnings("all")
-@Repository("dao")
 public class EntityManagerSqlDao extends AbstractBaseDao {
 
     @PersistenceContext
@@ -89,11 +86,9 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
      */
     @Override
     public <T> List<T> findPage(String sqlStr, PageRequest page, Class<T> resultClass, Object... params) throws Exception {
+        if (page == null) throw new IllegalArgumentException("page must not be null");
         Query query = getNativeQuery(sqlStr, resultClass, params);
-        if (query == null)
-            return null;
-
-        return query.setFirstResult((int) page.getOffset()).setMaxResults((int) page.getPageSize()).getResultList();
+        return query.setFirstResult(Math.toIntExact(page.getOffset())).setMaxResults((int) page.getPageSize()).getResultList();
     }
 
     /*
@@ -103,11 +98,9 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
      */
     @Override
     public <T> List<T> findPage(String sqlStr, PageRequest page, Class<T> resultClass, Map<String, Object> params) throws Exception {
+        if (page == null) throw new IllegalArgumentException("page must not be null");
         Query query = getNativeQuery(sqlStr, resultClass, params);
-        if (query == null)
-            return null;
-
-        return query.setFirstResult((int) page.getOffset()).setMaxResults((int) page.getPageSize()).getResultList();
+        return query.setFirstResult(Math.toIntExact(page.getOffset())).setMaxResults((int) page.getPageSize()).getResultList();
     }
 
     /*
@@ -117,13 +110,13 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
      */
     @Override
     public Long count(String sqlStr, Object... params) throws Exception {
-        Query query = getNativeQuery(sqlStr, Long.class, params);
+        Query query = getNativeQuery(sqlStr, null, params);
         if (query == null)
             return null;
 
-        BigInteger singleResult = (BigInteger) query.getSingleResult();
+        Number singleResult = (Number) query.getSingleResult();
 
-        return singleResult == null ? 0 : singleResult.longValue();
+        return singleResult == null ? 0L : singleResult.longValue();
     }
 
     /*
@@ -133,13 +126,13 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
      */
     @Override
     public Long count(String sqlStr, Map<String, Object> params) throws Exception {
-        Query query = getNativeQuery(sqlStr, Long.class, params);
+        Query query = getNativeQuery(sqlStr, null, params);
         if (query == null)
             return null;
 
-        BigInteger singleResult = (BigInteger) query.getSingleResult();
+        Number singleResult = (Number) query.getSingleResult();
 
-        return singleResult == null ? 0 : singleResult.longValue();
+        return singleResult == null ? 0L : singleResult.longValue();
     }
 
     /**
@@ -151,12 +144,12 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
      * @param resultClass
      * @param params
      * @return
-     * @author He.hp
+     * @author neopen
      * @date 2020年7月30日 下午2:05:52
      */
     private <T> Query getNativeQuery(String sqlStr, Class<T> resultClass, Object... params) {
-        if (sqlStr == null || sqlStr.isEmpty())
-            return null;
+        if (sqlStr == null || sqlStr.trim().isEmpty())
+            throw new IllegalArgumentException("SQL must not be blank");
 
         Query query = resultClass == null ? em.createNativeQuery(sqlStr) : em.createNativeQuery(sqlStr, resultClass);
 
@@ -173,14 +166,14 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
      * @param sqlStr 
      * @param resultClass 
      * @param params
-     * @Author He.hp  
+     * @author neopen  
      * @Email hehp@citycloud.com.cn
      * @Date 2021/4/15 16:46
      * @return javax.persistence.Query
      */
     private <T> Query getNativeQuery(String sqlStr, Class<T> resultClass, Map<String, Object> params) {
-        if (sqlStr == null || sqlStr.isEmpty())
-            return null;
+        if (sqlStr == null || sqlStr.trim().isEmpty())
+            throw new IllegalArgumentException("SQL must not be blank");
 
         Query query = resultClass == null ? em.createNativeQuery(sqlStr) : em.createNativeQuery(sqlStr, resultClass);
 
@@ -190,13 +183,34 @@ public class EntityManagerSqlDao extends AbstractBaseDao {
         return query;
     }
 
+    @Override
+    public int executeUpdate(String sql, Object... params) {
+        if (sql == null || sql.trim().isEmpty()) {
+            throw new IllegalArgumentException("SQL must not be blank");
+        }
+        Query query = em.createNativeQuery(sql);
+        setQueryParameter(query, params);
+        return query.executeUpdate();
+    }
+
+    @Override
+    public int executeUpdate(String sql, Map<String, Object> params) {
+        if (sql == null || sql.trim().isEmpty()) {
+            throw new IllegalArgumentException("SQL must not be blank");
+        }
+        Query query = em.createNativeQuery(sql);
+        setQueryParameter(query, params);
+        return query.executeUpdate();
+    }
+
     /*
      * (non-Javadoc)
      *
      * @see com.citycloud.sanitation.common.dao.HibernateDao#insertAll(java.util.List)
      */
     @Override
-    public <T> int insertAll(List<T> params) throws Exception {
+    @Deprecated
+    public <T> int insertAll(List<T> params) {
         if (params == null || params.isEmpty())
             return 0;
 

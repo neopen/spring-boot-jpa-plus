@@ -11,7 +11,7 @@ import java.io.Serializable;
  * <P>
  * 如果不需要序列化，用transient修饰即可
  * 
- * @author He.hp
+ * @author neopen
  * @date 2020年5月18日 下午1:59:59
  * @version 1.0
  */
