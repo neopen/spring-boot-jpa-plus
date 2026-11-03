@@ -1,0 +1,30 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<parent>
+		<groupId>io.github.neopen</groupId>
+		<artifactId>spring-boot-jpa-plus</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+	</parent>
+
+	<artifactId>spring-boot-jpa-plus-starter</artifactId>
+	<name>Spring Boot JPA Plus Starter</name>
+
+	<dependencies>
+		<dependency>
+			<groupId>io.github.neopen</groupId>
+			<artifactId>spring-boot-jpa-plus-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.neopen</groupId>
+			<artifactId>spring-boot-jpa-plus-autoconfigure</artifactId>
+		</dependency>
+	</dependencies>
+
+</project>
