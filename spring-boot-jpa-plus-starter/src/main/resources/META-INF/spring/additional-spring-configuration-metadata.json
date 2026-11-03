@@ -1,0 +1,29 @@
+
+{
+  "properties": [
+    {
+      "name": "neopen.jpa.enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否启用 Spring Boot JPA Plus 自动配置。"
+    },
+    {
+      "name": "neopen.jpa.batch-size",
+      "type": "java.lang.Integer",
+      "defaultValue": 500,
+      "description": "批量操作时每批处理的实体数量。"
+    },
+    {
+      "name": "neopen.jpa.hql-enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否启用 HQL 执行器。"
+    },
+    {
+      "name": "neopen.jpa.sql-enabled",
+      "type": "java.lang.Boolean",
+      "defaultValue": true,
+      "description": "是否启用原生 SQL 执行器。"
+    }
+  ]
+}

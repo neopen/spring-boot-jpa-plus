@@ -6,26 +6,25 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * JPA Plus 全局配置属性。
  *
  * <p>
- * 通过 application.yml 中的 neopen.jpa 前缀绑定配置。
+ * 统一使用 neopen.jpa 作为配置前缀，
+ * 避免不同模块分别定义重复的配置项。
  * </p>
  *
  * <p>
- * 配置示例：
+ * 当前属性主要用于：
  * </p>
  *
- * <pre>
- * neopen:
- *   jpa:
- *     enabled: true
- *     batch-size: 500
- *     sql-enabled: true
- *     hql-enabled: true
- * </pre>
+ * <ul>
+ *     <li>控制 JPA Plus 是否整体启用</li>
+ *     <li>设置批量操作的默认批次大小</li>
+ *     <li>控制 HQL 执行器是否注册</li>
+ *     <li>控制原生 SQL 执行器是否注册</li>
+ * </ul>
  *
  * <p>
- * 本类只负责接收配置，不直接执行任何数据库操作。
- * 具体配置由 JpaPlusAutoConfiguration 中的 Bean
- * 根据需要读取。
+ * 注意：
+ * batchSize 目前由业务 DAO 在构造时显式传入，
+ * 自动配置本身不会自动修改已经创建的 DAO 实例。
  * </p>
  */
 @ConfigurationProperties(prefix = "neopen.jpa")
@@ -35,70 +34,52 @@ public class JpaPlusProperties {
      * 是否启用 JPA Plus。
      *
      * <p>
-     * 默认开启。
-     * 设置为 false 后，JPA Plus 自动配置不再注册
-     * 自己提供的默认 Bean。
+     * 默认值：true。
+     * </p>
+     *
+     * <p>
+     * 设置为 false 后，JPA Plus 自动配置整体不生效，
+     * 不会注册默认 HQL 和 SQL 执行器。
      * </p>
      */
     private boolean enabled = true;
 
     /**
-     * 批量操作每批处理的实体数量。
+     * 默认批量处理数量。
      *
      * <p>
-     * 例如 batch-size = 500：
-     * 每处理 500 条记录执行一次 flush 和 clear，
-     * 用于控制 Hibernate 一级缓存占用。
+     * 默认值：500。
      * </p>
      *
      * <p>
-     * 注意：
-     * 该参数不等同于 Hibernate JDBC 批处理大小。
-     * JDBC 批处理还需要配置：
-     * spring.jpa.properties.hibernate.jdbc.batch_size
+     * 当业务 DAO 继承 AbstractJpaPlusDao 时，
+     * 可以将该值传入父类构造方法。
+     * </p>
+     *
+     * <p>
+     * 该值表示每处理多少条记录执行一次 flush 和 clear，
+     * 不等同于 Hibernate JDBC 批处理大小。
      * </p>
      */
     private int batchSize = 500;
 
     /**
-     * 是否启用原生 SQL 执行器。
+     * 是否注册 HQL 执行器。
      *
      * <p>
-     * 设置为 false 后，不注册 JpaPlusSqlExecutor。
-     * 这只是控制 JPA Plus 对原生 SQL 的封装入口，
-     * 不会禁止用户直接通过 EntityManager 执行原生 SQL。
-     * </p>
-     */
-    private boolean sqlEnabled = true;
-
-    /**
-     * 是否启用 HQL 执行器。
-     *
-     * <p>
-     * 设置为 false 后，不注册 JpaPlusHqlExecutor。
+     * 默认值：true。
      * </p>
      */
     private boolean hqlEnabled = true;
 
     /**
-     * 是否启用批量操作。
+     * 是否注册原生 SQL 执行器。
      *
      * <p>
-     * 关闭后，不注册 BatchOperation 相关的辅助 Bean。
-     * 注意：当前 BatchOperation 是静态工具类，
-     * 不需要注册为 Spring Bean。
+     * 默认值：true。
      * </p>
      */
-    private boolean batchEnabled = true;
-
-    /**
-     * 是否启用动态查询。
-     *
-     * <p>
-     * 控制是否注册 JpaPlusQueryBuilder 的默认 Bean。
-     * </p>
-     */
-    private boolean queryEnabled = true;
+    private boolean sqlEnabled = true;
 
     public boolean isEnabled() {
         return enabled;
@@ -112,7 +93,13 @@ public class JpaPlusProperties {
         return batchSize;
     }
 
+    /**
+     * 设置批量操作默认批次大小。
+     *
+     * @param batchSize 批次大小，必须大于 0
+     */
     public void setBatchSize(int batchSize) {
+
         if (batchSize <= 0) {
             throw new IllegalArgumentException(
                     "neopen.jpa.batch-size must be greater than zero"
@@ -120,14 +107,6 @@ public class JpaPlusProperties {
         }
 
         this.batchSize = batchSize;
-    }
-
-    public boolean isSqlEnabled() {
-        return sqlEnabled;
-    }
-
-    public void setSqlEnabled(boolean sqlEnabled) {
-        this.sqlEnabled = sqlEnabled;
     }
 
     public boolean isHqlEnabled() {
@@ -138,19 +117,11 @@ public class JpaPlusProperties {
         this.hqlEnabled = hqlEnabled;
     }
 
-    public boolean isBatchEnabled() {
-        return batchEnabled;
+    public boolean isSqlEnabled() {
+        return sqlEnabled;
     }
 
-    public void setBatchEnabled(boolean batchEnabled) {
-        this.batchEnabled = batchEnabled;
-    }
-
-    public boolean isQueryEnabled() {
-        return queryEnabled;
-    }
-
-    public void setQueryEnabled(boolean queryEnabled) {
-        this.queryEnabled = queryEnabled;
+    public void setSqlEnabled(boolean sqlEnabled) {
+        this.sqlEnabled = sqlEnabled;
     }
 }

@@ -13,18 +13,29 @@
 	</parent>
 
 	<artifactId>spring-boot-jpa-plus-starter</artifactId>
+	<packaging>jar</packaging>
+
 	<name>Spring Boot JPA Plus Starter</name>
+	<description>
+		Spring Boot JPA enhancement starter.
+		Provides unified CRUD, batch operations, dynamic queries,
+		pagination, HQL and native SQL execution.
+	</description>
 
 	<dependencies>
-		<dependency>
-			<groupId>io.github.neopen</groupId>
-			<artifactId>spring-boot-jpa-plus-core</artifactId>
-		</dependency>
 
+		<!--
+            自动配置模块：
+            提供 JpaPlusAutoConfiguration 和 JpaPlusProperties，
+            Spring Boot 启动时根据条件自动装配 JPA Plus 相关 Bean。
+
+            core 会作为 autoconfigure 的传递依赖引入。
+        -->
 		<dependency>
 			<groupId>io.github.neopen</groupId>
 			<artifactId>spring-boot-jpa-plus-autoconfigure</artifactId>
 		</dependency>
+
 	</dependencies>
 
 </project>
