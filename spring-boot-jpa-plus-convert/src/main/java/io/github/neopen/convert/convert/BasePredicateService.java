@@ -1,12 +1,12 @@
 package io.github.neopen.convert.convert;
 
-import org.springframework.lang.Nullable;
-
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.lang.Nullable;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -15,28 +15,115 @@ import java.util.Map;
  * @param <T> 需要转换为vo的实体对象，一般来自entity包，如：ParkBaseInfo
  * @param <P> param参数对象，一般来自params包，如：ParkBaseInfoParam
  * @Author neopen
- * @email Haeng2015@163.com
+ * @github https://github.com/neopen/spring-boot-jpa-plus
  * @time 2018年11月2日 上午10:34:30
  * @do >>> 基本接口（提供了一些通用的方法，可选择重写自己需要的）
  */
 public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServiceFactory {
 
     /**
-     * @param <S>
-     * @param root
-     * @param query
-     * @param cb
-     * @param param param参数对象（从客户端接收数据的对象）
-     * @return
-     * @throws Exception
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Description 获得Predicate列表（jpa的多条件查询方法）
-     * @date 2019年5月24日 下午1:27:14
+     * 获取查询条件
+     *
+     * @param root  Root
+     * @param query CriteriaQuery
+     * @param cb    CriteriaBuilder
+     * @param param 查询参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
      */
-    default <S extends P> List<Predicate> getPredicates(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb, @Nullable S param) throws Exception {
+    default List<Predicate> getPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param) throws Exception {
+
+        return buildPredicates(root, query, cb, param);
+    }
+
+    /**
+     * 获取查询条件
+     *
+     * @param root    Root
+     * @param query   CriteriaQuery
+     * @param cb      CriteriaBuilder
+     * @param param   查询参数
+     * @param isParam 是否使用查询参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
+     */
+    default List<Predicate> getPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param,
+            boolean isParam) throws Exception {
+
+        return buildPredicates(root, query, cb, param, isParam);
+    }
+
+    /**
+     * 获取查询条件
+     *
+     * @param root  Root
+     * @param query CriteriaQuery
+     * @param cb    CriteriaBuilder
+     * @param param 查询参数
+     * @param map   扩展参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
+     */
+    default List<Predicate> getPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param,
+            @Nullable Map<Object, ?> map) throws Exception {
+
+        return buildPredicates(root, query, cb, param, map);
+    }
+
+    /**
+     * 获取查询条件
+     *
+     * @param root   Root
+     * @param query  CriteriaQuery
+     * @param cb     CriteriaBuilder
+     * @param param  查询参数
+     * @param params 扩展参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
+     */
+    default List<Predicate> getPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param,
+            @Nullable Object... params) throws Exception {
+
+        return buildPredicates(root, query, cb, param, params);
+    }
+
+    /**
+     * 构建查询条件
+     * <p>
+     * 业务类可以重写此方法，实现自定义查询条件。
+     *
+     * @param root  Root
+     * @param query CriteriaQuery
+     * @param cb    CriteriaBuilder
+     * @param param 查询参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
+     */
+    default List<Predicate> buildPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param) throws Exception {
+
         List<Predicate> predicates = new ArrayList<>(16);
 
+        // 查询条件示例：
         // if (!StringUtils.isEmpty(param.getUserName())) { // 连表查询
         // Join<SysUser, SysSourceStockIn> joinUser = root.join("sysUser", JoinType.LEFT);
         // predicates.add(cb.like(joinUser.get("userName").as(String.class), "%" + param.getUserName() + "%"));
@@ -64,62 +151,71 @@ public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServic
 //        if (StrUtil.isNotBlank(param.getCodePlate()))
 //            predicates.add(cb.or(cb.like(root.<String>get("code"), "%" + param.getCodePlate() + "%"), cb.like(root.<String>get("plateNum"), "%" + param.getCodePlate() + "%")));
 
-
         return predicates;
     }
 
     /**
-     * @param <Z>
-     * @param root
-     * @param query
-     * @param cb
-     * @param param   param参数对象（从客户端接收数据的对象）
-     * @param isParam 其他参数
-     * @return
-     * @throws Exception
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Description jpa的多条件查询方法
-     * @date 2019年5月24日 下午1:26:15
+     * 构建查询条件
+     *
+     * @param root    Root
+     * @param query   CriteriaQuery
+     * @param cb      CriteriaBuilder
+     * @param param   查询参数
+     * @param isParam 是否使用查询参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
      */
-    default <Z extends P> List<Predicate> getPredicates(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb, @Nullable Z param, boolean isParam) throws Exception {
-        return this.getPredicates(root, query, cb, param);
+    default List<Predicate> buildPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param,
+            boolean isParam) throws Exception {
+
+        return buildPredicates(root, query, cb, param);
     }
 
     /**
-     * @param <Z>
-     * @param root
-     * @param query
-     * @param cb
-     * @param param param参数对象（从客户端接收数据的对象）
-     * @param map   其他参数
-     * @return
-     * @throws Exception
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Description jpa的多条件查询方法
-     * @date 2019年5月24日 下午1:26:15
+     * 构建查询条件
+     *
+     * @param root  Root
+     * @param query CriteriaQuery
+     * @param cb    CriteriaBuilder
+     * @param param 查询参数
+     * @param map   扩展参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
      */
-    default <Z extends P> List<Predicate> getPredicates(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb, @Nullable Z param, Map<Object, ?> map) throws Exception {
-        return this.getPredicates(root, query, cb, param);
+    default List<Predicate> buildPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param,
+            @Nullable Map<Object, ?> map) throws Exception {
+
+        return buildPredicates(root, query, cb, param);
     }
 
     /**
-     * @param <Z>
-     * @param root
-     * @param query
-     * @param cb
-     * @param param  param参数对象（从客户端接收数据的对象）
-     * @param params 其他参数
-     * @return
-     * @throws Exception
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Description jpa的多条件查询方法
-     * @date 2019年5月24日 下午1:26:15
+     * 构建查询条件
+     *
+     * @param root   Root
+     * @param query  CriteriaQuery
+     * @param cb     CriteriaBuilder
+     * @param param  查询参数
+     * @param params 扩展参数
+     * @return Predicate 条件集合
+     * @throws Exception 异常
      */
-    default <Z extends P> List<Predicate> getPredicates(Root<T> root, CriteriaQuery<?> query, CriteriaBuilder cb, @Nullable Z param, @Nullable Object... params) throws Exception {
-        return this.getPredicates(root, query, cb, param);
+    default List<Predicate> buildPredicates(
+            Root<T> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            @Nullable P param,
+            @Nullable Object... params) throws Exception {
+
+        return buildPredicates(root, query, cb, param);
     }
+
 
 }

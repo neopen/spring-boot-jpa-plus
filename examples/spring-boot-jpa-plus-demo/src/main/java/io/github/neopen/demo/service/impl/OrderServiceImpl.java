@@ -1,8 +1,6 @@
 package io.github.neopen.demo.service.impl;
 
-import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.RandomUtil;
-import cn.hutool.core.util.StrUtil;
 import io.github.neopen.convert.convert.AbstractBaseService;
 import io.github.neopen.convert.convert.BaseVoCommom;
 import io.github.neopen.demo.bean.entity.Order;
@@ -24,6 +22,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -93,20 +92,32 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQ
     }
 
     @Override
-    public <S extends OrderQueryParam> List<Predicate> getPredicates(Root<Order> root, CriteriaQuery<?> query, CriteriaBuilder cb, S param) throws Exception {
-        List<Predicate> predicates = super.getPredicates(root, query, cb, param, param);
+    public List<Predicate> buildPredicates(
+            Root<Order> root,
+            CriteriaQuery<?> query,
+            CriteriaBuilder cb,
+            OrderQueryParam param) throws Exception {
 
-        if (ObjectUtil.isNotNull(param.getStatus()))
-            predicates.add(cb.equal(root.<String>get("status"), param.getStatus()));
+        List<Predicate> predicates = new ArrayList<>(16);
 
-        if (ObjectUtil.isNotNull(param.getSenderPhone()))
-            predicates.add(cb.equal(root.<String>get("senderPhone"), param.getSenderPhone()));
+        if (param == null) {
+            return predicates;
+        }
 
-        if (StrUtil.isNotEmpty(param.getOrderNo()))
-            predicates.add(cb.like(root.get("orderNo"), param.getOrderNo() + "%"));
+        if (param.getOrderNo() != null && !param.getOrderNo().isBlank()) {
+            predicates.add(cb.like(
+                    root.get("orderNo"),
+                    "%" + param.getOrderNo() + "%"
+            ));
+        }
+
+        if (param.getStatus() != null && !param.getStatus().isBlank()) {
+            predicates.add(cb.equal(root.get("status"), param.getStatus()));
+        }
 
         return predicates;
     }
+
 
     @Override
     public <S extends OrderVo> BaseVoCommom<Order, S> baseVo(Order entity) throws Exception {
@@ -162,6 +173,12 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQ
         return this.parseVo(orderRepo.findByOrderNo(orderNo).orElseThrow(() -> new IllegalArgumentException("订单不存在")));
     }
 
+
+    @Override
+    public Json<List<OrderVo>> getList(OrderQueryParam param) throws Exception {
+
+        return jsonPageConverter.convert(batchParseVo(orderRepo.findAll(getSpecExecutor(param))));
+    }
 
     public OrderServiceImpl(OrderRepo orderRepo, OrderProductService orderProductService, JsonPageConverter jsonPageConverter) {
         this.orderRepo = orderRepo;

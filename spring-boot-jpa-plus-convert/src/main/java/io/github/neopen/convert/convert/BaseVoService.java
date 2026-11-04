@@ -10,7 +10,7 @@ import java.util.Map;
  * @param <V> 需要返回的vo对象，一般来自vo包，如：ParkBaseInfoVo
  * @param <T> 需要转换为vo的实体对象，一般来自entity包，如：ParkBaseInfo
  * @Author neopen
- * @email Haeng2015@163.com
+ * @github https://github.com/neopen/spring-boot-jpa-plus
  * @time 2018年11月2日 上午10:34:30
  * @do >>> 基本接口（提供了一些通用的方法，可选择重写自己需要的）
  */

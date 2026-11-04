@@ -49,6 +49,11 @@ public class OrderController implements BaseController<OrderQueryParam, OrderVo>
     }
 
     @Override
+    public Json<List<OrderVo>> getList(OrderQueryParam param) throws Exception {
+        return orderService.getList(param);
+    }
+
+    @Override
     public Json<OrderVo> getDetail(Object orderNo) throws Exception {
         return Json.getSucc(orderService.getDetail(orderNo.toString()));
     }

@@ -63,6 +63,22 @@ public class JsonPageConverter {
     }
 
     /**
+     * VO 列表包装为分页响应。
+     *
+     * @param data VO 列表
+     * @param <V>  VO 类型
+     * @return JSON 分页响应
+     */
+    public <V> Json<List<V>> convert(
+            List<V> data) {
+
+        return responseFactory.create(
+                data == null ? Collections.emptyList() : data,
+                0
+        );
+    }
+
+    /**
      * Page<VO> 包装为分页响应。
      *
      * @param page VO 分页对象

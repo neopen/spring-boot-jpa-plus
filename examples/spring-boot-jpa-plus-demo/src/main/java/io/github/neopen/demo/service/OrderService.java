@@ -53,5 +53,12 @@ public interface OrderService {
      */
     Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception;
 
-
+    /**
+     * 获取订单列表
+     *
+     * @param param
+     * @return
+     * @throws Exception
+     */
+    Json<List<OrderVo>> getList(OrderQueryParam param) throws Exception;
 }
