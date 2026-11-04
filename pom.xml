@@ -30,12 +30,16 @@
     </properties>
 
     <modules>
+        <!--        核心模块-->
         <module>spring-boot-jpa-plus-core</module>
         <module>spring-boot-jpa-plus-autoconfigure</module>
         <module>spring-boot-jpa-plus-starter</module>
-        <module>spring-boot-jpa-plus-support</module>
-        <module>spring-boot-jpa-plus-web</module>
-        <module>spring-boot-jpa-plus-idempotent</module>
+        <module>spring-boot-jpa-plus-convert</module>
+
+        <!-- 扩展模块 -->
+        <module>spring-boot-jpa-plus-extension</module>
+
+        <!-- 示例项目 -->
         <module>examples/spring-boot-jpa-plus-demo</module>
     </modules>
 
@@ -70,20 +74,26 @@
 
             <dependency>
                 <groupId>io.github.neopen</groupId>
-                <artifactId>spring-boot-jpa-plus-support</artifactId>
+                <artifactId>spring-boot-jpa-plus-convert</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
                 <groupId>io.github.neopen</groupId>
-                <artifactId>spring-boot-jpa-plus-web</artifactId>
+                <artifactId>spring-boot-jpa-plus-extension</artifactId>
                 <version>${project.version}</version>
             </dependency>
 
             <dependency>
-                <groupId>io.github.neopen</groupId>
-                <artifactId>spring-boot-jpa-plus-idempotent</artifactId>
-                <version>${project.version}</version>
+                <groupId>com.google.guava</groupId>
+                <artifactId>guava</artifactId>
+                <version>33.4.8-jre</version>
+            </dependency>
+
+            <dependency>
+                <groupId>com.alibaba.fastjson2</groupId>
+                <artifactId>fastjson2</artifactId>
+                <version>${fastjson2.version}</version>
             </dependency>
 
         </dependencies>

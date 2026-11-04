@@ -23,12 +23,7 @@
 
         <dependency>
             <groupId>io.github.neopen</groupId>
-            <artifactId>spring-boot-jpa-plus-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>io.github.neopen</groupId>
-            <artifactId>spring-boot-jpa-plus-idempotent</artifactId>
+            <artifactId>spring-boot-jpa-plus-extension</artifactId>
         </dependency>
 
         <dependency>
@@ -41,6 +36,23 @@
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
             <scope>runtime</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.projectlombok</groupId>
+            <artifactId>lombok</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>io.swagger</groupId>
+            <artifactId>swagger-annotations</artifactId>
+            <version>1.5.23</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-core</artifactId>
+            <version>5.8.39</version>
         </dependency>
     </dependencies>
 

@@ -36,6 +36,17 @@
 			<artifactId>spring-boot-jpa-plus-autoconfigure</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>io.github.neopen</groupId>
+			<artifactId>spring-boot-jpa-plus-core</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>io.github.neopen</groupId>
+			<artifactId>spring-boot-jpa-plus-convert</artifactId>
+		</dependency>
+
+
 	</dependencies>
 
 </project>

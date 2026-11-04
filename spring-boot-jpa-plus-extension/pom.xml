@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+		 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
+         https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+	<modelVersion>4.0.0</modelVersion>
+
+	<!-- 继承根项目，统一管理版本和依赖 -->
+	<parent>
+		<groupId>io.github.neopen</groupId>
+		<artifactId>spring-boot-jpa-plus</artifactId>
+		<version>1.0.0-SNAPSHOT</version>
+		<relativePath>../pom.xml</relativePath>
+	</parent>
+
+	<artifactId>spring-boot-jpa-plus-extension</artifactId>
+	<packaging>jar</packaging>
+
+	<name>Spring Boot JPA Plus Extension</name>
+	<description>
+		Optional extensions including idempotency, logging,
+		local cache and common utilities.
+	</description>
+
+	<dependencies>
+
+		<dependency>
+			<groupId>io.github.neopen</groupId>
+			<artifactId>spring-boot-jpa-plus-convert</artifactId>
+		</dependency>
+
+		<!--
+            Spring AOP：
+            提供 @Aspect、@Around、ProceedingJoinPoint 等能力，
+            用于实现 @Idempotent 和日志注解对应的切面。
+        -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-aop</artifactId>
+		</dependency>
+
+		<!--
+            Spring Web：
+            日志切面如果需要获取请求信息，可以使用
+            RequestContextHolder、ServletRequestAttributes 等。
+            不引入完整 spring-boot-starter-web，避免增加不必要依赖。
+        -->
+		<dependency>
+			<groupId>org.springframework</groupId>
+			<artifactId>spring-web</artifactId>
+		</dependency>
+
+		<!--
+            Servlet API：
+            仅在日志切面直接使用 HttpServletRequest、
+            HttpServletResponse 时需要。
+            由最终业务应用的 Web 容器提供。
+        -->
+		<dependency>
+			<groupId>jakarta.servlet</groupId>
+			<artifactId>jakarta.servlet-api</artifactId>
+			<scope>provided</scope>
+		</dependency>
+
+		<!--
+            Lombok：
+            如果原有工具类使用 @Slf4j、@Data 等注解，
+            仅作为可选编译期依赖。
+        -->
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<optional>true</optional>
+		</dependency>
+
+		<dependency>
+			<groupId>com.alibaba.fastjson2</groupId>
+			<artifactId>fastjson2</artifactId>
+		</dependency>
+
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+		</dependency>
+
+	</dependencies>
+
+</project>
