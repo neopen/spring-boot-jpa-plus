@@ -28,9 +28,9 @@ public class OrderProduct {
     /**
      * 关联的商品库存信息
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "product_id", referencedColumnName = "id", insertable = false, updatable = false)
-    private Product product;
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "product_id", referencedColumnName = "id", insertable = false, updatable = false)
+//    private Product product;
 
     /**
      * 关联的订单

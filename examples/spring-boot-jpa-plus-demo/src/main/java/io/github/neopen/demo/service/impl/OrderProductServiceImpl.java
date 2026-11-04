@@ -4,12 +4,15 @@ import io.github.neopen.convert.convert.AbstractBaseService;
 import io.github.neopen.convert.convert.BaseVoCommom;
 import io.github.neopen.demo.bean.entity.Order;
 import io.github.neopen.demo.bean.entity.OrderProduct;
+import io.github.neopen.demo.bean.param.OrderProductParam;
 import io.github.neopen.demo.bean.vo.OrderProductVo;
 import io.github.neopen.demo.persistence.repo.OrderProductRepo;
 import io.github.neopen.demo.service.OrderProductService;
 import jakarta.validation.constraints.Null;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -29,6 +32,24 @@ public class OrderProductServiceImpl extends AbstractBaseService<OrderProductVo,
     }
 
     @Override
+    @Transactional
+    public List<OrderProduct> saveOrderProduct(List<OrderProductParam> orderProducts, Order order) throws Exception {
+        List<OrderProduct> orderProductList = new ArrayList<>();
+        for (OrderProductParam orderProductParam : orderProducts) {
+            OrderProduct orderProduct = new OrderProduct();
+            orderProduct.setOrder(order);
+            orderProduct.setCreateTime(java.time.LocalDateTime.now());
+            orderProduct.setUpdateTime(java.time.LocalDateTime.now());
+            orderProduct.setProductId(orderProductParam.getProductId());
+            orderProduct.setProductName(orderProductParam.getProductName());
+            orderProduct.setQuantity(orderProductParam.getQuantity());
+            orderProduct.setUnitPrice(orderProductParam.getUnitPrice());
+            orderProductList.add(orderProduct);
+        }
+        return orderProductRepo.saveAll(orderProductList);
+    }
+
+    @Override
     public <S extends OrderProductVo> BaseVoCommom<OrderProduct, S> baseVo(OrderProduct entity) throws Exception {
         return (t) -> {
             if (t == null)
@@ -38,6 +59,7 @@ public class OrderProductServiceImpl extends AbstractBaseService<OrderProductVo,
             vo.setId(t.getId());
             vo.setProductId(entity.getProductId());
             vo.setProductName(entity.getProductName());
+            vo.setProductCode(entity.getProductCode());
             vo.setQuantity(entity.getQuantity());
             vo.setUnitPrice(entity.getUnitPrice());
             vo.setProductImage(entity.getProductImage());

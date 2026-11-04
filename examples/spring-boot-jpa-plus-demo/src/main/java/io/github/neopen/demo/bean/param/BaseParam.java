@@ -1,7 +1,7 @@
 package io.github.neopen.demo.bean.param;
 
-import io.github.neopen.jpa.annotation.DateStrFormat;
-import io.github.neopen.jpa.annotation.DateStrValid;
+import io.github.neopen.convert.annotation.DateStrFormat;
+import io.github.neopen.convert.annotation.DateStrValid;
 import io.swagger.annotations.ApiModelProperty;
 import jakarta.validation.constraints.Size;
 import lombok.Data;

@@ -104,58 +104,16 @@ public class Order {
     private Long shippingBranchId;
 
     /**
-     * 发货网点名称
-     */
-    @Column(name = "shipping_branch_name", length = 255)
-    private String shippingBranchName;
-
-    /**
-     * 发货网点地址
-     */
-    @Column(name = "shipping_branch_address", length = 500)
-    private String shippingBranchAddress;
-
-    /**
-     * 发货网点联系电话
-     */
-    @Column(name = "shipping_branch_phone", length = 20)
-    private String shippingBranchPhone;
-
-    /**
      * 收货网点ID
      */
     @Column(name = "receiving_branch_id")
     private Long receivingBranchId;
 
     /**
-     * 收货网点名称
-     */
-    @Column(name = "receiving_branch_name", length = 255)
-    private String receivingBranchName;
-
-    /**
-     * 收货网点地址
-     */
-    @Column(name = "receiving_branch_address", length = 500)
-    private String receivingBranchAddress;
-
-    /**
-     * 收货网点联系电话
-     */
-    @Column(name = "receiving_branch_phone", length = 20)
-    private String receivingBranchPhone;
-
-    /**
      * 物流单号
      */
     @Column(name = "tracking_number", length = 100)
     private String trackingNumber;
-
-    /**
-     * 物流公司
-     */
-    @Column(name = "logistics_company", length = 100)
-    private String logisticsCompany;
 
     /**
      * 支付方式
@@ -168,18 +126,6 @@ public class Order {
      */
     @Column(name = "payment_time")
     private LocalDateTime paymentTime;
-
-    /**
-     * 预计送达时间
-     */
-    @Column(name = "estimated_delivery_time")
-    private LocalDateTime estimatedDeliveryTime;
-
-    /**
-     * 实际送达时间
-     */
-    @Column(name = "actual_delivery_time")
-    private LocalDateTime actualDeliveryTime;
 
     /**
      * 订单备注

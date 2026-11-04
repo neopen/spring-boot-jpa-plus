@@ -2,6 +2,7 @@ package io.github.neopen.demo.service;
 
 import io.github.neopen.demo.bean.entity.Order;
 import io.github.neopen.demo.bean.entity.OrderProduct;
+import io.github.neopen.demo.bean.param.OrderProductParam;
 import io.github.neopen.demo.bean.vo.OrderProductVo;
 
 import java.util.List;
@@ -15,6 +16,13 @@ import java.util.List;
  * @date 2026/11/4 18:50
  */
 public interface OrderProductService {
+
+    /**
+     * 保存订单产品列表
+     *
+     * @param orderProducts
+     */
+    List<OrderProduct> saveOrderProduct(List<OrderProductParam> orderProducts, Order order) throws Exception;
 
     /**
      * 根据订单获取订单产品列表

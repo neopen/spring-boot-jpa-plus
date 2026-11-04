@@ -2,7 +2,7 @@ package io.github.neopen.demo.service;
 
 
 import io.github.neopen.demo.bean.param.OrderParam;
-import io.github.neopen.demo.bean.vo.OrderDetailVo;
+import io.github.neopen.demo.bean.param.OrderQueryParam;
 import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.extension.response.Json;
 
@@ -18,6 +18,22 @@ import java.util.List;
  */
 public interface OrderService {
 
+    /**
+     * 新增订单
+     *
+     * @param param
+     * @return
+     * @throws Exception
+     */
+    OrderVo add(OrderParam param) throws Exception;
+
+    /**
+     * 随机生成订单
+     *
+     * @return
+     * @throws Exception
+     */
+    OrderVo generateOrder() throws Exception;
 
     /**
      * 获取订单详情
@@ -26,7 +42,7 @@ public interface OrderService {
      * @return
      * @throws Exception
      */
-    OrderDetailVo getDetail(String orderNo) throws Exception;
+    OrderVo getDetail(String orderNo) throws Exception;
 
     /**
      * 获取订单列表
@@ -35,7 +51,7 @@ public interface OrderService {
      * @return
      * @throws Exception
      */
-    Json<List<OrderVo>> getPage(OrderParam param) throws Exception;
+    Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception;
 
 
 }

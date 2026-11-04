@@ -21,7 +21,7 @@ import java.util.*;
 public class Json<V> {
 
     //    @ApiModelProperty(value = "总记录数")
-    private long count;
+    private Long count;
 
     //    @ApiModelProperty(value = "实体对象或对象结果集")
     private V data;

@@ -1,12 +1,14 @@
 package io.github.neopen.demo.service.impl;
 
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
 import io.github.neopen.convert.convert.AbstractBaseService;
 import io.github.neopen.convert.convert.BaseVoCommom;
 import io.github.neopen.demo.bean.entity.Order;
 import io.github.neopen.demo.bean.param.OrderParam;
-import io.github.neopen.demo.bean.vo.OrderDetailVo;
+import io.github.neopen.demo.bean.param.OrderProductParam;
+import io.github.neopen.demo.bean.param.OrderQueryParam;
 import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.demo.persistence.repo.OrderRepo;
 import io.github.neopen.demo.service.OrderProductService;
@@ -19,7 +21,9 @@ import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
@@ -31,14 +35,65 @@ import java.util.List;
  * @date 2025/12/23 17:05
  */
 @Service
-public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderParam> implements OrderService {
+public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQueryParam> implements OrderService {
     private final OrderRepo orderRepo;
     private final OrderProductService orderProductService;
     private final JsonPageConverter jsonPageConverter;
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public OrderVo add(OrderParam param) throws Exception {
+        Order order = new Order();
+        order.setCreateTime(java.time.LocalDateTime.now());
+        order.setUpdateTime(java.time.LocalDateTime.now());
+        order.setOrderNo(param.getOrderNo());
+        order.setTotalAmount(param.getTotalAmount());
+        order.setStatus(param.getStatus());
+        order.setUserId(param.getUserId());
+        order.setShippingAddress(param.getShippingAddress());
+        order.setSenderName(param.getSenderName());
+        order.setSenderPhone(param.getSenderPhone());
+        order.setReceiverName(param.getReceiverName());
+        order.setReceiverAddress(param.getReceiverAddress());
+        order.setReceiverPhone(param.getReceiverPhone());
+        order.setRemark(param.getRemark());
+        order.setShippingFee(param.getShippingFee());
+        order.setDiscountAmount(param.getDiscountAmount());
+        order.setPaymentMethod(param.getPaymentMethod());
+        order.setTrackingNumber(param.getTrackingNumber());
+        Order save = orderRepo.save(order);
+        save.setOrderProducts(orderProductService.saveOrderProduct(param.getOrderProducts(), save));
+        return parseVo(save);
+    }
 
     @Override
-    public <S extends OrderParam> List<Predicate> getPredicates(Root<Order> root, CriteriaQuery<?> query, CriteriaBuilder cb, S param) throws Exception {
+    public OrderVo generateOrder() throws Exception {
+        OrderParam order = new OrderParam();
+        order.setOrderNo("DS" + System.currentTimeMillis());
+        order.setTotalAmount(BigDecimal.valueOf(100.00));
+        order.setStatus("待支付");
+        order.setUserId(RandomUtil.randomLong(888));
+        order.setShippingAddress("上海");
+        order.setSenderName("张三");
+        order.setSenderPhone("12345678901");
+        order.setReceiverName("李四");
+        order.setReceiverAddress("北京");
+        order.setReceiverPhone("12345678901");
+        order.setRemark("无");
+        order.setShippingFee(BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)));
+        order.setDiscountAmount(BigDecimal.valueOf(0.00));
+        order.setPaymentMethod("支付宝");
+        order.setTrackingNumber("202512230001");
+
+        order.setOrderProducts(List.of(
+                new OrderProductParam(RandomUtil.randomLong(999999999), String.valueOf(RandomUtil.randomChinese()), BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)), RandomUtil.randomInt(1, 100), RandomUtil.randomString(16)),
+                new OrderProductParam(RandomUtil.randomLong(999999999), String.valueOf(RandomUtil.randomChinese()), BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)), RandomUtil.randomInt(1, 100), RandomUtil.randomString(16))
+        ));
+        return add(order);
+    }
+
+    @Override
+    public <S extends OrderQueryParam> List<Predicate> getPredicates(Root<Order> root, CriteriaQuery<?> query, CriteriaBuilder cb, S param) throws Exception {
         List<Predicate> predicates = super.getPredicates(root, query, cb, param, param);
 
         if (ObjectUtil.isNotNull(param.getStatus()))
@@ -83,27 +138,18 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderP
     }
 
     @Override
-    public Json<List<OrderVo>> getPage(OrderParam param) throws Exception {
+    public Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception {
         Page<Order> orderPage = orderRepo.findAll(getSpecExecutor(param), param.pageRequest());
 
         return jsonPageConverter.convert(batchParseVo(orderPage.getContent()), orderPage.getTotalElements());
     }
 
     @Override
-    public <S extends Order> OrderDetailVo parseVo(S entity) throws Exception {
-        OrderDetailVo vo = (OrderDetailVo) super.parseVo(entity);
+    public <S extends Order> OrderVo parseVo(S entity) throws Exception {
+        OrderVo vo = super.parseVo(entity);
 
-        vo.setReceivingBranchAddress(entity.getReceivingBranchAddress());
-        vo.setReceivingBranchName(entity.getReceivingBranchName());
-        vo.setReceivingBranchPhone(entity.getReceivingBranchPhone());
-        vo.setShippingBranchAddress(entity.getShippingBranchAddress());
-        vo.setShippingBranchName(entity.getShippingBranchName());
-        vo.setShippingBranchPhone(entity.getShippingBranchPhone());
         vo.setTrackingNumber(entity.getTrackingNumber());
-        vo.setLogisticsCompany(entity.getLogisticsCompany());
         vo.setPaymentMethod(entity.getPaymentMethod());
-        vo.setEstimatedDeliveryTime(entity.getEstimatedDeliveryTime());
-        vo.setActualDeliveryTime(entity.getActualDeliveryTime());
 
 //        获取订单产品列表
         vo.setOrderProducts(orderProductService.getOrderProductsByOrder(entity));
@@ -112,7 +158,7 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderP
     }
 
     @Override
-    public OrderDetailVo getDetail(String orderNo) throws Exception {
+    public OrderVo getDetail(String orderNo) throws Exception {
         return this.parseVo(orderRepo.findByOrderNo(orderNo).orElseThrow(() -> new IllegalArgumentException("订单不存在")));
     }
 

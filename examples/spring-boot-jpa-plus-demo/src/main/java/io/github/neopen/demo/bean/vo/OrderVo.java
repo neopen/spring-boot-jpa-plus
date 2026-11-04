@@ -6,6 +6,7 @@ import lombok.Data;
 import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * <b>
@@ -94,4 +95,18 @@ public class OrderVo extends BaseVo implements Serializable {
      */
     private BigDecimal shippingFee;
 
+    /**
+     * 物流单号
+     */
+    private String trackingNumber;
+    /**
+     * 支付方式
+     */
+    private String paymentMethod;
+
+    /**
+     * 关联的订单项列表
+     * 一对多关系，cascade表示级联操作，orphanRemoval表示删除孤立实体
+     */
+    private List<OrderProductVo> orderProducts;
 }
