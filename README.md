@@ -1,42 +1,63 @@
 # Spring Boot JPA Plus
 
-<p align="center">  <strong>Make JPA Development Simpler.</strong>  <br/>  一个轻量、模块化的 Spring Boot JPA 增强工具库。</p>
+<p align="center">  <strong>A Powerful JPA Extension Toolkit for Spring Boot</strong>  <br/>  Simplify data access, eliminate boilerplate code, and boost development productivity.</p>
 
-<p align="center">  <a href="https://github.com/neopen/spring-boot-jpa-plus">    <img src="https://img.shields.io/github/stars/neopen/spring-boot-jpa-plus?style=flat-square" alt="Stars"/>  </a>  <img src="https://img.shields.io/github/license/neopen/spring-boot-jpa-plus?style=flat-square" alt="License"/>  <img src="https://img.shields.io/github/last-commit/neopen/spring-boot-jpa-plus?style=flat-square" alt="Last Commit"/></p>
+<p align="center">  <a href="https://github.com/neopen/spring-boot-jpa-plus">    <img src="https://img.shields.io/github/stars/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Stars"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/network/members">    <img src="https://img.shields.io/github/forks/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Forks"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/issues">    <img src="https://img.shields.io/github/issues/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Issues"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE">    <img src="https://img.shields.io/github/license/neopen/spring-boot-jpa-plus?style=flat-square" alt="License"/>  </a></p>
 
-## ✨ Introduction
+## Overview
 
-**Spring Boot JPA Plus** 是一个基于 Spring Data JPA 构建的增强工具库。
+**Spring Boot JPA Plus** is a modular enhancement toolkit built on top of Spring Data JPA.
 
-它针对日常开发中重复的 CRUD、批量操作、动态查询、Entity-VO 转换及分页处理等场景进行封装，让 JPA 开发更加简洁、高效。
+It provides convenient abstractions for common database operations, dynamic queries, batch processing, Entity-VO conversion, and pagination.
 
-不改变原有 JPA 开发习惯，通过模块化设计和可选扩展，让常用功能开箱即用。
+Instead of replacing JPA, it extends the existing development experience with reusable components and flexible APIs.
 
-## 🚀 Features
+### Features
 
-- **CRUD** — 简化常用数据增删改查操作。
-- **Batch Operations** — 提供便捷的批量数据操作。
-- **Dynamic Query** — 基于 Criteria API 灵活构建动态查询。
-- **Entity-VO Converter** — 简化实体对象与业务视图对象转换。
-- **Pagination** — 统一分页查询与结果封装。
-- **HQL / SQL** — 扩展常用数据访问能力。
-- **Auto Configuration** — Spring Boot 自动配置，减少重复配置。
-- **Modular Extensions** — 模块化设计，功能按需引入。
+- **CRUD Operations** - Simplified common database operations.
+- **Batch Processing** - Convenient batch save, update, and delete operations.
+- **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
+- **Entity-VO Conversion** - Reusable object conversion and mapping.
+- **Pagination** - Simplified paginated queries and response handling.
+- **HQL & SQL** - Extended data access capabilities.
+- **Auto Configuration** - Seamless Spring Boot integration.
+- **Modular Architecture** - Independent modules and optional extensions.
 
-## 📦 Modules
+## Architecture
 
-| Module          | Description              |
-| --------------- | ------------------------ |
-| `core`          | 核心 JPA 数据访问能力    |
-| `convert`       | Entity-VO 转换与动态查询 |
-| `autoconfigure` | Spring Boot 自动配置     |
-| `starter`       | 统一依赖入口             |
-| `extension`     | 可选功能扩展             |
-| `demo`          | 示例项目                 |
+```
+spring-boot-jpa-plus
+│
+├── spring-boot-jpa-plus-core
+├── spring-boot-jpa-plus-convert
+├── spring-boot-jpa-plus-autoconfigure
+├── spring-boot-jpa-plus-starter
+├── spring-boot-jpa-plus-extension
+│
+└── examples
+    └── spring-boot-jpa-plus-demo
+```
 
-## ⚡ Quick Start
+| Module          | Description                                    |
+| --------------- | ---------------------------------------------- |
+| `core`          | Core JPA data access and CRUD operations       |
+| `convert`       | Entity-VO conversion and dynamic query support |
+| `autoconfigure` | Spring Boot auto-configuration                 |
+| `starter`       | Unified dependency entry point                 |
+| `extension`     | Optional extension components                  |
+| `demo`          | Sample application and usage examples          |
 
-添加 Starter 依赖：
+## Requirements
+
+- Java 17+
+- Spring Boot 3.x
+- Maven 3.x
+
+> Compatibility depends on the published release. Check the project dependencies for the exact supported versions.
+
+## Installation
+
+Add the starter dependency to your `pom.xml`:
 
 ```
 <dependency>
@@ -46,13 +67,44 @@
 </dependency>
 ```
 
-将 `${version}` 替换为实际发布版本。
+Replace `${version}` with the desired release version.
 
-引入依赖后，即可在业务服务中使用项目提供的基础服务、查询构建及转换能力。
+## Quick Start
 
-## 💡 Example
+### 1. Define an Entity
 
-通过 `BasePredicateService` 扩展动态查询条件：
+```
+@Entity
+@Table(name = "t_order")
+public class Order {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String orderNo;
+
+    private String status;
+
+    private BigDecimal totalAmount;
+
+    // Getters and setters
+}
+```
+
+### 2. Define a Repository
+
+```
+@Repository
+public interface OrderRepository
+        extends JpaRepository<Order, Long>,
+                JpaSpecificationExecutor<Order> {
+}
+```
+
+### 3. Build Dynamic Queries
+
+Implement custom query conditions without repeating Criteria API boilerplate:
 
 ```
 @Override
@@ -86,26 +138,50 @@ public List<Predicate> buildPredicates(
 }
 ```
 
-将业务查询条件与通用查询逻辑分离，让代码更清晰、更易维护。
+### 4. Use the Base Service
 
-## 🛠️ Tech Stack
+Extend the provided base service to reuse common data access and conversion capabilities:
 
 ```
-Java` · `Spring Boot` · `Spring Data JPA` · `Hibernate` · `Maven
+@Service
+public class OrderServiceImpl
+        extends AbstractBaseService<OrderVo, Order, OrderQueryParam>
+        implements OrderService {
+
+    private final OrderRepository orderRepository;
+
+    public OrderServiceImpl(OrderRepository orderRepository) {
+        this.orderRepository = orderRepository;
+    }
+}
 ```
 
-## 📖 Demo
+## Example Project
 
-查看示例项目：
+Explore the demo project for practical integration and usage examples.
 
-[ spring-boot-jpa-plus-demo ](https://github.com/neopen/spring-boot-jpa-plus/tree/main/examples/spring-boot-jpa-plus-demo)
+**[spring-boot-jpa-plus-demo](https://github.com/neopen/spring-boot-jpa-plus/tree/main/examples/spring-boot-jpa-plus-demo)**
 
-## 🤝 Contributing
+## Build from Source
 
-欢迎提交 Issue、功能建议和 Pull Request，一起完善项目。
+```
+git clone https://github.com/neopen/spring-boot-jpa-plus.git
 
-## 📄 License
+cd spring-boot-jpa-plus
 
-[MIT License](https://chatgpt.com/c/LICENSE)
+mvn clean install
+```
 
-<p align="center">  If it helps you, give it a ⭐</p>
+## Contributing
+
+Contributions are welcome!
+
+- Report bugs through [Issues](https://github.com/neopen/spring-boot-jpa-plus/issues).
+- Suggest features and improvements.
+- Submit Pull Requests.
+
+## License
+
+Spring Boot JPA Plus is licensed under the [MIT License](https://chatgpt.com/c/LICENSE).
+
+<p align="center">  If you find this project useful, please consider giving it a ⭐</p>
