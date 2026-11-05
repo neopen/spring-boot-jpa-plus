@@ -18,29 +18,28 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * <b>
+ * 日期字符串校验切面。
  *
- * @Author neopen
- * @date 2020年9月11日 下午2:13:06
+ * <p>在带有日期校验注解的方法执行前，检查参数对象字段上的
+ * {@link DateStrFormat} 配置。</p>
  */
 @Aspect
 @Component
 public class DateStrAspect {
 
+    /** 匹配带有日期校验注解的方法。 */
     private static final String AOP_POINTCUT_EXPRESSION = "@annotation(io.github.neopen.convert.annotation.DateStrValid)";
 
+    /** 定义日期校验注解切点。 */
     @Pointcut(AOP_POINTCUT_EXPRESSION)
     public void paramAspect() {
     }
 
     /**
-     * <b> 校验日期格式
-     * <p>
+     * 在目标方法执行前校验日期参数。
      *
-     * @param joinPoint
-     * @throws Exception
-     * @Author neopen
-     * @date 2020年9月11日 下午2:24:55
+     * @param joinPoint 当前连接点
+     * @throws Exception 参数访问或日期校验失败时抛出
      */
     @Before("paramAspect()")
     public void doBefore(JoinPoint joinPoint) throws Exception {
@@ -52,20 +51,12 @@ public class DateStrAspect {
         String argStr = JSONObject.toJSONString(args);
         JSONArray objects = JSONArray.parseArray(argStr);
 
-        // 获取方法，此处可将signature强转为MethodSignature
-//        MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-//        Method method = signature.getMethod();
-//        Class<?>[] parameterTypes = method.getParameterTypes();
-
         for (Object arg : args) {
-//            ClassLoader classLoader = parameterTypes[i].getClassLoader();
-//            Class<?> aClass = classLoader.loadClass(parameterTypes[i].getName());
-
             Class<?> aClass = arg.getClass();
             Field[] fields = aClass.getDeclaredFields();
 
             for (Field field : fields) {
-//                    对私有字段的访问取消权限检查。暴力访问
+                // 私有字段也需要读取注解并参与校验。
                 if (!field.isAccessible()) {
                     field.setAccessible(true);
                 }
@@ -87,14 +78,11 @@ public class DateStrAspect {
     }
 
     /**
-     * <b> 校验
-     * <p>
+     * 按字段上的日期注解校验参数值。
      *
-     * @param field
-     * @return void
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Date 2021/4/14 15:59
+     * @param field 待检查字段；为 {@code null} 时直接返回
+     * @param param 字段对应的参数值
+     * @throws InvalidPropertiesFormatException 必填值为空或格式非法
      */
     private void isAnnoType(Field field, Object param) throws InvalidPropertiesFormatException {
         if (field == null)
@@ -104,7 +92,6 @@ public class DateStrAspect {
         if (annotation == null)
             return;
 
-        // 这里判断当前注解是否为Test.class
         if (annotation.annotationType().equals(DateStrFormat.class)) {
             if (annotation.required() && param == null)
                 throw new InvalidPropertiesFormatException("日期/时间不能为空");
@@ -115,32 +102,26 @@ public class DateStrAspect {
     }
 
     /**
-     * <b> 正则验证
-     * <p>
+     * 使用正则表达式完整匹配日期字符串。
      *
-     * @param str
-     * @param pattern
-     * @return
-     * @Author neopen
-     * @date 2020年9月11日 下午4:18:58
+     * @param str     待校验字符串
+     * @param pattern 正则表达式
+     * @return 完整匹配时返回 {@code true}
      */
     private static boolean validDateStr(String str, String pattern) {
-        // 正则表达式校验日期格式
-        // String eL = "^\\d{4}\\d{2}\\d{2}$";// 20190505
         Pattern pat = Pattern.compile(pattern);
         Matcher matcher = pat.matcher(str);
         return matcher.matches();
     }
 
     /**
-     * <b> 校验格式
-     * <p>
+     * 校验参数是否符合指定日期格式。
      *
-     * @param param
-     * @param pattern
-     * @return
-     * @Author neopen
-     * @date 2020年9月11日 下午2:20:25
+     * <p>参数或格式为空时视为合法；非空值还会检查字符串长度。</p>
+     *
+     * @param param   待校验参数
+     * @param pattern 日期格式
+     * @return 参数符合格式时返回 {@code true}
      */
     private static boolean isValidDate(Object param, String pattern) {
         boolean convertSuccess = true;
@@ -152,14 +133,13 @@ public class DateStrAspect {
         if (str.length() != pattern.length())
             return false;
 
-        // 指定日期格式为四位年/两位月份/两位日期，注意yyyy/MM/dd区分大小写；
+        // 格式字母区分大小写，例如 MM 表示月份，mm 表示分钟。
         SimpleDateFormat format = new SimpleDateFormat(pattern);
         try {
-            // 设置lenient为false. 否则SimpleDateFormat会比较宽松地验证日期，比如2007/02/29会被接受，并转换成2007/03/01
+            // 禁用宽松解析，避免无效日期被自动进位为其他日期。
             format.setLenient(false);
             format.parse(str);
         } catch (ParseException e) {
-            // 如果throw java.text.ParseException或者NullPointerException，就说明格式不对
             convertSuccess = false;
         }
         return convertSuccess;

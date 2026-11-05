@@ -1,17 +1,20 @@
 package io.github.neopen.demo.bean.vo;
 
-import io.github.neopen.convert.convert.vo.BaseVo;
+import io.github.neopen.convert.converter.vo.BaseVo;
 import io.github.neopen.demo.bean.entity.Product;
 import lombok.Data;
 
 import java.math.BigDecimal;
 
 /**
- * 订单项实体类
+ * 订单项视图对象。
+ *
+ * <p>包含订单项快照及商品扩展信息。</p>
  */
 @Data
 public class OrderProductVo extends BaseVo {
 
+    /** 订单项标识。 */
     private Long id;
 
     /**
@@ -54,7 +57,7 @@ public class OrderProductVo extends BaseVo {
      */
     private String productType;
 
-/////////////////////////////////////////////////////
+    // 以下为商品扩展信息。
 
     /**
      * SKU编码

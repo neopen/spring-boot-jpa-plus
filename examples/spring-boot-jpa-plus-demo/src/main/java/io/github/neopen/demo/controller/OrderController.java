@@ -12,23 +12,31 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @github https://github.com/neopen/spring-boot-jpa-plus
- * @date 2025/12/23 16:46
+ * 订单接口控制器。
  */
 @RestController
 @RequestMapping("/order")
 public class OrderController implements BaseController<OrderQueryParam, OrderVo> {
 
+    /** 订单业务服务。 */
     private final OrderService orderService;
 
+    /**
+     * 创建订单控制器。
+     *
+     * @param orderService 订单业务服务
+     */
     public OrderController(OrderService orderService) {
         this.orderService = orderService;
     }
 
+    /**
+     * 新增订单。
+     *
+     * @param param 订单新增参数
+     * @return 新增订单详情
+     * @throws Exception 订单保存或转换失败时抛出
+     */
     @PostMapping
     @ApiOperation("订单新增")
     @SysControllerLog("订单新增")
@@ -36,6 +44,12 @@ public class OrderController implements BaseController<OrderQueryParam, OrderVo>
         return Json.getSucc(orderService.add(param));
     }
 
+    /**
+     * 随机生成并保存示例订单。
+     *
+     * @return 生成的订单详情
+     * @throws Exception 订单保存或转换失败时抛出
+     */
     @GetMapping
     @ApiOperation("随机生成订单")
     @SysControllerLog("随机生成订单")
@@ -43,16 +57,19 @@ public class OrderController implements BaseController<OrderQueryParam, OrderVo>
         return Json.getSucc(orderService.generateOrder());
     }
 
+    /** {@inheritDoc} */
     @Override
     public Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception {
         return orderService.getPage(param);
     }
 
+    /** {@inheritDoc} */
     @Override
     public Json<List<OrderVo>> getList(OrderQueryParam param) throws Exception {
         return orderService.getList(param);
     }
 
+    /** {@inheritDoc} */
     @Override
     public Json<OrderVo> getDetail(Object orderNo) throws Exception {
         return Json.getSucc(orderService.getDetail(orderNo.toString()));

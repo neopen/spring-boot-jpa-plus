@@ -3,10 +3,10 @@ package io.github.neopen.convert.annotation;
 import java.lang.annotation.*;
 
 /**
- * <b> 日期格式字符串
+ * 启用方法参数的日期字符串校验。
  *
- * @Author neopen
- * @date 2020年9月11日 下午2:10:07
+ * <p>标注在方法上时，切面会检查参数对象中带有
+ * {@link DateStrFormat} 的字段。</p>
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.PARAMETER, ElementType.TYPE})

@@ -8,7 +8,9 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 订单实体类
+ * 订单实体。
+ *
+ * <p>映射订单基础信息、收发货信息及关联订单项。</p>
  */
 @Data
 @NoArgsConstructor
@@ -16,6 +18,7 @@ import java.util.List;
 @Table(name = "t_order")
 public class Order {
 
+    /** 订单主键。 */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -33,12 +36,10 @@ public class Order {
     private BigDecimal totalAmount;
 
     /**
-     * 订单状态
-     * : 待付款
-     * : 已付款
-     * : 已发货
-     * DONE: 已完成
-     * CANCEL: 已取消
+     * 订单状态。
+     *
+     * <p>常用状态包括待付款、已付款、已发货、已完成和已取消，
+     * 标准编码见订单状态枚举。</p>
      */
     @Column(name = "status", nullable = false, length = 16)
     private String status;
@@ -146,8 +147,9 @@ public class Order {
     private BigDecimal shippingFee;
 
     /**
-     * 关联的订单项列表
-     * 一对多关系，cascade表示级联操作，orphanRemoval表示删除孤立实体
+     * 关联的订单项列表。
+     *
+     * <p>使用级联持久化和孤立订单项删除，关联数据按需加载。</p>
      */
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<OrderProduct> orderProducts;

@@ -8,12 +8,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * <b> 统计基础对象
- * <p>
- *
- * @Author neopen
- * @version 1.0
- * @date 2020年5月18日 下午2:12:39
+ * 基础列表选项视图对象。
  */
 @Data
 @EqualsAndHashCode(callSuper = false)
@@ -21,14 +16,16 @@ import java.io.Serializable;
 @NoArgsConstructor
 public class BaseListVo implements Serializable {
 
-    /**
-     * serialVersionUID
-     */
+    /** 序列化版本号。 */
     private static final long serialVersionUID = 2151235468126855310L;
 
+    /** 选项类型标记。 */
     private boolean type;
+
+    /** 选项名称。 */
     private String name;
 
+    /** 选项编码。 */
     private Object code;
 
 

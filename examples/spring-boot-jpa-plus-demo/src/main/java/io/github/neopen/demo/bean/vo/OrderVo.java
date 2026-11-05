@@ -1,6 +1,6 @@
 package io.github.neopen.demo.bean.vo;
 
-import io.github.neopen.convert.convert.vo.BaseVo;
+import io.github.neopen.convert.converter.vo.BaseVo;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -9,12 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @github https://github.com/neopen/spring-boot-jpa-plus
- * @date 2025/12/23 16:47
+ * 订单详情视图对象。
  */
 @Data
 public class OrderVo extends BaseVo implements Serializable {
@@ -30,12 +25,9 @@ public class OrderVo extends BaseVo implements Serializable {
     private String totalAmount;
 
     /**
-     * 订单状态
-     * : 待付款
-     * : 已付款
-     * : 已发货
-     * DONE: 已完成
-     * CANCEL: 已取消
+     * 订单状态。
+     *
+     * <p>常用状态包括待付款、已付款、已发货、已完成和已取消。</p>
      */
     private String status;
 
@@ -104,9 +96,6 @@ public class OrderVo extends BaseVo implements Serializable {
      */
     private String paymentMethod;
 
-    /**
-     * 关联的订单项列表
-     * 一对多关系，cascade表示级联操作，orphanRemoval表示删除孤立实体
-     */
+    /** 订单包含的订单项列表。 */
     private List<OrderProductVo> orderProducts;
 }

@@ -1,7 +1,7 @@
 
-package io.github.neopen.convert.convert;
+package io.github.neopen.convert.converter;
 
-import io.github.neopen.convert.convert.vo.BaseVo;
+import io.github.neopen.convert.converter.vo.BaseVo;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
@@ -13,27 +13,15 @@ import java.util.*;
 /**
  * JPA Plus 基础转换服务。
  *
- * <p>
- * 主要职责：
- * 1. Entity 转 VO；
- * 2. 批量 Entity 转 VO；
- * 3. Map 分组数据转换；
- * 4. 构建 Spring Data JPA Specification。
+ * <p>提供单个及批量实体转换、分组数据转换和 Spring Data JPA
+ * {@link Specification} 构建能力。业务实现类只需关注对象转换和
+ * 查询条件逻辑。</p>
  *
- * <p>
- * 本类不负责：
- * 1. JSON 响应包装；
- * 2. HTTP 请求和响应处理；
- * 3. Controller 层业务逻辑；
- * 4. 数据库 CRUD 操作。
+ * <p>本类不负责 JSON 响应包装、HTTP 请求处理或数据库增删改查。</p>
  *
- * <p>
- * 通过继承 BaseVoService 和 BasePredicateService，
- * 业务实现类只需要实现自身的对象转换和查询条件逻辑。
- *
- * @param <V> VO 类型
- * @param <T> Entity 类型
- * @param <P> 查询参数类型，允许为 null
+ * @param <V> 视图对象类型
+ * @param <T> 实体类型
+ * @param <P> 查询参数类型，允许为 {@code null}
  */
 public abstract class AbstractBaseService<
         @NotNull V extends BaseVo,
@@ -45,11 +33,12 @@ public abstract class AbstractBaseService<
      * Entity 集合转换为 VO 集合。
      *
      * <p>
-     * 如果 Entity 为 null，或者集合为空，返回不可修改的空集合。
-     * 如果某个 Entity 转换结果为 null，则跳过该元素。
+     * 如果实体集合为 {@code null} 或空，返回不可修改的空集合。
+     * 如果某个实体转换结果为 {@code null}，则跳过该元素。
      *
      * @param entities Entity 集合
-     * @return VO 集合
+     * @return 视图对象集合
+     * @throws Exception 实体转换失败时抛出
      */
     protected final List<V> batchParseVo(
             @Nullable Collection<? extends T> entities) throws Exception {
@@ -62,7 +51,8 @@ public abstract class AbstractBaseService<
      *
      * @param entities         Entity 集合
      * @param includeRelations 是否转换关联对象
-     * @return VO 集合
+     * @return 视图对象集合
+     * @throws Exception 实体转换失败时抛出
      */
     protected final List<V> batchParseVo(
             @Nullable Collection<? extends T> entities,
@@ -79,7 +69,8 @@ public abstract class AbstractBaseService<
      *
      * @param entities Entity 集合
      * @param params   附加参数
-     * @return VO 集合
+     * @return 视图对象集合
+     * @throws Exception 实体转换失败时抛出
      */
     protected final List<V> batchParseVo(
             @Nullable Collection<? extends T> entities,
@@ -96,7 +87,8 @@ public abstract class AbstractBaseService<
      *
      * @param entities Entity 集合
      * @param params   附加参数
-     * @return VO 集合
+     * @return 视图对象集合
+     * @throws Exception 实体转换失败时抛出
      */
     protected final List<V> batchParseVo(
             @Nullable Collection<? extends T> entities,
@@ -116,7 +108,8 @@ public abstract class AbstractBaseService<
      *
      * @param groups 原始分组数据
      * @param sort   是否按 Key 自然排序
-     * @return 转换后的分组数据
+     * @return 转换后的分组数据，空分组不会写入结果
+     * @throws Exception 实体转换失败时抛出
      */
     protected final Map<Object, List<V>> batchParseMapsVo(
             @Nullable Map<Object, ? extends List<T>> groups,
@@ -152,8 +145,9 @@ public abstract class AbstractBaseService<
      * 当 comparator 不为 null 时，按照指定规则排序。
      *
      * @param groups     原始分组数据
-     * @param comparator Key 比较器
-     * @return 转换后的分组数据
+     * @param comparator 键比较器；为 {@code null} 时保留输入遍历顺序
+     * @return 转换后的分组数据，空分组不会写入结果
+     * @throws Exception 实体转换失败时抛出
      */
     protected final Map<Object, List<V>> batchParseMapsVo(
             @Nullable Map<Object, ? extends List<T>> groups,
@@ -184,7 +178,8 @@ public abstract class AbstractBaseService<
      * Map 的 Value 为单个 Entity 时，批量转换为 VO 列表。
      *
      * @param source 原始 Map
-     * @return VO 列表
+     * @return 视图对象列表
+     * @throws Exception 实体转换失败时抛出
      */
     protected final List<V> batchParseMapVo(
             @Nullable Map<Object, ? extends T> source) throws Exception {
@@ -218,9 +213,10 @@ public abstract class AbstractBaseService<
      * 使用转换函数消除多个 batchParseVo 方法中的重复循环。
      * 转换异常直接向上传递，不静默忽略。
      *
-     * @param entities  Entity 集合
-     * @param converter 转换函数
-     * @return VO 集合
+     * @param entities  实体集合
+     * @param converter 支持受检异常的转换函数
+     * @return 视图对象集合
+     * @throws Exception 实体转换失败时抛出
      */
     private List<V> convertCollection(
             @Nullable Collection<? extends T> entities,
@@ -251,8 +247,9 @@ public abstract class AbstractBaseService<
     /**
      * 构建默认查询条件。
      *
+     * @param <Z>   具体查询参数类型
      * @param param 查询参数
-     * @return Specification
+     * @return 可交给 Spring Data JPA 执行的查询规范
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(
             @Nullable Z param) {
@@ -266,9 +263,10 @@ public abstract class AbstractBaseService<
     /**
      * 构建带布尔扩展参数的查询条件。
      *
+     * @param <Z>          具体查询参数类型
      * @param param        查询参数
      * @param includeExtra 是否启用额外查询条件
-     * @return Specification
+     * @return 可交给 Spring Data JPA 执行的查询规范
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(
             @Nullable Z param,
@@ -285,9 +283,10 @@ public abstract class AbstractBaseService<
     /**
      * 构建带 Map 参数的查询条件。
      *
+     * @param <Z>    具体查询参数类型
      * @param param  查询参数
      * @param params 附加参数
-     * @return Specification
+     * @return 可交给 Spring Data JPA 执行的查询规范
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(
             @Nullable Z param,
@@ -302,9 +301,10 @@ public abstract class AbstractBaseService<
     /**
      * 构建带可变参数的查询条件。
      *
+     * @param <Z>    具体查询参数类型
      * @param param  查询参数
      * @param params 附加参数
-     * @return Specification
+     * @return 可交给 Spring Data JPA 执行的查询规范
      */
     protected final <Z extends P> Specification<T> getSpecExecutor(
             @Nullable Z param,
@@ -329,6 +329,9 @@ public abstract class AbstractBaseService<
      * <p>
      * 注意：不要在这里清空 predicates。
      * Criteria API 返回的 Predicate 由 JPA Provider 管理其查询语义。
+     *
+     * @param resolver 查询谓词解析函数
+     * @return 组合业务查询条件的查询规范
      */
     private Specification<T> buildSpecification(
             PredicateResolver<T> resolver) {
@@ -365,11 +368,22 @@ public abstract class AbstractBaseService<
     }
 
     /**
-     * JPA Predicate 构建函数。
+     * JPA 查询谓词构建函数。
+     *
+     * @param <E> 实体类型
      */
     @FunctionalInterface
     private interface PredicateResolver<E> {
 
+        /**
+         * 解析业务查询谓词。
+         *
+         * @param root  查询根路径
+         * @param query Criteria 查询
+         * @param cb    Criteria 构建器
+         * @return 查询谓词列表
+         * @throws Exception 查询条件构建失败时抛出
+         */
         List<Predicate> resolve(
                 jakarta.persistence.criteria.Root<E> root,
                 jakarta.persistence.criteria.CriteriaQuery<?> query,
@@ -379,10 +393,20 @@ public abstract class AbstractBaseService<
 
     /**
      * 带受检异常的转换函数。
+     *
+     * @param <I> 输入类型
+     * @param <O> 输出类型
      */
     @FunctionalInterface
     private interface ThrowingFunction<I, O> {
 
+        /**
+         * 转换输入对象。
+         *
+         * @param input 输入对象
+         * @return 转换后的输出对象
+         * @throws Exception 转换失败时抛出
+         */
         O apply(I input) throws Exception;
     }
 

@@ -9,49 +9,50 @@ import lombok.Data;
 import java.io.Serializable;
 
 /**
- * <b> 基础查询参数对象
- * <p>
+ * 基础查询参数。
  *
- * @Author neopen
- * @version 1.0
- * @date 2020年5月18日 下午2:19:47
+ * <p>提供日期、日期时间和时间范围条件，并启用日期格式校验。</p>
  */
 @Data
 @DateStrValid
 public class BaseParam implements Serializable {
 
-    /**
-     * serialVersionUID
-     */
+    /** 序列化版本号。 */
     private static final long serialVersionUID = 691794652215049532L;
 
+    /** 开始日期，格式为 {@code yyyy-MM-dd}。 */
     @ApiModelProperty("最小日期字符串（2018-04-12）")
     @Size(max = 12, message = "时间长度最大{max}")
     @DateStrFormat("yyyy-MM-dd")
-    private String startDate; // 开始计算的日期, 如：2018-04-12
+    private String startDate;
 
+    /** 结束日期，格式为 {@code yyyy-MM-dd}。 */
     @ApiModelProperty("最大日期字符串（2018-04-12）  ")
     @Size(max = 12, message = "时间长度最大{max}")
     @DateStrFormat("yyyy-MM-dd")
-    private String endDate; // 结束计算的日期
+    private String endDate;
 
+    /** 开始日期时间，格式为 {@code yyyy-MM-dd HH:mm:ss}。 */
     @ApiModelProperty("最小日期时间字符串（2018-04-12 00:00:00）")
     @Size(max = 20, message = "时间长度最大{max}")
     @DateStrFormat("yyyy-MM-dd HH:mm:ss")
-    private String startDateTime; // 开始计算的日期, 如：2018-04-12
+    private String startDateTime;
 
+    /** 结束日期时间，格式为 {@code yyyy-MM-dd HH:mm:ss}。 */
     @ApiModelProperty("最大日期时间字符串（2018-04-12 00:00:00）  ")
     @DateStrFormat("yyyy-MM-dd HH:mm:ss")
     @Size(max = 20, message = "时间长度最大{max}")
-    private String endDateTime; // 结束计算的日期
+    private String endDateTime;
 
+    /** 开始时间，格式为 {@code HH:mm:ss}。 */
     @ApiModelProperty("最小时间字符串（ 00:00:00）")
     @Size(max = 8, message = "时间长度最大{max}")
     @DateStrFormat("HH:mm:ss")
-    private String startTime; // 开始计算的日期, 如：2018-04-12
+    private String startTime;
 
+    /** 结束时间，格式为 {@code HH:mm:ss}。 */
     @ApiModelProperty("最大时间字符串（ 00:00:00）  ")
     @DateStrFormat("HH:mm:ss")
     @Size(max = 8, message = "时间长度最大{max}")
-    private String endTime; // 结束计算的日期
+    private String endTime;
 }

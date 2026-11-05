@@ -1,7 +1,7 @@
 package io.github.neopen.demo.service.impl;
 
-import io.github.neopen.convert.convert.AbstractBaseService;
-import io.github.neopen.convert.convert.BaseVoCommom;
+import io.github.neopen.convert.converter.AbstractBaseService;
+import io.github.neopen.convert.converter.BaseVoCommom;
 import io.github.neopen.demo.bean.entity.Order;
 import io.github.neopen.demo.bean.entity.OrderProduct;
 import io.github.neopen.demo.bean.param.OrderProductParam;
@@ -16,21 +16,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @email helpenx@gmail.com
- * @date 2026/11/4 18:51
+ * 订单项业务服务实现。
  */
 @Service
 public class OrderProductServiceImpl extends AbstractBaseService<OrderProductVo, OrderProduct, Null> implements OrderProductService {
+    /** 订单项数据仓库。 */
     private final OrderProductRepo orderProductRepo;
 
+    /**
+     * 创建订单项业务服务。
+     *
+     * @param orderProductRepo 订单项数据仓库
+     */
     public OrderProductServiceImpl(OrderProductRepo orderProductRepo) {
         this.orderProductRepo = orderProductRepo;
     }
 
+    /** {@inheritDoc} */
     @Override
     @Transactional
     public List<OrderProduct> saveOrderProduct(List<OrderProductParam> orderProducts, Order order) throws Exception {
@@ -49,6 +51,7 @@ public class OrderProductServiceImpl extends AbstractBaseService<OrderProductVo,
         return orderProductRepo.saveAll(orderProductList);
     }
 
+    /** {@inheritDoc} */
     @Override
     public <S extends OrderProductVo> BaseVoCommom<OrderProduct, S> baseVo(OrderProduct entity) throws Exception {
         return (t) -> {
@@ -69,6 +72,7 @@ public class OrderProductServiceImpl extends AbstractBaseService<OrderProductVo,
     }
 
 
+    /** {@inheritDoc} */
     @Override
     public List<OrderProductVo> getOrderProductsByOrder(Order order) throws Exception {
 

@@ -8,27 +8,26 @@ import io.github.neopen.demo.bean.vo.OrderProductVo;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @email helpenx@gmail.com
- * @date 2026/11/4 18:50
+ * 订单项业务服务。
  */
 public interface OrderProductService {
 
     /**
-     * 保存订单产品列表
+     * 保存订单项列表。
      *
-     * @param orderProducts
+     * @param orderProducts 订单项参数列表
+     * @param order         所属订单
+     * @return 保存后的订单项实体列表
+     * @throws Exception 保存失败时抛出
      */
     List<OrderProduct> saveOrderProduct(List<OrderProductParam> orderProducts, Order order) throws Exception;
 
     /**
-     * 根据订单获取订单产品列表
+     * 根据订单获取订单项视图列表。
      *
-     * @param order
-     * @return
+     * @param order 订单实体
+     * @return 订单项视图列表
+     * @throws Exception 查询或转换失败时抛出
      */
     List<OrderProductVo> getOrderProductsByOrder(Order order) throws Exception;
 }

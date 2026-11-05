@@ -7,8 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 商品库存实体类
- * 用于维护各种商品信息，购买时从中扣减库存
+ * 商品库存实体。
+ *
+ * <p>维护商品资料、库存数量、库存状态和上下架状态。</p>
  */
 @Data
 @NoArgsConstructor
@@ -16,6 +17,7 @@ import java.time.LocalDateTime;
 @Table(name = "t_product")
 public class Product {
 
+    /** 商品主键。 */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -105,10 +107,10 @@ public class Product {
     private BigDecimal volume;
 
     /**
-     * 库存状态
-     * INSTOCK: 有库存
-     * LOWSTOCK: 库存不足
-     * OUTOFSTOCK: 缺货
+     * 库存状态。
+     *
+     * <p>{@code INSTOCK} 表示有库存，{@code LOWSTOCK} 表示库存不足，
+     * {@code OUTOFSTOCK} 表示缺货。</p>
      */
     @Column(name = "stock_status", length = 20)
     private String stockStatus;

@@ -7,12 +7,7 @@ import lombok.Data;
 import java.math.BigDecimal;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @email helpenx@gmail.com
- * @date 2026/11/4 19:20
+ * 订单项新增参数。
  */
 @Data
 @AllArgsConstructor

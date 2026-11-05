@@ -19,24 +19,27 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.lang.reflect.Method;
 
+/**
+ * 幂等性校验切面。
+ *
+ * <p>在标注 {@link Idempotent} 的方法执行前验证一次性令牌。</p>
+ */
 @Aspect
 @Component
 @Slf4j
 public class IdempotentAspect {
 
+    /** 定义幂等性注解切点。 */
     @Pointcut("@annotation(io.github.neopen.extension.annotation.Idempotent)")
     public void Idempotent() {
     }
 
     /**
-     * <b>
-     * <p>
+     * 在目标方法执行前校验请求令牌。
      *
-     * @param joinPoint
-     * @return void
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Date 2021/4/22 11:22
+     * @param joinPoint 当前连接点
+     * @throws IOException            令牌无效或已过期
+     * @throws ClassNotFoundException 解析目标方法失败
      */
     @Before("Idempotent()")
     public void UserAuthBefore(JoinPoint joinPoint) throws IOException, ClassNotFoundException {
@@ -77,19 +80,14 @@ public class IdempotentAspect {
 
 
     /**
-     * <b> 获得对象
-     * <p>
+     * 获取连接点方法上的幂等性注解。
      *
-     * @param joinPoint
-     * @return com.citycloud.sanitation.common.annotation.UserAuth
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Date 2021/4/22 11:24
+     * @param joinPoint 当前连接点
+     * @return 幂等性注解；方法未标注时返回 {@code null}
+     * @throws ClassNotFoundException 解析目标方法失败
      */
     public static Idempotent getUserGroupAuthParam(JoinPoint joinPoint) throws ClassNotFoundException {
-        /*获取signature 该注解作用在方法上，强转为 MethodSignature*/
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
-        /*获取执行的方法对应Method对象*/
         Method method = signature.getMethod();
 
         return method.getDeclaredAnnotation(Idempotent.class);

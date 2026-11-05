@@ -7,12 +7,20 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
 
+/**
+ * JPA Plus 扩展组件自动配置。
+ *
+ * <p>在业务应用未提供同类 Bean 时注册默认分页响应组件。</p>
+ */
 @AutoConfiguration
 public class ExtensionAutoConfiguration {
 
     /**
-     * 默认 JSON 分页响应工厂。
-     * 用户可以通过自定义 JsonPageResponseFactory 覆盖默认实现。
+     * 注册默认 JSON 分页响应工厂。
+     *
+     * <p>用户可通过自定义 {@link JsonPageResponseFactory} 覆盖默认实现。</p>
+     *
+     * @return 默认分页响应工厂
      */
     @Bean
     @ConditionalOnMissingBean(JsonPageResponseFactory.class)
@@ -21,8 +29,10 @@ public class ExtensionAutoConfiguration {
     }
 
     /**
-     * JSON 分页转换器。
-     * Spring 默认以单例方式管理。
+     * 注册 JSON 分页转换器。
+     *
+     * @param responseFactory 分页响应工厂
+     * @return 由 Spring 管理的分页转换器
      */
     @Bean
     @ConditionalOnMissingBean(JsonPageConverter.class)

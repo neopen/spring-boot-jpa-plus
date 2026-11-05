@@ -12,16 +12,26 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * JPA Criteria 动态查询构建器
+ * JPA Criteria 动态查询构建器。
+ *
+ * <p>将 {@link QueryWrapper} 中的条件转换为使用逻辑与组合的谓词。</p>
  *
  * @param <T> 实体类型
  */
 public class JpaPlusQueryBuilder<T> {
 
+    /** 用于读取实体元数据的实体管理器。 */
     private final EntityManager entityManager;
 
+    /** 查询目标实体类型。 */
     private final Class<T> entityClass;
 
+    /**
+     * 创建动态查询构建器。
+     *
+     * @param entityManager 实体管理器，不能为 {@code null}
+     * @param entityClass   查询目标实体类型，不能为 {@code null}
+     */
     public JpaPlusQueryBuilder(
             EntityManager entityManager,
             Class<T> entityClass
@@ -31,7 +41,13 @@ public class JpaPlusQueryBuilder<T> {
     }
 
     /**
-     * 构建查询条件
+     * 构建完整查询谓词。
+     *
+     * @param root    查询根路径
+     * @param cb      Criteria 构建器
+     * @param wrapper 动态查询条件；为 {@code null} 或空时匹配全部
+     * @return 所有条件通过逻辑与组合后的谓词
+     * @throws IllegalArgumentException 字段或条件操作数无效
      */
     public Predicate buildPredicate(
             Root<T> root,
@@ -55,7 +71,12 @@ public class JpaPlusQueryBuilder<T> {
     }
 
     /**
-     * 构建单个条件
+     * 构建单个查询条件对应的谓词。
+     *
+     * @param root      查询根路径
+     * @param cb        Criteria 构建器
+     * @param condition 单个动态查询条件
+     * @return 条件对应的谓词
      */
     private Predicate buildCondition(
             Root<T> root,
@@ -133,7 +154,16 @@ public class JpaPlusQueryBuilder<T> {
     }
 
     /**
-     * 构建 IN / NOT IN
+     * 构建 {@code IN} 或 {@code NOT IN} 谓词。
+     *
+     * <p>空集合在 {@code IN} 中恒为假，在 {@code NOT IN} 中恒为真。</p>
+     *
+     * @param path  字段路径
+     * @param cb    Criteria 构建器
+     * @param value 条件值，必须是集合
+     * @param not   是否构建 {@code NOT IN}
+     * @return 集合条件谓词
+     * @throws IllegalArgumentException 条件值不是集合
      */
     private Predicate buildIn(
             Path<Object> path,
@@ -159,7 +189,10 @@ public class JpaPlusQueryBuilder<T> {
     }
 
     /**
-     * 校验字段是否属于当前实体
+     * 校验字段是否属于当前实体。
+     *
+     * @param field 待校验的实体字段名
+     * @throws IllegalArgumentException 字段不属于当前实体
      */
     private void validateField(String field) {
         try {
@@ -180,6 +213,12 @@ public class JpaPlusQueryBuilder<T> {
         }
     }
 
+    /**
+     * 将字段路径转换为可比较表达式。
+     *
+     * @param path 字段路径
+     * @return 可比较表达式
+     */
     @SuppressWarnings({"rawtypes", "unchecked"})
     private Expression<? extends Comparable> comparable(
             Path<?> path
@@ -187,6 +226,13 @@ public class JpaPlusQueryBuilder<T> {
         return (Expression<? extends Comparable>) path;
     }
 
+    /**
+     * 校验并返回可比较的条件值。
+     *
+     * @param value 原始条件值
+     * @return 可比较的条件值
+     * @throws IllegalArgumentException 条件值未实现 {@link Comparable}
+     */
     @SuppressWarnings({"rawtypes", "unchecked"})
     private Comparable comparableValue(Object value) {
         if (!(value instanceof Comparable comparable)) {
@@ -199,7 +245,11 @@ public class JpaPlusQueryBuilder<T> {
     }
 
     /**
-     * 转义 LIKE 中的特殊字符
+     * 转义 {@code LIKE} 条件中的特殊字符。
+     *
+     * @param value 原始匹配值，不能为 {@code null}
+     * @return 转义反斜杠、百分号和下划线后的匹配值
+     * @throws IllegalArgumentException 匹配值为 {@code null}
      */
     private String escapeLike(Object value) {
         if (value == null) {

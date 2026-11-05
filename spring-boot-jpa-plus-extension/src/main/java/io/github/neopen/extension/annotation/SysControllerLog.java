@@ -3,24 +3,16 @@ package io.github.neopen.extension.annotation;
 import java.lang.annotation.*;
 
 /**
- * <b> controller 日志注解
- * <P>
- * 
- * @Author neopen
- * @date 2020年6月12日 下午2:46:47
- * @version 1.0
+ * 声明控制器方法的日志描述。
  */
 @Target({ ElementType.PARAMETER, ElementType.METHOD })
-@Retention(RetentionPolicy.RUNTIME) // 运行时注解
+@Retention(RetentionPolicy.RUNTIME)
 @Documented
 public @interface SysControllerLog {
-	/**
-	 * <b> 描述说明
-	 * <P>
-	 * 
-	 * @Author neopen
-	 * @date 2020年6月12日 下午2:47:20
-	 * @return
-	 */
+    /**
+     * 获取控制器操作描述。
+     *
+     * @return 写入日志的操作描述
+     */
 	String value() default "";
 }

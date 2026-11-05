@@ -9,26 +9,22 @@ import java.util.Objects;
 /**
  * JSON 分页响应转换器。
  *
- * <p>
- * 职责：
- * 1. 将 VO 列表包装为 Json 分页响应；
- * 2. 将 Page<VO> 包装为 Json 分页响应；
- * 3. 提供空分页响应。
+ * <p>将视图对象列表或 Spring Data {@link Page} 包装为统一分页响应，
+ * 并通过 {@link JsonPageResponseFactory} 扩展响应创建规则。</p>
  *
- * <p>
- * 不负责：
- * 1. Entity 转 VO；
- * 2. 数据库查询；
- * 3. Specification 构建；
- * 4. HTTP 请求处理。
- *
- * <p>
- * 通过 JsonPageResponseFactory 扩展响应创建规则。
+ * <p>本类不负责实体转换、数据库查询或 HTTP 请求处理。</p>
  */
 public class JsonPageConverter {
 
+    /** 实际创建响应对象的工厂。 */
     private final JsonPageResponseFactory responseFactory;
 
+    /**
+     * 创建分页响应转换器。
+     *
+     * @param responseFactory 分页响应工厂，不能为 {@code null}
+     * @throws NullPointerException 响应工厂为 {@code null}
+     */
     public JsonPageConverter(
             JsonPageResponseFactory responseFactory) {
 
@@ -41,10 +37,11 @@ public class JsonPageConverter {
     /**
      * VO 列表包装为分页响应。
      *
-     * @param data  VO 列表
-     * @param total 总记录数
-     * @param <V>   VO 类型
+     * @param <V>   视图对象类型
+     * @param data  当前页数据；为 {@code null} 时按空列表处理
+     * @param total 总记录数，不能小于 0
      * @return JSON 分页响应
+     * @throws IllegalArgumentException 总记录数小于 0
      */
     public <V> Json<List<V>> convert(
             List<V> data,
@@ -65,9 +62,9 @@ public class JsonPageConverter {
     /**
      * VO 列表包装为分页响应。
      *
-     * @param data VO 列表
-     * @param <V>  VO 类型
-     * @return JSON 分页响应
+     * @param <V>  视图对象类型
+     * @param data 当前页数据；为 {@code null} 时按空列表处理
+     * @return 总记录数为 0 的 JSON 分页响应
      */
     public <V> Json<List<V>> convert(
             List<V> data) {
@@ -79,10 +76,10 @@ public class JsonPageConverter {
     }
 
     /**
-     * Page<VO> 包装为分页响应。
+     * 将 Spring Data 分页对象包装为分页响应。
      *
-     * @param page VO 分页对象
-     * @param <V>  VO 类型
+     * @param <V>  视图对象类型
+     * @param page 分页对象；为 {@code null} 时返回空分页响应
      * @return JSON 分页响应
      */
     public <V> Json<List<V>> convert(Page<V> page) {
@@ -100,7 +97,7 @@ public class JsonPageConverter {
     /**
      * 创建空分页响应。
      *
-     * @param <V> VO 类型
+     * @param <V> 视图对象类型
      * @return 空分页响应
      */
     public <V> Json<List<V>> empty() {

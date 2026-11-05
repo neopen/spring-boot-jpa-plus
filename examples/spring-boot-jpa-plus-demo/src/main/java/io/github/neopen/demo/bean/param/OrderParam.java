@@ -7,12 +7,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @email helpenx@gmail.com
- * @date 2026/11/4 19:14
+ * 订单新增参数。
  */
 @Data
 public class OrderParam {
@@ -27,12 +22,9 @@ public class OrderParam {
     private BigDecimal totalAmount;
 
     /**
-     * 订单状态
-     * : 待付款
-     * : 已付款
-     * : 已发货
-     * DONE: 已完成
-     * CANCEL: 已取消
+     * 订单状态。
+     *
+     * <p>常用状态包括待付款、已付款、已发货、已完成和已取消。</p>
      */
     private String status;
 
@@ -112,10 +104,7 @@ public class OrderParam {
      */
     private BigDecimal shippingFee;
 
-    /**
-     * 关联的订单项列表
-     * 一对多关系，cascade表示级联操作，orphanRemoval表示删除孤立实体
-     */
+    /** 需要随订单保存的订单项列表。 */
     private List<OrderProductParam> orderProducts;
 
 

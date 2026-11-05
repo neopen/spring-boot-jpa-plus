@@ -22,7 +22,9 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * 通用 JPA DAO 抽象实现
+ * 通用 JPA 数据访问抽象实现。
+ *
+ * <p>默认以只读事务执行查询，写操作方法会重新声明事务语义。</p>
  *
  * @param <T>  实体类型
  * @param <ID> 主键类型
@@ -33,14 +35,24 @@ public abstract class AbstractJpaPlusDao<
         ID extends Serializable
         > implements JpaPlusDao<T, ID> {
 
+    /** 当前数据访问对象使用的实体管理器。 */
     protected final EntityManager entityManager;
 
+    /** 当前数据访问对象处理的实体类型。 */
     protected final Class<T> entityClass;
 
+    /** 动态 Criteria 查询构建器。 */
     private final JpaPlusQueryBuilder<T> queryBuilder;
 
+    /** 批量写入时每批处理的实体数量。 */
     private final int batchSize;
 
+    /**
+     * 使用默认批次大小创建数据访问对象。
+     *
+     * @param entityManager 实体管理器，不能为 {@code null}
+     * @param entityClass   实体类型，不能为 {@code null}
+     */
     protected AbstractJpaPlusDao(
             EntityManager entityManager,
             Class<T> entityClass
@@ -48,6 +60,14 @@ public abstract class AbstractJpaPlusDao<
         this(entityManager, entityClass, 500);
     }
 
+    /**
+     * 使用指定批次大小创建数据访问对象。
+     *
+     * @param entityManager 实体管理器，不能为 {@code null}
+     * @param entityClass   实体类型，不能为 {@code null}
+     * @param batchSize     每批处理的实体数量，必须大于 0
+     * @throws IllegalArgumentException 必要参数为空或批次大小无效
+     */
     protected AbstractJpaPlusDao(
             EntityManager entityManager,
             Class<T> entityClass,
@@ -313,7 +333,15 @@ public abstract class AbstractJpaPlusDao<
     }
 
     /**
-     * 应用排序
+     * 将 Spring Data 排序规则应用到 Criteria 查询。
+     *
+     * <p>排序字段会先通过 JPA 元模型校验，避免无效字段进入查询。</p>
+     *
+     * @param query 目标查询
+     * @param root  查询根路径
+     * @param cb    Criteria 构建器
+     * @param sort  排序规则；为 {@code null} 或未排序时不处理
+     * @throws IllegalArgumentException 排序字段不属于当前实体
      */
     private void applySort(
             CriteriaQuery<T> query,

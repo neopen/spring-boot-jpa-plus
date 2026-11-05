@@ -22,27 +22,36 @@ import java.io.IOException;
 import java.io.InvalidObjectException;
 import java.lang.reflect.Method;
 
+/**
+ * 系统操作与异常日志切面。
+ *
+ * <p>记录控制器操作、服务异常，并按配置执行请求限流。</p>
+ */
 @Aspect
 @Component
 @Slf4j
 @SuppressWarnings("all")
 public class SysLogAspect {
 
+    /** 定义服务日志注解切点。 */
     @Pointcut("@annotation(io.github.neopen.extension.annotation.SysServiceLog)")
     public void serviceAspect() {
     }
 
+    /** 定义控制器日志注解切点。 */
     @Pointcut("@annotation(io.github.neopen.extension.annotation.SysControllerLog)")
     public void controllerAspect() {
     }
 
+    /** 是否启用请求限流。 */
     @Value("${limiter.enable:false}")
     private boolean enableLimiter;
 
     /**
-     * 前置通知 用于拦截Controller层记录用户的操作
+     * 在控制器方法执行前记录操作并检查限流规则。
      *
-     * @throws IOException
+     * @param joinPoint 当前连接点
+     * @throws IOException 请求超过限流规则或发生 I/O 错误
      */
     @Before("controllerAspect()")
     public void doBefore(JoinPoint joinPoint) throws IOException {
@@ -66,9 +75,11 @@ public class SysLogAspect {
     }
 
     /**
-     * 异常通知 用于拦截service层记录异常日志
+     * 在服务方法抛出异常后记录异常及请求参数。
      *
-     * @throws IOException
+     * @param joinPoint 当前连接点
+     * @param e         目标方法抛出的异常
+     * @throws IOException 获取请求信息时发生 I/O 错误
      */
     @AfterThrowing(pointcut = "serviceAspect()", throwing = "e")
     public void doAfterThrowing(JoinPoint joinPoint, Throwable e) throws IOException {
@@ -95,7 +106,11 @@ public class SysLogAspect {
     }
 
     /**
-     * 获取注解中对方法的描述信息 用于service层注解
+     * 获取服务方法注解中的操作描述。
+     *
+     * @param joinPoint 当前连接点
+     * @return 服务操作描述；未找到时返回空字符串
+     * @throws Exception 目标类或方法解析失败时抛出
      */
     public static String getServiceMethodDescription(JoinPoint joinPoint) throws Exception {
         String targetName = joinPoint.getTarget().getClass().getName();
@@ -117,7 +132,11 @@ public class SysLogAspect {
     }
 
     /**
-     * 获取注解中对方法的描述信息 用于Controller层注解
+     * 获取控制器方法注解中的操作描述。
+     *
+     * @param joinPoint 当前连接点
+     * @return 控制器操作描述；未标注时返回空字符串
+     * @throws Exception 目标类或方法解析失败时抛出
      */
     public static String getControllerMethodDescription(JoinPoint joinPoint) throws Exception {
         String targetName = joinPoint.getTarget().getClass().getName();

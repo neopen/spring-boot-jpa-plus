@@ -7,19 +7,32 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * JPA 批量操作工具
+ * JPA 批量操作工具。
+ *
+ * <p>按指定批次大小刷新并清理持久化上下文，避免批量处理时
+ * 持久化上下文持续增长。</p>
  */
 public final class BatchOperation {
 
+    /** 默认每批处理的实体数量。 */
     private static final int DEFAULT_BATCH_SIZE = 500;
 
+    /** 工具类不允许实例化。 */
     private BatchOperation() {
     }
 
     /**
-     * 批量合并实体
+     * 批量合并实体。
      *
-     * 注意：返回的实体在对应批次 clear 后可能已经脱离持久化上下文。
+     * <p>注意：返回的实体在对应批次执行 {@code clear} 后可能已经
+     * 脱离持久化上下文。</p>
+     *
+     * @param <T>           实体类型
+     * @param entityManager 实体管理器，不能为 {@code null}
+     * @param entities      待合并实体，允许为 {@code null} 或空集合
+     * @param batchSize     每批处理的实体数量，必须大于 0
+     * @return 合并后的实体列表；输入为空时返回空列表
+     * @throws IllegalArgumentException 实体管理器为空或批次大小无效
      */
     public static <T> List<T> mergeAll(
             EntityManager entityManager,
@@ -64,7 +77,13 @@ public final class BatchOperation {
     }
 
     /**
-     * 使用默认批次大小
+     * 使用默认批次大小批量合并实体。
+     *
+     * @param <T>           实体类型
+     * @param entityManager 实体管理器，不能为 {@code null}
+     * @param entities      待合并实体，允许为 {@code null} 或空集合
+     * @return 合并后的实体列表；输入为空时返回空列表
+     * @throws IllegalArgumentException 实体管理器为空
      */
     public static <T> List<T> mergeAll(
             EntityManager entityManager,
@@ -78,9 +97,16 @@ public final class BatchOperation {
     }
 
     /**
-     * 批量持久化新实体
+     * 批量持久化新实体。
      *
-     * 只适用于尚未持久化的实体。
+     * <p>只适用于尚未持久化的实体。调用方应确保实体管理器有效，
+     * 并在需要时提供事务上下文。</p>
+     *
+     * @param <T>           实体类型
+     * @param entityManager 实体管理器，不能为 {@code null}
+     * @param entities      待持久化实体，允许为 {@code null} 或空集合
+     * @param batchSize     每批处理的实体数量，必须大于 0
+     * @throws IllegalArgumentException 批次大小不大于 0
      */
     public static <T> void persistAll(
             EntityManager entityManager,

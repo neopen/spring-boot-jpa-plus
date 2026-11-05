@@ -6,12 +6,16 @@ import java.util.List;
 /**
  * 默认 JSON 分页响应工厂。
  *
- * <p>
- * 使用项目原有 Json 作为统一响应结构。
+ * <p>使用项目统一的 {@link Json} 作为响应结构。</p>
  */
 public class DefaultJsonPageResponseFactory
         implements JsonPageResponseFactory {
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws IllegalArgumentException 总记录数小于 0
+     */
     @Override
     public <V> Json<List<V>> create(
             List<V> data,

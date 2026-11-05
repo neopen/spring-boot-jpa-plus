@@ -7,7 +7,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * 订单项实体类
+ * 订单项实体。
+ *
+ * <p>保存订单中商品的快照信息及所属订单。</p>
  */
 @Data
 @NoArgsConstructor
@@ -15,6 +17,7 @@ import java.time.LocalDateTime;
 @Table(name = "t_order_product")
 public class OrderProduct {
 
+    /** 订单项主键。 */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -26,15 +29,9 @@ public class OrderProduct {
     private Long productId;
 
     /**
-     * 关联的商品库存信息
-     */
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "product_id", referencedColumnName = "id", insertable = false, updatable = false)
-//    private Product product;
-
-    /**
-     * 关联的订单
-     * 多对一关系，nullable=false表示订单项必须属于某个订单
+     * 关联的订单。
+     *
+     * <p>订单项必须属于某个订单，关联数据按需加载。</p>
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "order_id", nullable = false)

@@ -8,21 +8,18 @@ import org.springframework.stereotype.Repository;
 import java.util.Optional;
 
 /**
- * <b>
- * <p>
+ * 订单数据仓库。
  *
- * @author neopen
- * @github https://github.com/neopen/spring-boot-jpa-plus
- * @date 2025/12/23 16:42
+ * <p>同时支持通用数据访问和动态条件查询。</p>
  */
 @Repository
 public interface OrderRepo extends JpaRepository<Order, Long>, JpaSpecificationExecutor<Order> {
 
     /**
-     * 根据订单编号查询订单
+     * 根据订单编号查询订单。
      *
      * @param orderNo 订单编号
-     * @return 订单
+     * @return 包含订单的可选值；未找到时返回空可选值
      */
     Optional<Order> findByOrderNo(String orderNo);
 }

@@ -3,11 +3,9 @@ package io.github.neopen.extension.annotation;
 import java.lang.annotation.*;
 
 /**
- * <b> 幂等性校验
- * <p>
+ * 启用方法级幂等性校验。
  *
- * @Author neopen
- * @Date 2021/6/30 14:10
+ * <p>切面会根据请求会话和一次性令牌拦截重复提交。</p>
  */
 @Target({ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)
@@ -15,13 +13,9 @@ import java.lang.annotation.*;
 public @interface Idempotent {
 
     /**
-     * <b> 是否必须
-     * <p>
+     * 获取是否必须执行幂等性校验。
      *
-     * @return boolean
-     * @Author neopen
-     * @GitHub https://github.com/neopen/spring-boot-jpa-plus
-     * @Date 2021/6/30 14:11
+     * @return 必须校验时返回 {@code true}
      */
     boolean required() default false;
 }

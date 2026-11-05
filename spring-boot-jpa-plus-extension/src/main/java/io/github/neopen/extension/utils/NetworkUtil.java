@@ -6,23 +6,26 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 
+/**
+ * 网络请求信息工具。
+ */
 public class NetworkUtil {
-	/**
-	 * Logger for this class
-	 */
-	private static Logger logger = LoggerFactory.getLogger(NetworkUtil.class);
 
-	/**
-	 * 获取请求主机IP地址,如果通过代理进来，则透过防火墙获取真实IP地址;
-	 * 
-	 * @param request
-	 * @return
-	 * @throws IOException
-	 */
+    /** 当前工具类的日志记录器。 */
+    private static Logger logger = LoggerFactory.getLogger(NetworkUtil.class);
+
+    /**
+     * 获取请求客户端的 IP 地址。
+     *
+     * <p>依次检查常见代理请求头，无法从请求头获取时使用远程地址。
+     * 转发地址包含多个值时取第一个非 {@code unknown} 值。</p>
+     *
+     * @param request 当前 HTTP 请求
+     * @return 客户端 IP 地址
+     * @throws IOException 获取请求地址过程中发生 I/O 错误时抛出
+     */
 	public final static String getIpAddress(HttpServletRequest request) throws IOException {
-		// 获取请求主机IP地址,如果通过代理进来，则透过防火墙获取真实IP地址
-
-		String ip = request.getHeader("X-Forwarded-For");
+        String ip = request.getHeader("X-Forwarded-For");
 		if (logger.isInfoEnabled()) {
 			logger.info("getIpAddress(HttpServletRequest) - X-Forwarded-For - String ip=" + ip);
 		}

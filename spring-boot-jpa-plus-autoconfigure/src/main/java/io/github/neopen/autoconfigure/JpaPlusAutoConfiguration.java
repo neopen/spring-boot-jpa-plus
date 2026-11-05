@@ -25,7 +25,7 @@ import org.springframework.orm.jpa.SharedEntityManagerCreator;
  * 业务项目引入 Starter 后，无需手动创建执行器。
  * </p>
  *
- * <h3>自动配置条件</h3>
+ * <h2>自动配置条件</h2>
  *
  * <ul>
  *     <li>项目中存在 Jakarta Persistence API。</li>
@@ -34,14 +34,14 @@ import org.springframework.orm.jpa.SharedEntityManagerCreator;
  *     <li>Spring Boot 已经创建 EntityManagerFactory。</li>
  * </ul>
  *
- * <h3>自动配置顺序</h3>
+ * <h2>自动配置顺序</h2>
  *
  * <p>
  * 通过 after 指定在 Hibernate JPA 自动配置之后执行，
  * 确保创建 EntityManagerFactory 后再初始化 JPA Plus。
  * </p>
  *
- * <h3>用户自定义 Bean</h3>
+ * <h2>用户自定义 Bean</h2>
  *
  * <p>
  * 默认 Bean 使用 ConditionalOnMissingBean 或名称条件，
@@ -61,6 +61,12 @@ import org.springframework.orm.jpa.SharedEntityManagerCreator;
 )
 @EnableConfigurationProperties(JpaPlusProperties.class)
 public class JpaPlusAutoConfiguration {
+
+    /**
+     * 创建 JPA Plus 自动配置。
+     */
+    public JpaPlusAutoConfiguration() {
+    }
 
     /**
      * JPA Plus 执行器相关自动配置。

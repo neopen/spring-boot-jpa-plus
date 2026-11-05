@@ -8,12 +8,7 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * <b> 统计基础对象
- * <p>
- *
- * @Author neopen
- * @version 1.0
- * @date 2020年5月18日 下午2:12:39
+ * 基础统计视图对象。
  */
 @Data
 @AllArgsConstructor
@@ -21,30 +16,27 @@ import java.io.Serializable;
 @EqualsAndHashCode(callSuper = false)
 public class BaseCountVo implements Comparable<BaseCountVo>, Serializable {
 
-    /**
-     * serialVersionUID
-     */
+    /** 序列化版本号。 */
     private static final long serialVersionUID = 2151235468126855310L;
 
+    /** 统计项名称。 */
     private String name;
 
+    /** 统计值。 */
     private Double value;
 
     /**
-     * @param o
-     * @return
-     * @Author neopen
-     * @time 2019年3月4日 下午6:10:19
-     * @do >>> 排序
+     * 按统计项名称升序比较。
+     *
+     * @param o 待比较对象
+     * @return 比较结果；当前对象名称为 {@code null} 时返回 0
      */
     @Override
     public int compareTo(BaseCountVo o) {
-//        if (getValue() == null || o.getValue() == null)
         if (getName() == null)
             return 0;
 
-//        return (getValue().compareTo(o.getValue())) > 0 ? -1 : 1; // 倒序
-        return (getName().compareTo(o.getName())) > 0 ? 1 : -1; // 正序
+        return (getName().compareTo(o.getName())) > 0 ? 1 : -1;
     }
 
 }

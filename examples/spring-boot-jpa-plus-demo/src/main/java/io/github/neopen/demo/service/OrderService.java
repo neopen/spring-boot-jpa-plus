@@ -9,56 +9,51 @@ import io.github.neopen.extension.response.Json;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @github https://github.com/neopen/spring-boot-jpa-plus
- * @date 2025/12/23 16:55
+ * 订单业务服务。
  */
 public interface OrderService {
 
     /**
-     * 新增订单
+     * 新增订单。
      *
-     * @param param
-     * @return
-     * @throws Exception
+     * @param param 订单新增参数
+     * @return 订单详情
+     * @throws Exception 保存或转换失败时抛出
      */
     OrderVo add(OrderParam param) throws Exception;
 
     /**
-     * 随机生成订单
+     * 随机生成并保存示例订单。
      *
-     * @return
-     * @throws Exception
+     * @return 订单详情
+     * @throws Exception 保存或转换失败时抛出
      */
     OrderVo generateOrder() throws Exception;
 
     /**
-     * 获取订单详情
+     * 获取订单详情。
      *
-     * @param orderNo
-     * @return
-     * @throws Exception
+     * @param orderNo 订单编号
+     * @return 订单详情
+     * @throws Exception 订单不存在或转换失败时抛出
      */
     OrderVo getDetail(String orderNo) throws Exception;
 
     /**
-     * 获取订单列表
+     * 分页获取订单列表。
      *
-     * @param param
-     * @return
-     * @throws Exception
+     * @param param 订单查询参数
+     * @return 订单分页响应
+     * @throws Exception 查询或转换失败时抛出
      */
     Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception;
 
     /**
-     * 获取订单列表
+     * 获取符合条件的全部订单。
      *
-     * @param param
-     * @return
-     * @throws Exception
+     * @param param 订单查询参数
+     * @return 订单列表响应
+     * @throws Exception 查询或转换失败时抛出
      */
     Json<List<OrderVo>> getList(OrderQueryParam param) throws Exception;
 }

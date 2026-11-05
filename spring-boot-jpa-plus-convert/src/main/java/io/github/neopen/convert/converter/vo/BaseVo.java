@@ -1,4 +1,4 @@
-package io.github.neopen.convert.convert.vo;
+package io.github.neopen.convert.converter.vo;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -7,21 +7,19 @@ import lombok.NoArgsConstructor;
 import java.io.Serializable;
 
 /**
- * <b> 基础vo
- * <P>
- * 如果不需要序列化，用transient修饰即可
- * 
- * @Author neopen
- * @date 2020年5月18日 下午1:59:59
- * @version 1.0
+ * 基础视图对象。
+ *
+ * <p>提供通用标识属性并支持序列化。不需要序列化的字段可使用
+ * {@code transient} 修饰。</p>
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public abstract class BaseVo implements Serializable {
 
-	private Object id;
+    /** 视图对象的通用标识。 */
+    private Object id;
 
-	/** serialVersionUID */
+    /** 序列化版本号。 */
 	private static final long serialVersionUID = 1053219950568557994L;
 }

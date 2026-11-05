@@ -89,6 +89,18 @@
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
+
+            <!--
+                Starter 是纯依赖聚合模块，不包含需要生成文档的公开类，
+                因此禁止 Javadoc 自动探测 reactor 模块并创建联机链接。
+            -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-javadoc-plugin</artifactId>
+                <configuration>
+                    <detectOfflineLinks>false</detectOfflineLinks>
+                </configuration>
+            </plugin>
         </plugins>
     </build>
 

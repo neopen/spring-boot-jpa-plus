@@ -8,15 +8,16 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 /**
- * <b>
- * <p>
- *
- * @author neopen
- * @github https://github.com/neopen/spring-boot-jpa-plus
- * @date 2025/12/23 17:46
+ * 订单项数据仓库。
  */
 @Repository
 public interface OrderProductRepo extends JpaRepository<OrderProduct, Long> {
 
+    /**
+     * 查询指定订单的全部订单项。
+     *
+     * @param order 订单实体
+     * @return 订单项列表
+     */
     List<OrderProduct> findByOrder(Order order);
 }

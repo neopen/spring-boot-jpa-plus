@@ -6,72 +6,95 @@ import lombok.NoArgsConstructor;
 import java.util.*;
 
 /**
- * Json
+ * 通用 JSON 响应对象。
  *
- * @author he.hp
- * @version 1.0
- * @date 2019年5月22日 上午9:41:19
- * @description 返回的json对象（swagger输出属性包含注释）
+ * @param <V> 响应数据类型
  */
 @Data
-//@JsonInclude(JsonInclude.Include.ALWAYS)
-//@ApiModel("返回的json数据类")
 @NoArgsConstructor
 @SuppressWarnings("all")
 public class Json<V> {
 
-    //    @ApiModelProperty(value = "总记录数")
+    /** 总记录数，主要用于分页响应。 */
     private Long count;
 
-    //    @ApiModelProperty(value = "实体对象或对象结果集")
+    /** 响应数据。 */
     private V data;
 
-    //    @ApiModelProperty(value = "成功标记")
+    /** 请求是否成功。 */
     private boolean success;
 
-    //    @ApiModelProperty(value = "错误编码")
+    /** 业务响应编码。 */
     private Integer code;
-    //    @ApiModelProperty(value = "错误信息")
+
+    /** 响应消息。 */
     private String message;
 
+    /**
+     * 创建不含数据的成功响应。
+     *
+     * @param <T> 响应数据类型
+     * @return 成功响应
+     */
     public static <T> Json<T> getSucc() {
         return getSucc(null);
     }
 
+    /**
+     * 创建包含数据的成功响应。
+     *
+     * @param <T>  响应数据类型
+     * @param data 响应数据
+     * @return 成功响应
+     */
     public static <T> Json<T> getSucc(T data) {
         return getSucc(data, "成功");
     }
 
     /**
-     * <b> 列表结果
-     * <p>
+     * 创建列表数据成功响应。
      *
-     * @param <T>
-     * @param data
-     * @return
-     * @author He.hp
-     * @date 2020年9月17日 下午3:30:33
+     * @param <T>  响应数据类型
+     * @param data 响应数据；为 {@code null} 时使用空列表
+     * @return 成功响应
      */
     public static <T> Json<T> getSuccs(T data) {
         return getSucc(data == null ? (T) new ArrayList<>(0) : data, "成功");
     }
 
+    /**
+     * 创建包含自定义消息的成功响应。
+     *
+     * @param <T>  响应数据类型
+     * @param data 响应数据
+     * @param msg  成功消息
+     * @return 成功响应
+     */
     public static <T> Json<T> getSucc(T data, String msg) {
         return getSucc(msg, 0, data, null);
     }
 
+    /**
+     * 创建包含总记录数的成功响应。
+     *
+     * @param <T>   响应数据类型
+     * @param data  响应数据；为 {@code null} 时使用空列表
+     * @param count 总记录数；为 {@code null} 时使用 0
+     * @return 成功响应
+     */
     public static <T> Json<T> getSucc(T data, Long count) {
         return getSucc("成功", 0, (data == null ? (T) new ArrayList<>(0) : data), count == null ? 0l : count);
     }
 
     /**
-     * <b> 成功结果
-     * <p>
+     * 创建完整字段的成功响应。
      *
-     * @param <T>
-     * @return
-     * @author He.hp
-     * @date 2020年5月18日 下午3:21:00
+     * @param <T>   响应数据类型
+     * @param msg   成功消息
+     * @param code  业务响应编码
+     * @param data  响应数据
+     * @param count 总记录数
+     * @return 成功响应
      */
     public static <T> Json<T> getSucc(String msg, Integer code, T data, Long count) {
         Json<T> resultData = new Json<T>();
@@ -83,22 +106,34 @@ public class Json<V> {
         return resultData;
     }
 
+    /**
+     * 创建默认失败响应。
+     *
+     * @param <T> 响应数据类型
+     * @return 失败响应
+     */
     public static <T> Json<T> getError() {
         return getError("失败");
     }
 
+    /**
+     * 创建包含自定义消息的失败响应。
+     *
+     * @param <T> 响应数据类型
+     * @param msg 失败消息
+     * @return 失败响应
+     */
     public static <T> Json<T> getError(String msg) {
         return getError(msg, -1);
     }
 
     /**
-     * <b> 错误结果
-     * <p>
+     * 创建包含消息和编码的失败响应。
      *
-     * @param <T>
-     * @return
-     * @author He.hp
-     * @date 2020年5月18日 下午3:20:37
+     * @param <T>  响应数据类型
+     * @param msg  失败消息
+     * @param code 业务响应编码
+     * @return 失败响应
      */
     public static <T> Json<T> getError(String msg, Integer code) {
         Json<T> resultData = new Json<T>();
@@ -109,13 +144,11 @@ public class Json<V> {
     }
 
     /**
-     * <b> 返回操作结果
-     * <P> 如，增删改
+     * 根据操作结果创建响应。
      *
-     * @param result
-     * @return com.citycloud.sanitation.common.bean.model.Json<T>
-     * @Author He.hp
-     * @Date 2021/4/2 15:20
+     * @param <T>    响应数据类型
+     * @param result 操作是否成功
+     * @return 与操作结果对应的响应
      */
     public static <T> Json<T> getJson(boolean result) {
         Json<T> resultData = new Json<T>();
@@ -126,25 +159,24 @@ public class Json<V> {
     }
 
     /**
-     * @param v
-     * @return
-     * @author He.hp
-     * @Description data设置默认值（防止序列化该属性）
-     * @date 2019年7月5日 下午5:45:05
+     * 为响应数据提供默认值。
+     *
+     * @param <V> 数据类型
+     * @param v   原始数据
+     * @return 原始数据或对应的默认值
      */
     private static <V> V setDefaultV(V v) {
         return v == null ? sayClass(v) : v;
     }
 
     /**
-     * <b> 类型判定
-     * <p>
+     * 根据输入类型返回空值占位对象。
      *
-     * @param <V>
-     * @param v
-     * @return
-     * @author He.hp
-     * @date 2020年7月22日 下午7:36:12
+     * <p>集合返回空列表，映射返回空映射，其他情况返回空字符串。</p>
+     *
+     * @param <V> 数据类型
+     * @param v   原始数据
+     * @return 与输入类型对应的空值占位对象
      */
     @SuppressWarnings("unchecked")
     public static <V> V sayClass(V v) {
