@@ -8,7 +8,7 @@
 
     <groupId>io.github.neopen</groupId>
     <artifactId>spring-boot-jpa-plus</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>0.1.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Spring Boot JPA Plus</name>
@@ -145,6 +145,9 @@
                         <extensions>true</extensions>
                         <configuration>
                             <publishingServerId>central</publishingServerId>
+                            <deploymentName>
+                                Spring Boot JPA Plus ${project.version}
+                            </deploymentName>
                             <autoPublish>true</autoPublish>
                             <waitUntil>published</waitUntil>
                         </configuration>

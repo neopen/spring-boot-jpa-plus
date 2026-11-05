@@ -7,7 +7,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: read
+  contents: write
   packages: write
 
 jobs:
@@ -16,9 +16,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # 1. Checkout
       - name: Checkout
         uses: actions/checkout@v4
 
+      # 2. JDK
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -26,65 +28,116 @@ jobs:
           java-version: '17'
           cache: maven
 
+      # 3. Import GPG key
       - name: Import GPG key
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
         run: |
+          if [ -z "$GPG_PRIVATE_KEY" ]; then
+            echo "::error::GPG_PRIVATE_KEY is missing"
+            exit 1
+          fi
+
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
 
+      # 4. Configure Maven settings
       - name: Configure Maven Settings
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
           CENTRAL_PASSWORD: ${{ secrets.CENTRAL_PASSWORD }}
-          GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_ACTOR: ${{ github.actor }}
         run: |
-          mkdir -p ~/.m2
+          python3 <<'PY'
+          import os
+          import xml.etree.ElementTree as ET
 
-          cat > ~/.m2/settings.xml <<'EOF'
-          <settings>
-            <servers>
-              <server>
-                <id>central</id>
-                <username>${env.CENTRAL_USERNAME}</username>
-                <password>${env.CENTRAL_PASSWORD}</password>
-              </server>
-              <server>
-                <id>github</id>
-                <username>${env.GITHUB_ACTOR}</username>
-                <password>${env.GITHUB_TOKEN}</password>
-              </server>
-            </servers>
-          </settings>
-          EOF
+          required = [
+              "CENTRAL_USERNAME",
+              "CENTRAL_PASSWORD",
+              "GITHUB_TOKEN",
+              "GITHUB_ACTOR",
+          ]
 
+          for key in required:
+              if not os.environ.get(key):
+                  raise RuntimeError(f"Required environment variable {key} is missing")
+
+          settings = ET.Element("settings")
+          servers = ET.SubElement(settings, "servers")
+
+          credentials = [
+              (
+                  "central",
+                  os.environ["CENTRAL_USERNAME"],
+                  os.environ["CENTRAL_PASSWORD"],
+              ),
+              (
+                  "github",
+                  os.environ["GITHUB_ACTOR"],
+                  os.environ["GITHUB_TOKEN"],
+              ),
+          ]
+
+          for server_id, username, password in credentials:
+              server = ET.SubElement(servers, "server")
+              ET.SubElement(server, "id").text = server_id
+              ET.SubElement(server, "username").text = username
+              ET.SubElement(server, "password").text = password
+
+          ET.indent(settings, space="  ")
+
+          ET.ElementTree(settings).write(
+              os.path.expanduser("~/.m2/settings.xml"),
+              encoding="utf-8",
+              xml_declaration=True,
+          )
+
+          print("Maven settings.xml configured successfully.")
+          print("Central and GitHub credentials are present.")
+          PY
+
+      # 5. Set release version
       - name: Verify version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
+
           echo "Publishing version: $VERSION"
+
           mvn -B -ntp versions:set \
             -DnewVersion="$VERSION" \
             -DprocessAllModules=true \
             -DgenerateBackupPoms=false
 
+      # 6. Test (do not sign)
       - name: Test
-        run: mvn -B -ntp clean verify -DskipTests=false
+        run: |
+          mvn -B -ntp clean verify \
+            -DskipTests=false \
+            -Dgpg.skip=true
 
+      # 7. Publish to Maven Central
       - name: Publish to Maven Central
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
         run: |
+          if [ -z "$MAVEN_GPG_PASSPHRASE" ]; then
+            echo "::error::GPG_PASSPHRASE is missing"
+            exit 1
+          fi
+
           mvn -B -ntp deploy -Pcentral \
             -Dgpg.passphrase="$MAVEN_GPG_PASSPHRASE" \
             -DskipTests
 
+      # 8. Publish to GitHub Packages
       - name: Publish to GitHub Packages
         run: |
           mvn -B -ntp deploy \
             -DskipTests \
             -Dgpg.skip=true
 
+      # 9. Create GitHub Release
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:

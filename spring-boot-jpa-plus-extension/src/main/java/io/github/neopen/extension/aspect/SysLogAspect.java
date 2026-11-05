@@ -28,11 +28,11 @@ import java.lang.reflect.Method;
 @SuppressWarnings("all")
 public class SysLogAspect {
 
-    @Pointcut("@annotation(io.github.neopen.jpa.annotation.SysServiceLog)")
+    @Pointcut("@annotation(io.github.neopen.extension.annotation.SysServiceLog)")
     public void serviceAspect() {
     }
 
-    @Pointcut("@annotation(io.github.neopen.jpa.annotation.SysControllerLog)")
+    @Pointcut("@annotation(io.github.neopen.extension.annotation.SysControllerLog)")
     public void controllerAspect() {
     }
 

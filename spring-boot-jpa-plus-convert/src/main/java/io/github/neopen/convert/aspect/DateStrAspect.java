@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 @Component
 public class DateStrAspect {
 
-    private static final String AOP_POINTCUT_EXPRESSION = "@annotation(com.hengline.jpa.annotation.DateStrValid)";
+    private static final String AOP_POINTCUT_EXPRESSION = "@annotation(io.github.neopen.convert.annotation.DateStrValid)";
 
     @Pointcut(AOP_POINTCUT_EXPRESSION)
     public void paramAspect() {
