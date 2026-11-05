@@ -40,7 +40,7 @@
         <module>spring-boot-jpa-plus-extension</module>
 
         <!-- 示例项目 -->
-        <module>examples/spring-boot-jpa-plus-demo</module>
+<!--        <module>examples/spring-boot-jpa-plus-demo</module>-->
     </modules>
 
     <distributionManagement>
