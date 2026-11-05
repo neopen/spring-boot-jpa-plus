@@ -1,4 +1,3 @@
-
 name: Publish Maven Packages
 
 on:
@@ -16,11 +15,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout
+      # 1. 检出代码
       - name: Checkout
         uses: actions/checkout@v4
 
-      # 2. JDK
+      # 2. 设置 JDK 17
       - name: Set up JDK
         uses: actions/setup-java@v4
         with:
@@ -28,7 +27,7 @@ jobs:
           java-version: '17'
           cache: maven
 
-      # 3. Import GPG key
+      # 3. 导入 GPG 私钥（用于 Maven Central 签名）
       - name: Import GPG key
         env:
           GPG_PRIVATE_KEY: ${{ secrets.GPG_PRIVATE_KEY }}
@@ -37,10 +36,9 @@ jobs:
             echo "::error::GPG_PRIVATE_KEY is missing"
             exit 1
           fi
-
           echo "$GPG_PRIVATE_KEY" | gpg --batch --import
 
-      # 4. Configure Maven settings
+      # 4. 动态配置 Maven 的 settings.xml（写入 Sonatype 和 GitHub 凭证）
       - name: Configure Maven Settings
         env:
           CENTRAL_USERNAME: ${{ secrets.CENTRAL_USERNAME }}
@@ -52,13 +50,7 @@ jobs:
           import os
           import xml.etree.ElementTree as ET
 
-          required = [
-              "CENTRAL_USERNAME",
-              "CENTRAL_PASSWORD",
-              "GITHUB_TOKEN",
-              "GITHUB_ACTOR",
-          ]
-
+          required = ["CENTRAL_USERNAME", "CENTRAL_PASSWORD", "GITHUB_TOKEN", "GITHUB_ACTOR"]
           for key in required:
               if not os.environ.get(key):
                   raise RuntimeError(f"Required environment variable {key} is missing")
@@ -67,16 +59,8 @@ jobs:
           servers = ET.SubElement(settings, "servers")
 
           credentials = [
-              (
-                  "central",
-                  os.environ["CENTRAL_USERNAME"],
-                  os.environ["CENTRAL_PASSWORD"],
-              ),
-              (
-                  "github",
-                  os.environ["GITHUB_ACTOR"],
-                  os.environ["GITHUB_TOKEN"],
-              ),
+              ("central", os.environ["CENTRAL_USERNAME"], os.environ["CENTRAL_PASSWORD"]),
+              ("github", os.environ["GITHUB_ACTOR"], os.environ["GITHUB_TOKEN"]),
           ]
 
           for server_id, username, password in credentials:
@@ -86,37 +70,32 @@ jobs:
               ET.SubElement(server, "password").text = password
 
           ET.indent(settings, space="  ")
-
           ET.ElementTree(settings).write(
               os.path.expanduser("~/.m2/settings.xml"),
               encoding="utf-8",
               xml_declaration=True,
           )
-
           print("Maven settings.xml configured successfully.")
-          print("Central and GitHub credentials are present.")
           PY
 
-      # 5. Set release version
+      # 5. 根据 Git Tag 自动修改项目版本号
       - name: Verify version
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-
           echo "Publishing version: $VERSION"
-
           mvn -B -ntp versions:set \
             -DnewVersion="$VERSION" \
             -DprocessAllModules=true \
             -DgenerateBackupPoms=false
 
-      # 6. Test (do not sign)
+      # 6. 本地编译与测试（跳过签名以加快测试）
       - name: Test
         run: |
           mvn -B -ntp clean verify \
             -DskipTests=false \
             -Dgpg.skip=true
 
-      # 7. Publish to Maven Central
+      # 7. 发布到 Maven Central (使用 pom.xml 中的 central profile)
       - name: Publish to Maven Central
         env:
           MAVEN_GPG_PASSPHRASE: ${{ secrets.GPG_PASSPHRASE }}
@@ -125,19 +104,18 @@ jobs:
             echo "::error::GPG_PASSPHRASE is missing"
             exit 1
           fi
-
           mvn -B -ntp deploy -Pcentral \
             -Dgpg.passphrase="$MAVEN_GPG_PASSPHRASE" \
             -DskipTests
 
-      # 8. Publish to GitHub Packages
+      # 8. 发布到 GitHub Packages (使用 distributionManagement 中指定的仓库)
       - name: Publish to GitHub Packages
         run: |
           mvn -B -ntp deploy \
             -DskipTests \
             -Dgpg.skip=true
 
-      # 9. Create GitHub Release
+      # 9. 创建 GitHub Release 并自动生成更新日志
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
