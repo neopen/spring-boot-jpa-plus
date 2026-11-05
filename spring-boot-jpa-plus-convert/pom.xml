@@ -17,6 +17,7 @@
     <packaging>jar</packaging>
 
     <name>Spring Boot JPA Plus Convert</name>
+
     <description>
         Date formatting, validation and entity/VO conversion extensions.
     </description>

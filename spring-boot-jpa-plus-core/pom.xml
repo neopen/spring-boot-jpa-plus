@@ -13,6 +13,8 @@
     </parent>
 
     <artifactId>spring-boot-jpa-plus-core</artifactId>
+    <name>Spring Boot JPA Plus Core</name>
+    <description>Core module for Spring Boot JPA Plus</description>
 
     <dependencies>
 

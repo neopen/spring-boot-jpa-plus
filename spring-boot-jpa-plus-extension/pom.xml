@@ -18,6 +18,7 @@
 	<packaging>jar</packaging>
 
 	<name>Spring Boot JPA Plus Extension</name>
+
 	<description>
 		Optional extensions including idempotency, logging,
 		local cache and common utilities.

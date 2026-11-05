@@ -16,6 +16,7 @@
 	<packaging>jar</packaging>
 
 	<name>Spring Boot JPA Plus Starter</name>
+
 	<description>
 		Spring Boot JPA enhancement starter.
 		Provides unified CRUD, batch operations, dynamic queries,
