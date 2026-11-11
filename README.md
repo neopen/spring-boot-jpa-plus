@@ -156,11 +156,44 @@ public class OrderServiceImpl
 }
 ```
 
+## Documentation
+
+- [HQL Usage Guide](docs/hql.md) - Chained conditions, pagination, counting, batch queries, and custom operators.
+
 ## Example Project
 
-Explore the demo project for practical integration and usage examples.
+The [spring-boot-jpa-plus-demo](examples/spring-boot-jpa-plus-demo) module is a runnable sample covering:
 
-**[spring-boot-jpa-plus-demo](https://github.com/neopen/spring-boot-jpa-plus/tree/main/examples/spring-boot-jpa-plus-demo)**
+- **Order aggregate** - JPA CRUD, order item batch loading (N+1 avoidance), and the same queries implemented with HQL.
+- **Product inventory** - JPA `Specification` queries versus HQL chained queries, native HQL field comparison, bulk restock, and native SQL aggregation.
+- **Same interface, two implementations** - `OrderService` and `ProductService` each have a JPA implementation and an HQL implementation. Default endpoints use JPA; `/hql` endpoints use HQL.
+- **HTTP API** - REST endpoints under `/order` and `/product`, backed by an H2 in-memory database.
+
+Key endpoints:
+
+| Method | Path | Implementation |
+| --- | --- | --- |
+| POST | `/order` | JPA |
+| GET | `/order/page`, `/order/list`, `/order/{orderNo}` | JPA |
+| GET | `/order/hql/page`, `/order/hql/list`, `/order/hql/{orderNo}` | HQL |
+| POST | `/product` | JPA |
+| GET | `/product/page`, `/product/list`, `/product/{id}` | JPA |
+| GET | `/product/low-stock`, `/product/stock-summary` | JPA |
+| POST | `/product/restock` | JPA entity update |
+| GET | `/product/hql/page`, `/product/hql/list`, `/product/hql/{id}` | HQL |
+| GET | `/product/hql/low-stock`, `/product/hql/stock-summary` | HQL + native SQL |
+| POST | `/product/hql/restock` | HQL bulk update |
+
+Tests are split into three routes by JUnit `@Tag`:
+
+```bash
+cd examples/spring-boot-jpa-plus-demo
+
+mvn test                       # all routes
+mvn test -Punit-test           # plain unit tests, no Spring context
+mvn test -Pintegration-test    # Spring + H2 service tests for both implementations
+mvn test -Papi-test            # MockMvc HTTP tests
+```
 
 ## Build from Source
 

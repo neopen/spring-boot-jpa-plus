@@ -1,4 +1,4 @@
-package io.github.neopen.demo.service.impl;
+package io.github.neopen.demo.service.support;
 
 import cn.hutool.core.util.RandomUtil;
 import io.github.neopen.convert.converter.AbstractBaseService;
@@ -7,39 +7,53 @@ import io.github.neopen.demo.bean.entity.Order;
 import io.github.neopen.demo.bean.param.OrderParam;
 import io.github.neopen.demo.bean.param.OrderProductParam;
 import io.github.neopen.demo.bean.param.OrderQueryParam;
+import io.github.neopen.demo.bean.vo.OrderProductVo;
 import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.demo.persistence.repo.OrderRepo;
 import io.github.neopen.demo.service.OrderProductService;
 import io.github.neopen.demo.service.OrderService;
-import io.github.neopen.extension.response.Json;
 import io.github.neopen.extension.response.JsonPageConverter;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
-import org.springframework.data.domain.Page;
-import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
- * 订单业务服务实现。
+ * 订单服务公共实现。
  *
- * <p>演示动态查询、实体转换、分页响应和关联订单项处理。</p>
+ * <p>负责订单保存、示例数据生成和视图转换；查询读取由 JPA 与 HQL
+ * 两个子类分别实现。</p>
  */
-@Service
-public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQueryParam> implements OrderService {
+public abstract class AbstractOrderService
+        extends AbstractBaseService<OrderVo, Order, OrderQueryParam>
+        implements OrderService {
+
     /** 订单数据仓库。 */
-    private final OrderRepo orderRepo;
+    protected final OrderRepo orderRepo;
 
     /** 订单项业务服务。 */
-    private final OrderProductService orderProductService;
+    protected final OrderProductService orderProductService;
 
     /** 分页响应转换器。 */
-    private final JsonPageConverter jsonPageConverter;
+    protected final JsonPageConverter jsonPageConverter;
+
+    /**
+     * 创建订单服务公共实现。
+     *
+     * @param orderRepo           订单数据仓库
+     * @param orderProductService 订单项业务服务
+     * @param jsonPageConverter   分页响应转换器
+     */
+    protected AbstractOrderService(
+            OrderRepo orderRepo,
+            OrderProductService orderProductService,
+            JsonPageConverter jsonPageConverter
+    ) {
+        this.orderRepo = orderRepo;
+        this.orderProductService = orderProductService;
+        this.jsonPageConverter = jsonPageConverter;
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -63,9 +77,16 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQ
         order.setDiscountAmount(param.getDiscountAmount());
         order.setPaymentMethod(param.getPaymentMethod());
         order.setTrackingNumber(param.getTrackingNumber());
+
         Order save = orderRepo.save(order);
-        save.setOrderProducts(orderProductService.saveOrderProduct(param.getOrderProducts(), save));
-        return parseVo(save);
+        save.setOrderProducts(
+                orderProductService.saveOrderProduct(param.getOrderProducts(), save)
+        );
+
+        OrderVo vo = parseVo(save);
+        vo.setOrderProducts(orderProductService.getOrderProductsByOrder(save));
+
+        return vo;
     }
 
     /** {@inheritDoc} */
@@ -89,49 +110,32 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQ
         order.setTrackingNumber("202512230001");
 
         order.setOrderProducts(List.of(
-                new OrderProductParam(RandomUtil.randomLong(999999999), String.valueOf(RandomUtil.randomChinese()), BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)), RandomUtil.randomInt(1, 100), RandomUtil.randomString(16)),
-                new OrderProductParam(RandomUtil.randomLong(999999999), String.valueOf(RandomUtil.randomChinese()), BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)), RandomUtil.randomInt(1, 100), RandomUtil.randomString(16))
+                new OrderProductParam(
+                        RandomUtil.randomLong(999999999),
+                        String.valueOf(RandomUtil.randomChinese()),
+                        BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)),
+                        RandomUtil.randomInt(1, 100),
+                        RandomUtil.randomString(16)
+                ),
+                new OrderProductParam(
+                        RandomUtil.randomLong(999999999),
+                        String.valueOf(RandomUtil.randomChinese()),
+                        BigDecimal.valueOf(RandomUtil.randomDouble(1, 100)),
+                        RandomUtil.randomInt(1, 100),
+                        RandomUtil.randomString(16)
+                )
         ));
+
         return add(order);
     }
 
     /** {@inheritDoc} */
     @Override
-    public List<Predicate> buildPredicates(
-            Root<Order> root,
-            CriteriaQuery<?> query,
-            CriteriaBuilder cb,
-            OrderQueryParam param) throws Exception {
-
-        List<Predicate> predicates = new ArrayList<>(16);
-
-        if (param == null) {
-            return predicates;
-        }
-
-        // 非空订单编号按包含关系匹配。
-        if (param.getOrderNo() != null && !param.getOrderNo().isBlank()) {
-            predicates.add(cb.like(
-                    root.get("orderNo"),
-                    "%" + param.getOrderNo() + "%"
-            ));
-        }
-
-        // 非空状态按精确值匹配。
-        if (param.getStatus() != null && !param.getStatus().isBlank()) {
-            predicates.add(cb.equal(root.get("status"), param.getStatus()));
-        }
-
-        return predicates;
-    }
-
-
-    /** {@inheritDoc} */
-    @Override
-    public <S extends OrderVo> BaseVoCommom<Order, S> baseVo(Order entity) throws Exception {
+    public <S extends OrderVo> BaseVoCommom<Order, S> baseVo(Order entity) {
         return (t) -> {
-            if (t == null)
+            if (t == null) {
                 return null;
+            }
 
             OrderVo vo = new OrderVo();
             vo.setCreateTime(t.getCreateTime());
@@ -143,25 +147,15 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQ
             vo.setReceiverPhone(t.getReceiverPhone());
             vo.setRemark(t.getRemark());
             vo.setShippingAddress(t.getShippingAddress());
-
             vo.setShippingFee(t.getShippingFee());
             vo.setStatus(t.getStatus());
             vo.setTotalAmount(t.getTotalAmount().toPlainString());
             vo.setId(t.getId());
             vo.setSenderName(t.getSenderName());
             vo.setSenderPhone(t.getSenderPhone());
-            vo.setShippingAddress(t.getShippingAddress());
 
             return (S) vo;
         };
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception {
-        Page<Order> orderPage = orderRepo.findAll(getSpecExecutor(param), param.pageRequest());
-
-        return jsonPageConverter.convert(batchParseVo(orderPage.getContent()), orderPage.getTotalElements());
     }
 
     /** {@inheritDoc} */
@@ -172,36 +166,28 @@ public class OrderServiceImpl extends AbstractBaseService<OrderVo, Order, OrderQ
         vo.setTrackingNumber(entity.getTrackingNumber());
         vo.setPaymentMethod(entity.getPaymentMethod());
 
-        // 补充订单项及物流、支付等扩展信息。
-        vo.setOrderProducts(orderProductService.getOrderProductsByOrder(entity));
-
         return vo;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public OrderVo getDetail(String orderNo) throws Exception {
-        return this.parseVo(orderRepo.findByOrderNo(orderNo).orElseThrow(() -> new IllegalArgumentException("订单不存在")));
-    }
-
-
-    /** {@inheritDoc} */
-    @Override
-    public Json<List<OrderVo>> getList(OrderQueryParam param) throws Exception {
-
-        return jsonPageConverter.convert(batchParseVo(orderRepo.findAll(getSpecExecutor(param))));
-    }
-
     /**
-     * 创建订单业务服务。
+     * 批量转换订单，并一次查询回填全部订单项，避免列表查询产生 N+1。
      *
-     * @param orderRepo          订单数据仓库
-     * @param orderProductService 订单项业务服务
-     * @param jsonPageConverter  分页响应转换器
+     * @param orders 订单实体列表
+     * @return 订单视图列表
+     * @throws Exception 转换失败时抛出
      */
-    public OrderServiceImpl(OrderRepo orderRepo, OrderProductService orderProductService, JsonPageConverter jsonPageConverter) {
-        this.orderRepo = orderRepo;
-        this.orderProductService = orderProductService;
-        this.jsonPageConverter = jsonPageConverter;
+    protected List<OrderVo> parseVoList(List<Order> orders) throws Exception {
+        List<OrderVo> vos = batchParseVo(orders);
+
+        Map<Long, List<OrderProductVo>> productsByOrder =
+                orderProductService.getOrderProductsByOrders(orders);
+
+        for (OrderVo vo : vos) {
+            vo.setOrderProducts(
+                    productsByOrder.getOrDefault(vo.getId(), List.of())
+            );
+        }
+
+        return vos;
     }
 }
