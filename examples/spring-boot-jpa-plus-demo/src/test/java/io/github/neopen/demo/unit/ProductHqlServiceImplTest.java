@@ -34,7 +34,6 @@ import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.contains;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -139,7 +138,7 @@ class ProductHqlServiceImplTest {
         List<?> rows = java.util.Collections.singletonList(
                 new Object[]{"INSTOCK", 3L}
         );
-        doReturn(rows).when(sqlExecutor).queryForList(anyString(), isNull());
+        doReturn(rows).when(sqlExecutor).queryForList(anyString(), any(Map.class));
 
         List<ProductStockSummaryVo> result = productService.getStockSummary();
 

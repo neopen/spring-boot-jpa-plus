@@ -19,7 +19,7 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
 - **Pagination** - Simplified paginated queries and response handling.
-- **HQL & SQL** - Extended data access capabilities.
+- **HQL & SQL** - Chained query builders, pagination with automatic count, batch updates, and native SQL access.
 - **Auto Configuration** - Seamless Spring Boot integration.
 - **Modular Architecture** - Independent modules and optional extensions.
 
@@ -160,13 +160,42 @@ public class OrderServiceImpl
 
 - [HQL Usage Guide](docs/hql.md) - Chained conditions, pagination, counting, batch queries, and custom operators.
 
+## SQL Query Builder
+
+`SqlWrapper` mirrors the HQL builder for native SQL: it generates named parameters, a count query, and optional ordering.
+
+```java
+SqlQuery query = SqlWrapper.create("t_product", "p")
+        .select("p.stock_status", "count(*) as total")
+        .eq("is_active", true)
+        .groupBy("stock_status")
+        .orderByAsc("stock_status")
+        .build();
+
+List<?> rows = sqlExecutor.queryForList(
+        query.getSql(),
+        query.getParameters()
+);
+```
+
+Pagination is available for both projections and entities, with automatic or explicit count SQL:
+
+```java
+Page<Product> page = sqlExecutor.queryForPage(
+        SqlWrapper.create("t_product").eq("product_type", "输入设备"),
+        Product.class,
+        PageRequest.of(0, 10, Sort.by("id").descending())
+);
+```
+
 ## Example Project
 
 The [spring-boot-jpa-plus-demo](examples/spring-boot-jpa-plus-demo) module is a runnable sample covering:
 
-- **Order aggregate** - JPA CRUD, order item batch loading (N+1 avoidance), and the same queries implemented with HQL.
-- **Product inventory** - JPA `Specification` queries versus HQL chained queries, native HQL field comparison, bulk restock, and native SQL aggregation.
-- **Same interface, two implementations** - `OrderService` and `ProductService` each have a JPA implementation and an HQL implementation. Default endpoints use JPA; `/hql` endpoints use HQL.
+- **Order aggregate** - JPA CRUD, order item batch loading (N+1 avoidance), and the same queries implemented with HQL and native SQL.
+- **JPA joins and filters** - `OrderJpaServiceImpl.buildPredicates` joins `orderProducts` for item name and quantity filters, applies `distinct` for correct pagination counts, and supports sender phone and order amount ranges.
+- **Product inventory** - JPA `Specification` queries versus HQL and native SQL, native field comparison, bulk restock, and `SqlWrapper`-based aggregation.
+- **Same interface, three implementations** - `OrderService` and `ProductService` each have JPA, HQL, and native SQL implementations. Default endpoints use JPA, `/hql` endpoints use HQL, and `/sql` endpoints use `SqlWrapper` with `JpaPlusSqlExecutor`.
 - **HTTP API** - REST endpoints under `/order` and `/product`, backed by an H2 in-memory database.
 
 Key endpoints:
@@ -176,6 +205,7 @@ Key endpoints:
 | POST | `/order` | JPA |
 | GET | `/order/page`, `/order/list`, `/order/{orderNo}` | JPA |
 | GET | `/order/hql/page`, `/order/hql/list`, `/order/hql/{orderNo}` | HQL |
+| GET | `/order/sql/page`, `/order/sql/list`, `/order/sql/{orderNo}` | Native SQL |
 | POST | `/product` | JPA |
 | GET | `/product/page`, `/product/list`, `/product/{id}` | JPA |
 | GET | `/product/low-stock`, `/product/stock-summary` | JPA |
@@ -183,6 +213,9 @@ Key endpoints:
 | GET | `/product/hql/page`, `/product/hql/list`, `/product/hql/{id}` | HQL |
 | GET | `/product/hql/low-stock`, `/product/hql/stock-summary` | HQL + native SQL |
 | POST | `/product/hql/restock` | HQL bulk update |
+| GET | `/product/sql/page`, `/product/sql/list`, `/product/sql/{id}` | Native SQL |
+| GET | `/product/sql/low-stock`, `/product/sql/stock-summary` | Native SQL |
+| POST | `/product/sql/restock` | Native SQL bulk update |
 
 Tests are split into three routes by JUnit `@Tag`:
 
@@ -191,7 +224,7 @@ cd examples/spring-boot-jpa-plus-demo
 
 mvn test                       # all routes
 mvn test -Punit-test           # plain unit tests, no Spring context
-mvn test -Pintegration-test    # Spring + H2 service tests for both implementations
+mvn test -Pintegration-test    # Spring + H2 service tests for all implementations
 mvn test -Papi-test            # MockMvc HTTP tests
 ```
 

@@ -23,7 +23,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * 商品服务集成测试。
  *
- * <p>同一组断言分别运行在 JPA 与 HQL 两个实现上，确保行为一致。</p>
+ * <p>同一组断言分别运行在 JPA、HQL 与原生 SQL 三个实现上，
+ * 确保行为一致。</p>
  */
 @Tag("integration")
 @SpringBootTest
@@ -39,10 +40,14 @@ class ProductServiceIntegrationTest {
     private ProductService productHqlService;
 
     @Autowired
+    @Qualifier("productSqlService")
+    private ProductService productSqlService;
+
+    @Autowired
     private EntityManager entityManager;
 
     @Test
-    void pageShouldFilterByProductNameAndBrandForBothImplementations() throws Exception {
+    void pageShouldFilterByProductNameAndBrandForAllImplementations() throws Exception {
         createProduct("机械键盘", 20, 10, "输入设备", "品牌A");
         createProduct("机械键盘 Pro", 20, 10, "输入设备", "品牌A");
         createProduct("无线鼠标", 20, 10, "输入设备", "品牌A");
@@ -54,22 +59,25 @@ class ProductServiceIntegrationTest {
 
         assertPage(productJpaService, param);
         assertPage(productHqlService, param);
+        assertPage(productSqlService, param);
     }
 
     @Test
-    void lowStockShouldReturnProductsAtOrBelowSafetyStockForBoth() throws Exception {
+    void lowStockShouldReturnProductsAtOrBelowSafetyStockForAll() throws Exception {
         createProduct("低库存商品", 5, 10, "输入设备", "品牌A");
         createProduct("正常库存商品", 20, 10, "输入设备", "品牌A");
         createProduct("缺货商品", 0, 10, "输入设备", "品牌A");
 
         assertLowStock(productJpaService);
         assertLowStock(productHqlService);
+        assertLowStock(productSqlService);
     }
 
     @Test
-    void restockShouldIncreaseStockAndRefreshStatusForBoth() throws Exception {
+    void restockShouldIncreaseStockAndRefreshStatusForAll() throws Exception {
         Long jpaProductId = createProduct("JPA 补货商品", 5, 10, "输入设备", "品牌A");
         Long hqlProductId = createProduct("HQL 补货商品", 5, 10, "输入设备", "品牌A");
+        Long sqlProductId = createProduct("SQL 补货商品", 5, 10, "输入设备", "品牌A");
 
         entityManager.flush();
         entityManager.clear();
@@ -84,12 +92,18 @@ class ProductServiceIntegrationTest {
         entityManager.flush();
         entityManager.clear();
 
+        assertThat(productSqlService.restock(List.of(sqlProductId), 20)).isEqualTo(1);
+
+        entityManager.flush();
+        entityManager.clear();
+
         assertRestocked(productJpaService.getDetail(jpaProductId));
         assertRestocked(productHqlService.getDetail(hqlProductId));
+        assertRestocked(productSqlService.getDetail(sqlProductId));
     }
 
     @Test
-    void stockSummaryShouldCountByStatusForBoth() throws Exception {
+    void stockSummaryShouldCountByStatusForAll() throws Exception {
         createProduct("缺货商品", 0, 10, "输入设备", "品牌A");
         createProduct("低库存商品", 5, 10, "输入设备", "品牌A");
         createProduct("正常商品A", 20, 10, "输入设备", "品牌A");
@@ -100,6 +114,7 @@ class ProductServiceIntegrationTest {
 
         assertSummary(productJpaService);
         assertSummary(productHqlService);
+        assertSummary(productSqlService);
     }
 
     /**

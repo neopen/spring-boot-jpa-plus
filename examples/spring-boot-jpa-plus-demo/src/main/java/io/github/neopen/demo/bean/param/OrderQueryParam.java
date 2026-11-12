@@ -2,6 +2,8 @@ package io.github.neopen.demo.bean.param;
 
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 /**
  * 订单查询参数。
  */
@@ -14,6 +16,22 @@ public class OrderQueryParam extends PageParam {
     /** 订单状态，支持精确查询。 */
     private String status;
 
-    /** 发货人手机号。 */
+    /** 发货人手机号，支持模糊查询。 */
     private String senderPhone;
+
+    /**
+     * 订单项商品名称，支持模糊查询。
+     *
+     * <p>JPA 实现通过连表查询过滤订单项。</p>
+     */
+    private String productName;
+
+    /** 订单项最小商品数量。 */
+    private Integer minQuantity;
+
+    /** 最小订单金额。 */
+    private BigDecimal minTotalAmount;
+
+    /** 最大订单金额。 */
+    private BigDecimal maxTotalAmount;
 }

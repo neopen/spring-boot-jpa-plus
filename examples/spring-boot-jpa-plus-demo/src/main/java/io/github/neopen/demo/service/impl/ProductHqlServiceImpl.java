@@ -3,6 +3,8 @@ package io.github.neopen.demo.service.impl;
 import io.github.neopen.core.persistence.hql.HqlWrapper;
 import io.github.neopen.core.persistence.manager.JpaPlusHqlExecutor;
 import io.github.neopen.core.persistence.manager.JpaPlusSqlExecutor;
+import io.github.neopen.core.persistence.sql.SqlQuery;
+import io.github.neopen.core.persistence.sql.SqlWrapper;
 import io.github.neopen.demo.bean.entity.Product;
 import io.github.neopen.demo.bean.param.PageParam;
 import io.github.neopen.demo.bean.param.ProductQueryParam;
@@ -18,7 +20,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -45,12 +46,13 @@ public class ProductHqlServiceImpl extends AbstractProductService {
                     + "where p.stockQuantity <= p.safetyStock "
                     + "order by p.stockQuantity asc, p.id asc";
 
-    /** 库存状态统计，演示原生 SQL 执行器。 */
-    private static final String STOCK_SUMMARY_SQL =
-            "select stock_status, count(*) "
-                    + "from t_product "
-                    + "group by stock_status "
-                    + "order by stock_status";
+    /** 库存状态统计，演示 SqlWrapper 与原生 SQL 执行器。 */
+    private static final SqlQuery STOCK_SUMMARY_QUERY =
+            SqlWrapper.create("t_product", "p")
+                    .select("p.stock_status", "count(*) as total")
+                    .groupBy("stock_status")
+                    .orderByAsc("stock_status")
+                    .build();
 
     /**
      * 批量补货。
@@ -152,18 +154,12 @@ public class ProductHqlServiceImpl extends AbstractProductService {
     /** {@inheritDoc} */
     @Override
     public List<ProductStockSummaryVo> getStockSummary() {
-        List<?> rows = sqlExecutor.queryForList(STOCK_SUMMARY_SQL, null);
-        List<ProductStockSummaryVo> result = new ArrayList<>(rows.size());
+        List<?> rows = sqlExecutor.queryForList(
+                STOCK_SUMMARY_QUERY.getSql(),
+                STOCK_SUMMARY_QUERY.getParameters()
+        );
 
-        for (Object row : rows) {
-            Object[] values = (Object[]) row;
-            result.add(new ProductStockSummaryVo(
-                    values[0] == null ? null : values[0].toString(),
-                    ((Number) values[1]).longValue()
-            ));
-        }
-
-        return result;
+        return toStockSummary(rows);
     }
 
     /** {@inheritDoc} */

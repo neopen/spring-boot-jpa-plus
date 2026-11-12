@@ -62,7 +62,22 @@ class OrderApiTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.length()").value(1));
 
+        mockMvc.perform(get("/order/sql/page").param("orderNo", "API-"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.data[0].orderNo").value("API-001"))
+                .andExpect(jsonPath("$.data[0].orderProducts.length()").value(2));
+
+        mockMvc.perform(get("/order/sql/list").param("orderNo", "API-"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+
         mockMvc.perform(get("/order/hql/API-001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.orderNo").value("API-001"))
+                .andExpect(jsonPath("$.data.orderProducts.length()").value(2));
+
+        mockMvc.perform(get("/order/sql/API-001"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.orderNo").value("API-001"))
                 .andExpect(jsonPath("$.data.orderProducts.length()").value(2));

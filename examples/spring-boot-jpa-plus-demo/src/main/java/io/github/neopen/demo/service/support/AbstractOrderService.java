@@ -22,8 +22,8 @@ import java.util.Map;
 /**
  * 订单服务公共实现。
  *
- * <p>负责订单保存、示例数据生成和视图转换；查询读取由 JPA 与 HQL
- * 两个子类分别实现。</p>
+ * <p>负责订单保存、示例数据生成和视图转换；查询读取由 JPA、HQL
+ * 与原生 SQL 三个子类分别实现。</p>
  */
 public abstract class AbstractOrderService
         extends AbstractBaseService<OrderVo, Order, OrderQueryParam>

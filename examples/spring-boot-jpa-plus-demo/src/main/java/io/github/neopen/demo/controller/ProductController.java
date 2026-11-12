@@ -24,8 +24,8 @@ import java.util.List;
 /**
  * 商品库存接口控制器。
  *
- * <p>默认接口走 JPA 实现，{@code /hql} 前缀的接口走 HQL 实现，
- * 便于直接对比两种实现方式。</p>
+ * <p>默认接口走 JPA 实现，{@code /hql} 前缀走 HQL 实现，
+ * {@code /sql} 前缀走原生 SQL 实现，便于直接对比三种方式。</p>
  */
 @RestController
 @RequestMapping("/product")
@@ -37,18 +37,24 @@ public class ProductController implements BaseController<ProductQueryParam, Prod
     /** 基于 HQL 的商品业务服务。 */
     private final ProductService productHqlService;
 
+    /** 基于原生 SQL 的商品业务服务。 */
+    private final ProductService productSqlService;
+
     /**
      * 创建商品控制器。
      *
      * @param productJpaService 基于 JPA 的商品业务服务
      * @param productHqlService 基于 HQL 的商品业务服务
+     * @param productSqlService 基于原生 SQL 的商品业务服务
      */
     public ProductController(
             @Qualifier("productJpaService") ProductService productJpaService,
-            @Qualifier("productHqlService") ProductService productHqlService
+            @Qualifier("productHqlService") ProductService productHqlService,
+            @Qualifier("productSqlService") ProductService productSqlService
     ) {
         this.productJpaService = productJpaService;
         this.productHqlService = productHqlService;
+        this.productSqlService = productSqlService;
     }
 
     /**
@@ -236,5 +242,87 @@ public class ProductController implements BaseController<ProductQueryParam, Prod
     @SysControllerLog("HQL 详情")
     public Json<ProductVo> getHqlDetail(@PathVariable("id") Long id) throws Exception {
         return Json.getSucc(productHqlService.getDetail(id));
+    }
+
+    /**
+     * 使用原生 SQL 分页查询商品。
+     *
+     * @param param 商品查询参数
+     * @return 商品分页响应
+     * @throws Exception 查询或转换失败时抛出
+     */
+    @GetMapping("/sql/page")
+    @ApiOperation("SQL 分页列表")
+    @SysControllerLog("SQL 分页列表")
+    public Json<List<ProductVo>> getSqlPage(ProductQueryParam param) throws Exception {
+        return productSqlService.getPage(param);
+    }
+
+    /**
+     * 使用原生 SQL 查询全部商品。
+     *
+     * @param param 商品查询参数
+     * @return 商品列表响应
+     * @throws Exception 查询或转换失败时抛出
+     */
+    @GetMapping("/sql/list")
+    @ApiOperation("SQL 所有列表")
+    @SysControllerLog("SQL 所有列表")
+    public Json<List<ProductVo>> getSqlList(ProductQueryParam param) throws Exception {
+        return productSqlService.getList(param);
+    }
+
+    /**
+     * 使用原生 SQL 查询低库存商品。
+     *
+     * @return 低库存商品列表
+     * @throws Exception 查询或转换失败时抛出
+     */
+    @GetMapping("/sql/low-stock")
+    @ApiOperation("SQL 低库存商品")
+    @SysControllerLog("SQL 低库存商品")
+    public Json<List<ProductVo>> getSqlLowStockProducts() throws Exception {
+        return Json.getSuccs(productSqlService.getLowStockProducts());
+    }
+
+    /**
+     * 使用原生 SQL 批量补货。
+     *
+     * @param param 补货参数
+     * @return 受影响的商品数量
+     */
+    @PostMapping("/sql/restock")
+    @ApiOperation("SQL 商品批量补货")
+    @SysControllerLog("SQL 商品批量补货")
+    public Json<Integer> restockBySql(@RequestBody ProductRestockParam param) {
+        return Json.getSucc(
+                productSqlService.restock(param.getIds(), param.getQuantity())
+        );
+    }
+
+    /**
+     * 使用原生 SQL 统计库存状态。
+     *
+     * @return 库存状态统计
+     */
+    @GetMapping("/sql/stock-summary")
+    @ApiOperation("SQL 库存状态统计")
+    @SysControllerLog("SQL 库存状态统计")
+    public Json<List<ProductStockSummaryVo>> getSqlStockSummary() {
+        return Json.getSuccs(productSqlService.getStockSummary());
+    }
+
+    /**
+     * 使用原生 SQL 查询商品详情。
+     *
+     * @param id 商品主键
+     * @return 商品详情
+     * @throws Exception 商品不存在或转换失败时抛出
+     */
+    @GetMapping("/sql/{id}")
+    @ApiOperation("SQL 详情")
+    @SysControllerLog("SQL 详情")
+    public Json<ProductVo> getSqlDetail(@PathVariable("id") Long id) throws Exception {
+        return Json.getSucc(productSqlService.getDetail(id));
     }
 }
