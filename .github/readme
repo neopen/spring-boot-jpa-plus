@@ -1,0 +1,71 @@
+# 发布出错：Invalid signature for file: spring-boot-jpa-plus-0.1.1.pom.asc - Could not find a public key by the key fingerprint. Please ensure it is uploaded to one of the PGP servers we support.
+Sonatype Central 拒绝了你的发布请求，原因是找不到与你的 GPG 私钥指纹相对应的公钥。
+当使用 GPG 对 Maven 构件进行签名时，Sonatype 的服务器会检查与你私钥相对应的公钥是否已经上传到公共的 PGP 密钥服务器（Key Server），以便全球开发者可以验证签名。
+
+# 解决方法
+将你的 GPG 公钥上传到一个公共的密钥服务器上，这样 Sonatype 的验证服务才能通过指纹检索到它。
+
+## 一、获取 GPG 密钥 ID (Key ID) 或指纹
+gpg --list-secret-keys --keyid-format LONG
+# 输出示例：
+sec   rsa4096/ABC1234567890XYZ 2026-01-01 [SC]
+uid[...] Your Name <[email protected]>
+
+## 二、将 GPG 密钥发送到密钥服务器（任意一个即可，ABC1234567890XYZ 为示例）
+gpg --keyserver hkp://keyserver.ubuntu.com --send-keys ABC1234567890XYZ
+gpg --keyserver hkp://keys.openpgp.org --send-keys ABC1234567890XYZ
+gpg --keyserver hkp://pgpkeys.eu --send-keys ABC1234567890XYZ
+gpg --keyserver hkp://pgp.mit.edu --send-keys ABC1234567890XYZ
+
+## 三、如果服务器始终无法连通，可以通过网页手动上传
+### 1. 导出你的公钥文本：
+复制终端中输出的包含 -----BEGIN PGP PUBLIC KEY BLOCK----- 到 -----END PGP PUBLIC KEY BLOCK----- 的全部内容）
+gpg --armor --export ABC1234567890XYZ
+
+### 2. 通过网页提交
+打开 keys.openpgp.org 官网，点击 Upload，将刚刚复制的公钥文本粘贴进去并提交完成验证。
+
+
+## 四、验证同步状态
+上传成功后，通常需要等待几分钟让密钥服务器之间完成同步。你可以直接在浏览器中访问 keyserver.ubuntu.com，在搜索框中输入你的 Key ID 或邮箱，确认能够搜到你的公钥。
+
+
+## 五、重新触发发布
+确认公钥已经可以在公网密钥服务器上查到后，再次进入 GitHub Actions 页面点击 Re-run all jobs 即可顺利通过验证。
+
+
+----------------------------------配置GPG密钥----------------------------------
+
+# 生成新密钥对，需要先安装 GPG
+gpg --full-gen-key
+
+在交互过程中按提示选择：
+> 密钥类型：选择默认的 RSA and RSA（或 ECC，通常选 1 默认 RSA）。
+> 密钥长度：推荐选择 4096 位。
+> 有效期：根据需要选择（例如 0 表示永不过期）。
+> 个人信息：依次输入你的真实姓名、邮箱地址（建议与你的 GitHub 或 Sonatype 账号邮箱保持一致），并写一句简短的注释（可留空）。
+> 密码（Passphrase）：会弹出一个窗口让你输入一个安全密码。请牢记这个密码，它就是发布时需要的 GPG_PASSPHRASE。
+
+# 导出私钥（用于 GPG_PRIVATE_KEY）
+gpg --armor --export-secret-keys ABC1234567890XYZ
+终端会输出一段以 -----BEGIN PGP PRIVATE KEY BLOCK----- 开始、以 -----END PGP PRIVATE KEY BLOCK----- 结束的文本。这段完整的文本就是你要配置到 GitHub Secrets 中的 GPG_PRIVATE_KEY
+
+
+# 秘钥配置
+GitHub 仓库的 Settings -> Secrets and variables -> Actions 中配置了以下 4 个密钥：
+
+GPG_PRIVATE_KEY（GPG 私钥内容）
+GPG_PASSPHRASE（GPG 密钥密码，在生成密钥时设置的安全密码）
+CENTRAL_USERNAME（Sonatype Central 账号/Token 用户名 https://central.sonatype.com/）
+CENTRAL_PASSWORD（Sonatype Central 密码/Token 密码）
+
+
+----------------------------------发布版本----------------------------------
+
+# 发布版本
+git tag v0.1.1
+git push origin v0.1.1
+
+# 删除版本
+git tag -d v0.1.0
+git push origin :refs/tags/v0.1.0
