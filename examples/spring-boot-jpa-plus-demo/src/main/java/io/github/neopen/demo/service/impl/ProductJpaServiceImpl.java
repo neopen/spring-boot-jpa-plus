@@ -1,5 +1,6 @@
 package io.github.neopen.demo.service.impl;
 
+import io.github.neopen.core.persistence.spec.SpecWrapper;
 import io.github.neopen.demo.bean.entity.Product;
 import io.github.neopen.demo.bean.param.PageParam;
 import io.github.neopen.demo.bean.param.ProductQueryParam;
@@ -9,7 +10,6 @@ import io.github.neopen.demo.persistence.repo.ProductRepo;
 import io.github.neopen.demo.service.support.AbstractProductService;
 import io.github.neopen.extension.response.Json;
 import io.github.neopen.extension.response.JsonPageConverter;
-import jakarta.persistence.criteria.Predicate;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -19,7 +19,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -90,11 +89,14 @@ public class ProductJpaServiceImpl extends AbstractProductService {
     /** {@inheritDoc} */
     @Override
     public List<ProductVo> getLowStockProducts() throws Exception {
-        return batchParseVo(productRepo.findAll(
-                (root, query, cb) -> cb.lessThanOrEqualTo(
+        SpecWrapper<Product> wrapper = SpecWrapper.create(Product.class)
+                .raw((root, query, cb) -> cb.lessThanOrEqualTo(
                         root.<Integer>get("stockQuantity"),
                         root.<Integer>get("safetyStock")
-                ),
+                ));
+
+        return batchParseVo(productRepo.findAll(
+                wrapper.toSpecification(),
                 Sort.by(Sort.Direction.ASC, "stockQuantity", "id")
         ));
     }
@@ -159,42 +161,32 @@ public class ProductJpaServiceImpl extends AbstractProductService {
      * @return JPA 查询规范
      */
     private Specification<Product> buildSpecification(ProductQueryParam param) {
-        return (root, query, cb) -> {
-            List<Predicate> predicates = new ArrayList<>();
+        if (param == null) {
+            return (root, query, cb) -> cb.conjunction();
+        }
 
-            if (param == null) {
-                return cb.conjunction();
-            }
+        SpecWrapper<Product> wrapper = SpecWrapper.create(Product.class);
 
-            if (param.getProductName() != null && !param.getProductName().isBlank()) {
-                predicates.add(cb.like(
-                        root.get("productName"),
-                        "%" + param.getProductName() + "%"
-                ));
-            }
+        if (param.getProductName() != null && !param.getProductName().isBlank()) {
+            wrapper.like("productName", param.getProductName());
+        }
 
-            if (param.getProductType() != null && !param.getProductType().isBlank()) {
-                predicates.add(cb.equal(root.get("productType"), param.getProductType()));
-            }
+        if (param.getProductType() != null && !param.getProductType().isBlank()) {
+            wrapper.eq("productType", param.getProductType());
+        }
 
-            if (param.getProductBrand() != null && !param.getProductBrand().isBlank()) {
-                predicates.add(cb.like(
-                        root.get("productBrand"),
-                        "%" + param.getProductBrand() + "%"
-                ));
-            }
+        if (param.getProductBrand() != null && !param.getProductBrand().isBlank()) {
+            wrapper.like("productBrand", param.getProductBrand());
+        }
 
-            if (param.getSkuCode() != null && !param.getSkuCode().isBlank()) {
-                predicates.add(cb.equal(root.get("skuCode"), param.getSkuCode()));
-            }
+        if (param.getSkuCode() != null && !param.getSkuCode().isBlank()) {
+            wrapper.eq("skuCode", param.getSkuCode());
+        }
 
-            if (param.getActive() != null) {
-                predicates.add(cb.equal(root.get("isActive"), param.getActive()));
-            }
+        if (param.getActive() != null) {
+            wrapper.eq("isActive", param.getActive());
+        }
 
-            return predicates.isEmpty()
-                    ? cb.conjunction()
-                    : cb.and(predicates.toArray(Predicate[]::new));
-        };
+        return wrapper.toSpecification();
     }
 }
