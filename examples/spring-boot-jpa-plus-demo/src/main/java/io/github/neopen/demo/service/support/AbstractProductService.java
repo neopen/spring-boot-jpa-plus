@@ -5,6 +5,7 @@ import io.github.neopen.convert.converter.BaseVoCommom;
 import io.github.neopen.demo.bean.entity.Product;
 import io.github.neopen.demo.bean.param.ProductParam;
 import io.github.neopen.demo.bean.param.ProductQueryParam;
+import io.github.neopen.demo.bean.vo.ProductStockSummaryVo;
 import io.github.neopen.demo.bean.vo.ProductVo;
 import io.github.neopen.demo.persistence.repo.ProductRepo;
 import io.github.neopen.demo.service.ProductService;
@@ -12,12 +13,14 @@ import io.github.neopen.extension.response.JsonPageConverter;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 商品服务公共实现。
  *
  * <p>负责商品写入、字段复制、库存状态计算和视图转换；查询读取由
- * JPA 与 HQL 两个子类分别实现。</p>
+ * JPA、HQL 与原生 SQL 三个子类分别实现。</p>
  */
 public abstract class AbstractProductService
         extends AbstractBaseService<ProductVo, Product, ProductQueryParam>
@@ -190,6 +193,28 @@ public abstract class AbstractProductService
         product.setStockQuantity(stock);
         product.setSafetyStock(safety);
         product.setStockStatus(resolveStockStatus(stock, safety));
+    }
+
+    /**
+     * 将按库存状态聚合的查询结果转换为视图列表。
+     *
+     * <p>结果行固定为两列：库存状态和商品数量。</p>
+     *
+     * @param rows 聚合查询结果
+     * @return 库存状态统计列表
+     */
+    protected List<ProductStockSummaryVo> toStockSummary(List<?> rows) {
+        List<ProductStockSummaryVo> result = new ArrayList<>(rows.size());
+
+        for (Object row : rows) {
+            Object[] values = (Object[]) row;
+            result.add(new ProductStockSummaryVo(
+                    values[0] == null ? null : values[0].toString(),
+                    ((Number) values[1]).longValue()
+            ));
+        }
+
+        return result;
     }
 
     /**

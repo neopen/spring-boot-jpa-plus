@@ -20,7 +20,8 @@ import java.util.List;
 /**
  * 订单接口控制器。
  *
- * <p>默认接口走 JPA 实现，{@code /hql} 前缀的接口走 HQL 实现。</p>
+ * <p>默认接口走 JPA 实现，{@code /hql} 前缀走 HQL 实现，
+ * {@code /sql} 前缀走原生 SQL 实现。</p>
  */
 @RestController
 @RequestMapping("/order")
@@ -32,18 +33,24 @@ public class OrderController implements BaseController<OrderQueryParam, OrderVo>
     /** 基于 HQL 的订单业务服务。 */
     private final OrderService orderHqlService;
 
+    /** 基于原生 SQL 的订单业务服务。 */
+    private final OrderService orderSqlService;
+
     /**
      * 创建订单控制器。
      *
      * @param orderJpaService 基于 JPA 的订单业务服务
      * @param orderHqlService 基于 HQL 的订单业务服务
+     * @param orderSqlService 基于原生 SQL 的订单业务服务
      */
     public OrderController(
             @Qualifier("orderJpaService") OrderService orderJpaService,
-            @Qualifier("orderHqlService") OrderService orderHqlService
+            @Qualifier("orderHqlService") OrderService orderHqlService,
+            @Qualifier("orderSqlService") OrderService orderSqlService
     ) {
         this.orderJpaService = orderJpaService;
         this.orderHqlService = orderHqlService;
+        this.orderSqlService = orderSqlService;
     }
 
     /**
@@ -131,5 +138,47 @@ public class OrderController implements BaseController<OrderQueryParam, OrderVo>
     @SysControllerLog("HQL 详情")
     public Json<OrderVo> getHqlDetail(@PathVariable("orderNo") String orderNo) throws Exception {
         return Json.getSucc(orderHqlService.getDetail(orderNo));
+    }
+
+    /**
+     * 使用原生 SQL 分页获取订单列表。
+     *
+     * @param param 订单查询参数
+     * @return 订单分页响应
+     * @throws Exception 查询或转换失败时抛出
+     */
+    @GetMapping("/sql/page")
+    @ApiOperation("SQL 分页列表")
+    @SysControllerLog("SQL 分页列表")
+    public Json<List<OrderVo>> getSqlPage(OrderQueryParam param) throws Exception {
+        return orderSqlService.getPage(param);
+    }
+
+    /**
+     * 使用原生 SQL 获取全部订单。
+     *
+     * @param param 订单查询参数
+     * @return 订单列表响应
+     * @throws Exception 查询或转换失败时抛出
+     */
+    @GetMapping("/sql/list")
+    @ApiOperation("SQL 所有列表")
+    @SysControllerLog("SQL 所有列表")
+    public Json<List<OrderVo>> getSqlList(OrderQueryParam param) throws Exception {
+        return orderSqlService.getList(param);
+    }
+
+    /**
+     * 使用原生 SQL 获取订单详情。
+     *
+     * @param orderNo 订单编号
+     * @return 订单详情
+     * @throws Exception 订单不存在或转换失败时抛出
+     */
+    @GetMapping("/sql/{orderNo}")
+    @ApiOperation("SQL 详情")
+    @SysControllerLog("SQL 详情")
+    public Json<OrderVo> getSqlDetail(@PathVariable("orderNo") String orderNo) throws Exception {
+        return Json.getSucc(orderSqlService.getDetail(orderNo));
     }
 }

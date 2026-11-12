@@ -20,7 +20,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * 商品接口测试。
  *
- * <p>默认接口验证 JPA 实现，{@code /hql} 接口验证 HQL 实现。</p>
+ * <p>默认接口验证 JPA 实现，{@code /hql} 接口验证 HQL 实现，
+ * {@code /sql} 接口验证原生 SQL 实现。</p>
  */
 @Tag("api")
 @SpringBootTest
@@ -109,6 +110,50 @@ class ProductApiTest {
                 .andExpect(jsonPath("$.data.stockStatus").value("INSTOCK"));
 
         mockMvc.perform(get("/product/hql/stock-summary"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data[0].stockStatus").value("INSTOCK"));
+    }
+
+    @Test
+    void sqlEndpointsShouldWork() throws Exception {
+        long id = createProduct("SQL 商品", 5, 10);
+
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/product/sql/page").param("productName", "SQL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.count").value(1))
+                .andExpect(jsonPath("$.data[0].productName").value("SQL 商品"));
+
+        mockMvc.perform(get("/product/sql/list").param("productName", "SQL"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1));
+
+        mockMvc.perform(get("/product/sql/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stockStatus").value("LOWSTOCK"));
+
+        mockMvc.perform(get("/product/sql/low-stock"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.length()").value(1))
+                .andExpect(jsonPath("$.data[0].productName").value("SQL 商品"));
+
+        mockMvc.perform(post("/product/sql/restock")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"ids\":[" + id + "],\"quantity\":30}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data").value(1));
+
+        entityManager.flush();
+        entityManager.clear();
+
+        mockMvc.perform(get("/product/sql/" + id))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.data.stockQuantity").value(35))
+                .andExpect(jsonPath("$.data.stockStatus").value("INSTOCK"));
+
+        mockMvc.perform(get("/product/sql/stock-summary"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data[0].stockStatus").value("INSTOCK"));
     }

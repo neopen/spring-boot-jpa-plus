@@ -128,7 +128,8 @@
                         <artifactId>central-publishing-maven-plugin</artifactId>
                         <version>0.12.0</version>
                         <configuration>
-                            <skip>true</skip>
+                            <skipPublishing>true</skipPublishing>
+                            <skipUpload>true</skipUpload>
                         </configuration>
                     </plugin>
                 </plugins>
