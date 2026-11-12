@@ -160,6 +160,39 @@ public class OrderServiceImpl
 
 - [HQL Usage Guide](docs/hql.md) - Chained conditions, pagination, counting, batch queries, and custom operators.
 
+## JPA Specification Builder
+
+`SpecWrapper` builds Spring Data JPA `Specification` with the same chained style as the HQL and SQL builders. Conditions default to `AND`; use `and` / `or` for nested groups.
+
+```java
+Specification<Order> spec = SpecWrapper.create(Order.class)
+        .like("orderNo", "DS")
+        .ge("totalAmount", new BigDecimal("100"))
+        .join("orderProducts")
+        .like("orderProducts.productName", "机械")
+        .toSpecification();
+
+Page<Order> page = orderRepo.findAll(spec, PageRequest.of(0, 10));
+```
+
+Joins enable `distinct` automatically, so pagination and count queries are not duplicated by one-to-many associations. Fetch joins are skipped for count queries:
+
+```java
+SpecWrapper.create(Order.class)
+        .fetch("orderProducts")
+        .toSpecification();
+```
+
+For subqueries or field-to-field comparisons, append a raw specification:
+
+```java
+SpecWrapper.create(Product.class)
+        .raw((root, query, cb) -> cb.lessThanOrEqualTo(
+                root.<Integer>get("stockQuantity"),
+                root.<Integer>get("safetyStock")))
+        .toSpecification();
+```
+
 ## SQL Query Builder
 
 `SqlWrapper` mirrors the HQL builder for native SQL: it generates named parameters, a count query, and optional ordering.
@@ -193,8 +226,8 @@ Page<Product> page = sqlExecutor.queryForPage(
 The [spring-boot-jpa-plus-demo](examples/spring-boot-jpa-plus-demo) module is a runnable sample covering:
 
 - **Order aggregate** - JPA CRUD, order item batch loading (N+1 avoidance), and the same queries implemented with HQL and native SQL.
-- **JPA joins and filters** - `OrderJpaServiceImpl.buildPredicates` joins `orderProducts` for item name and quantity filters, applies `distinct` for correct pagination counts, and supports sender phone and order amount ranges.
-- **Product inventory** - JPA `Specification` queries versus HQL and native SQL, native field comparison, bulk restock, and `SqlWrapper`-based aggregation.
+- **JPA joins and filters** - `OrderJpaServiceImpl.buildPredicates` uses `SpecWrapper` to join `orderProducts` for item name and quantity filters, applies automatic `distinct` for correct pagination counts, and supports sender phone and order amount ranges.
+- **Product inventory** - JPA `SpecWrapper` queries versus HQL and native SQL, native field comparison, bulk restock, and `SqlWrapper`-based aggregation.
 - **Same interface, three implementations** - `OrderService` and `ProductService` each have JPA, HQL, and native SQL implementations. Default endpoints use JPA, `/hql` endpoints use HQL, and `/sql` endpoints use `SqlWrapper` with `JpaPlusSqlExecutor`.
 - **HTTP API** - REST endpoints under `/order` and `/product`, backed by an H2 in-memory database.
 

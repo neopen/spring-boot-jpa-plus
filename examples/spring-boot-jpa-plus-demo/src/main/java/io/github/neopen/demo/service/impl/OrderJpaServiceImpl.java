@@ -1,20 +1,22 @@
 package io.github.neopen.demo.service.impl;
 
 import io.github.neopen.demo.bean.entity.Order;
-import io.github.neopen.demo.bean.entity.OrderProduct;
 import io.github.neopen.demo.bean.param.OrderQueryParam;
 import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.demo.persistence.repo.OrderRepo;
 import io.github.neopen.demo.service.OrderProductService;
 import io.github.neopen.demo.service.support.AbstractOrderService;
+import io.github.neopen.core.persistence.spec.SpecWrapper;
 import io.github.neopen.extension.response.Json;
 import io.github.neopen.extension.response.JsonPageConverter;
-import jakarta.persistence.criteria.*;
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
+import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.Root;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,70 +54,46 @@ public class OrderJpaServiceImpl extends AbstractOrderService {
             CriteriaBuilder cb,
             OrderQueryParam param
     ) {
-        List<Predicate> predicates = new ArrayList<>(16);
-
         if (param == null) {
-            return predicates;
+            return List.of();
         }
 
+        SpecWrapper<Order> wrapper = SpecWrapper.create(Order.class);
+
         if (hasText(param.getOrderNo())) {
-            predicates.add(cb.like(
-                    root.get("orderNo"),
-                    "%" + param.getOrderNo() + "%"
-            ));
+            wrapper.like("orderNo", param.getOrderNo());
         }
 
         if (hasText(param.getStatus())) {
-            predicates.add(cb.equal(root.get("status"), param.getStatus()));
+            wrapper.eq("status", param.getStatus());
         }
 
         if (hasText(param.getSenderPhone())) {
-            predicates.add(cb.like(
-                    root.get("senderPhone"),
-                    "%" + param.getSenderPhone() + "%"
-            ));
+            wrapper.like("senderPhone", param.getSenderPhone());
         }
 
         if (param.getMinTotalAmount() != null) {
-            predicates.add(cb.greaterThanOrEqualTo(
-                    root.get("totalAmount"),
-                    param.getMinTotalAmount()
-            ));
+            wrapper.ge("totalAmount", param.getMinTotalAmount());
         }
 
         if (param.getMaxTotalAmount() != null) {
-            predicates.add(cb.lessThanOrEqualTo(
-                    root.get("totalAmount"),
-                    param.getMaxTotalAmount()
-            ));
+            wrapper.le("totalAmount", param.getMaxTotalAmount());
         }
 
         // 订单项条件存在时才建立连表，避免无谓的 join 和重复行。
         if (hasText(param.getProductName()) || param.getMinQuantity() != null) {
-            Join<Order, OrderProduct> items = root.join(
-                    "orderProducts",
-                    JoinType.INNER
-            );
+            wrapper.join("orderProducts");
 
             if (hasText(param.getProductName())) {
-                predicates.add(cb.like(
-                        items.get("productName"),
-                        "%" + param.getProductName() + "%"
-                ));
+                wrapper.like("orderProducts.productName", param.getProductName());
             }
 
             if (param.getMinQuantity() != null) {
-                predicates.add(cb.greaterThanOrEqualTo(
-                        items.get("quantity"),
-                        param.getMinQuantity()
-                ));
+                wrapper.ge("orderProducts.quantity", param.getMinQuantity());
             }
-
-            // 一对多连表会产生重复订单，分页和 count 都需要去重。
-            query.distinct(true);
         }
 
-        return predicates;
+        return List.of(wrapper.toPredicate(root, query, cb));
     }
 
     /**
