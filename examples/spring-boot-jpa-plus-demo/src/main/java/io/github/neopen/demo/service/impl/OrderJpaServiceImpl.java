@@ -1,6 +1,7 @@
 package io.github.neopen.demo.service.impl;
 
 import io.github.neopen.demo.bean.entity.Order;
+import io.github.neopen.demo.bean.entity.OrderProduct;
 import io.github.neopen.demo.bean.param.OrderQueryParam;
 import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.demo.persistence.repo.OrderRepo;
@@ -9,10 +10,7 @@ import io.github.neopen.demo.service.support.AbstractOrderService;
 import io.github.neopen.core.persistence.spec.SpecWrapper;
 import io.github.neopen.extension.response.Json;
 import io.github.neopen.extension.response.JsonPageConverter;
-import jakarta.persistence.criteria.CriteriaBuilder;
-import jakarta.persistence.criteria.CriteriaQuery;
-import jakarta.persistence.criteria.Predicate;
-import jakarta.persistence.criteria.Root;
+import jakarta.persistence.criteria.*;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
 import org.springframework.stereotype.Service;
