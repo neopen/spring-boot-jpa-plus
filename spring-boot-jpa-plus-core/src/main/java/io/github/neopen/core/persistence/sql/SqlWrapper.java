@@ -1,5 +1,8 @@
 package io.github.neopen.core.persistence.sql;
 
+import io.github.neopen.core.persistence.condition.ConditionOperator;
+import io.github.neopen.core.persistence.condition.QueryCondition;
+import io.github.neopen.core.persistence.condition.QueryConditionMapper;
 import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
@@ -331,6 +334,51 @@ public final class SqlWrapper {
     }
 
     /**
+     * 按查询参数上的 {@link QueryCondition} 注解自动追加条件。
+     *
+     * <p>空值、空白字符串、空集合和空数组会被忽略，具体规则见
+     * {@link QueryConditionMapper}。字段名默认按驼峰转下划线规则
+     * 还原为列名，可通过 {@link QueryCondition#value()} 显式覆盖。</p>
+     *
+     * @param param 查询参数，允许为 {@code null}
+     * @return 当前构造器
+     */
+    public SqlWrapper apply(Object param) {
+        QueryConditionMapper.apply(param, this::applyCondition);
+        return this;
+    }
+
+    /**
+     * 应用注解解析出的单个条件。
+     *
+     * @param field    字段名
+     * @param operator 条件运算符
+     * @param value    条件值
+     * @param second   区间结束值
+     */
+    private void applyCondition(
+            String field,
+            ConditionOperator operator,
+            Object value,
+            Object second
+    ) {
+        String column = toColumn(field);
+
+        switch (operator) {
+            case IS_NULL -> isNull(column);
+            case IS_NOT_NULL -> isNotNull(column);
+            case BETWEEN -> between(column, value, second);
+            case IN -> in(column, operator.toCollection(value));
+            case NOT_IN -> notIn(column, operator.toCollection(value));
+            default -> add(
+                    column,
+                    StandardSqlOperator.of(operator),
+                    operator.decorate(value)
+            );
+        }
+    }
+
+    /**
      * 添加自定义运算符条件。
      *
      * @param column   列名
@@ -559,6 +607,37 @@ public final class SqlWrapper {
         }
 
         return this;
+    }
+
+    /**
+     * 将驼峰字段名转换为下划线列名。
+     *
+     * <p>已经是下划线形式的名称保持不变；包含点号的路径逐段转换。</p>
+     *
+     * @param field 字段名
+     * @return 列名
+     */
+    private static String toColumn(String field) {
+        StringBuilder column = new StringBuilder(field.length() + 4);
+
+        for (int i = 0; i < field.length(); i++) {
+            char ch = field.charAt(i);
+
+            if (Character.isUpperCase(ch)) {
+                char previous = i == 0 ? '.' : field.charAt(i - 1);
+
+                if (previous != '_' && previous != '.') {
+                    column.append('_');
+                }
+
+                column.append(Character.toLowerCase(ch));
+                continue;
+            }
+
+            column.append(ch);
+        }
+
+        return column.toString();
     }
 
     /**

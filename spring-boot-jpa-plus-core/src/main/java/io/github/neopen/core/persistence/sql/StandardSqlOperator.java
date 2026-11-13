@@ -1,5 +1,7 @@
 package io.github.neopen.core.persistence.sql;
 
+import io.github.neopen.core.persistence.condition.ConditionOperator;
+
 import java.util.List;
 
 /**
@@ -130,5 +132,29 @@ public enum StandardSqlOperator implements SqlOperator {
     @Override
     public int parameterCount() {
         return parameterCount;
+    }
+
+    /**
+     * 将通用条件运算符转换为 SQL 运算符。
+     *
+     * @param operator 通用条件运算符
+     * @return SQL 运算符
+     */
+    public static StandardSqlOperator of(ConditionOperator operator) {
+        return switch (operator) {
+            case EQ -> EQ;
+            case NE -> NE;
+            case GT -> GT;
+            case GE -> GE;
+            case LT -> LT;
+            case LE -> LE;
+            case LIKE, LIKE_LEFT, LIKE_RIGHT -> LIKE;
+            case NOT_LIKE -> NOT_LIKE;
+            case IN -> IN;
+            case NOT_IN -> NOT_IN;
+            case BETWEEN -> BETWEEN;
+            case IS_NULL -> IS_NULL;
+            case IS_NOT_NULL -> IS_NOT_NULL;
+        };
     }
 }

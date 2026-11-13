@@ -7,12 +7,14 @@ import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.demo.persistence.repo.OrderRepo;
 import io.github.neopen.demo.service.OrderProductService;
 import io.github.neopen.demo.service.support.AbstractOrderService;
+import io.github.neopen.core.persistence.sort.Sorts;
 import io.github.neopen.core.persistence.spec.SpecWrapper;
 import io.github.neopen.extension.response.Json;
 import io.github.neopen.extension.response.JsonPageConverter;
 import jakarta.persistence.criteria.*;
 import org.springframework.context.annotation.Primary;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -56,27 +58,8 @@ public class OrderJpaServiceImpl extends AbstractOrderService {
             return List.of();
         }
 
-        SpecWrapper<Order> wrapper = SpecWrapper.create(Order.class);
-
-        if (hasText(param.getOrderNo())) {
-            wrapper.like("orderNo", param.getOrderNo());
-        }
-
-        if (hasText(param.getStatus())) {
-            wrapper.eq("status", param.getStatus());
-        }
-
-        if (hasText(param.getSenderPhone())) {
-            wrapper.like("senderPhone", param.getSenderPhone());
-        }
-
-        if (param.getMinTotalAmount() != null) {
-            wrapper.ge("totalAmount", param.getMinTotalAmount());
-        }
-
-        if (param.getMaxTotalAmount() != null) {
-            wrapper.le("totalAmount", param.getMaxTotalAmount());
-        }
+        SpecWrapper<Order> wrapper = SpecWrapper.create(Order.class)
+                .apply(param);
 
         // 订单项条件存在时才建立连表，避免无谓的 join 和重复行。
         if (hasText(param.getProductName()) || param.getMinQuantity() != null) {
@@ -99,9 +82,14 @@ public class OrderJpaServiceImpl extends AbstractOrderService {
      */
     @Override
     public Json<List<OrderVo>> getPage(OrderQueryParam param) throws Exception {
+        Sort sort = Sorts.parse(
+                param.getSort() + "," + (param.getOrder() > 0 ? "asc" : "desc"),
+                Order.class
+        );
+
         Page<Order> orderPage = orderRepo.findAll(
                 getSpecExecutor(param),
-                param.pageRequest()
+                param.pageRequest(sort)
         );
 
         return jsonPageConverter.convert(
