@@ -2,7 +2,9 @@ package io.github.neopen.core.persistence.spec;
 
 import io.github.neopen.core.persistence.condition.ConditionOperator;
 import io.github.neopen.core.persistence.condition.QueryCondition;
+import io.github.neopen.core.persistence.condition.QueryConditionEntry;
 import io.github.neopen.core.persistence.condition.QueryConditionMapper;
+import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.From;
@@ -501,18 +503,51 @@ public final class SpecWrapper<T> implements Specification<T> {
      * 按查询参数上的 {@link QueryCondition} 注解自动追加条件。
      *
      * <p>空值、空白字符串、空集合和空数组会被忽略，具体规则见
-     * {@link QueryConditionMapper}。</p>
+     * {@link QueryConditionMapper}。同一分组内的条件按 OR 组合，
+     * 分组之间以及与未分组条件之间按 AND 组合。</p>
      *
      * @param param 查询参数，允许为 {@code null}
      * @return 当前构造器
      */
     public SpecWrapper<T> apply(Object param) {
-        QueryConditionMapper.apply(param, this::applyCondition);
+        Map<String, List<QueryConditionEntry>> groups = new LinkedHashMap<>();
+
+        for (QueryConditionEntry entry : QueryConditionMapper.resolve(param)) {
+            if (entry.grouped()) {
+                groups.computeIfAbsent(
+                        entry.group(),
+                        key -> new ArrayList<>()
+                ).add(entry);
+            } else {
+                applyEntry(entry);
+            }
+        }
+
+        groups.values().forEach(entries ->
+                anyOf(nested -> entries.forEach(nested::applyEntry)));
+
         return this;
     }
 
     /**
      * 应用注解解析出的单个条件。
+     *
+     * @param entry 查询条件
+     * @return 当前构造器
+     */
+    private SpecWrapper<T> applyEntry(QueryConditionEntry entry) {
+        applyCondition(
+                entry.field(),
+                entry.operator(),
+                entry.value(),
+                entry.second()
+        );
+
+        return this;
+    }
+
+    /**
+     * 应用单个条件。
      *
      * @param field    字段路径
      * @param operator 条件运算符
@@ -593,7 +628,7 @@ public final class SpecWrapper<T> implements Specification<T> {
      * @return 当前构造器
      */
     public SpecWrapper<T> and(Consumer<SpecWrapper<T>> nested) {
-        return addGroup(Connector.AND, nested);
+        return addGroup(Connector.AND, Connector.AND, nested);
     }
 
     /**
@@ -603,7 +638,21 @@ public final class SpecWrapper<T> implements Specification<T> {
      * @return 当前构造器
      */
     public SpecWrapper<T> or(Consumer<SpecWrapper<T>> nested) {
-        return addGroup(Connector.OR, nested);
+        return addGroup(Connector.OR, Connector.AND, nested);
+    }
+
+    /**
+     * 添加 OR 条件分组。
+     *
+     * <p>与 {@link #or(Consumer)} 不同，分组内部的条件也按 OR 组合，
+     * 分组整体与前后的条件按 AND 组合，例如
+     * {@code status = 1 and (name like ? or code like ?)}。</p>
+     *
+     * @param nested 分组条件
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> anyOf(Consumer<SpecWrapper<T>> nested) {
+        return addGroup(Connector.AND, Connector.OR, nested);
     }
 
     /**
@@ -755,6 +804,23 @@ public final class SpecWrapper<T> implements Specification<T> {
     }
 
     /**
+     * 追加逻辑删除过滤。
+     *
+     * <p>实体字段标注了
+     * {@link io.github.neopen.core.persistence.logicdelete.LogicDelete}
+     * 时追加 {@code 字段 = false} 条件，未标注时忽略。</p>
+     *
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> filterDeleted() {
+        if (!LogicDeletes.isLogicDeleted(entityType)) {
+            return this;
+        }
+
+        return raw(LogicDeletes.filter(entityType));
+    }
+
+    /**
      * 追加自定义 Specification。
      *
      * <p>适合子查询、字段间比较等链式 API 未覆盖的场景。</p>
@@ -859,11 +925,13 @@ public final class SpecWrapper<T> implements Specification<T> {
      * 添加条件分组。
      *
      * @param connector 与前后条件的连接符
+     * @param innerConnector 分组内部连接符
      * @param nested    分组条件
      * @return 当前构造器
      */
     private SpecWrapper<T> addGroup(
             Connector connector,
+            Connector innerConnector,
             Consumer<SpecWrapper<T>> nested
     ) {
         if (nested == null) {
@@ -877,7 +945,9 @@ public final class SpecWrapper<T> implements Specification<T> {
 
         if (!child.nodes.isEmpty()) {
             joins.addAll(child.joins);
-            nodes.add(new GroupNode<>(connector, child.nodes));
+            nodes.add(
+                    new GroupNode<>(connector, child.nodes, innerConnector)
+            );
         }
 
         return this;
@@ -894,6 +964,23 @@ public final class SpecWrapper<T> implements Specification<T> {
             List<Node<T>> nodes,
             BuildContext<T> context
     ) {
+        return renderNodes(nodes, context, null);
+    }
+
+    /**
+     * 按指定连接符渲染条件节点。
+     *
+     * @param nodes     条件节点
+     * @param context   构建上下文
+     * @param connector 强制连接符；为 {@code null} 时使用节点自身连接符
+     * @param <T>       实体类型
+     * @return 组合后的谓词
+     */
+    private static <T> Predicate renderNodes(
+            List<Node<T>> nodes,
+            BuildContext<T> context,
+            Connector connector
+    ) {
         Predicate result = null;
 
         for (Node<T> node : nodes) {
@@ -908,7 +995,11 @@ public final class SpecWrapper<T> implements Specification<T> {
                 continue;
             }
 
-            result = node.connector() == Connector.AND
+            Connector actual = connector == null
+                    ? node.connector()
+                    : connector;
+
+            result = actual == Connector.AND
                     ? context.cb.and(result, predicate)
                     : context.cb.or(result, predicate);
         }
@@ -1040,15 +1131,17 @@ public final class SpecWrapper<T> implements Specification<T> {
      *
      * @param connector 连接符
      * @param children  子节点
+     * @param innerConnector 分组内部连接符
      */
     private record GroupNode<T>(
             Connector connector,
-            List<Node<T>> children
+            List<Node<T>> children,
+            Connector innerConnector
     ) implements Node<T> {
 
         @Override
         public Predicate toPredicate(BuildContext<T> context) {
-            return renderNodes(children, context);
+            return renderNodes(children, context, innerConnector);
         }
     }
 

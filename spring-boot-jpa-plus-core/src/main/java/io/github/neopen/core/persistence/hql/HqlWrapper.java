@@ -2,6 +2,7 @@ package io.github.neopen.core.persistence.hql;
 
 import io.github.neopen.core.persistence.condition.ConditionOperator;
 import io.github.neopen.core.persistence.condition.QueryCondition;
+import io.github.neopen.core.persistence.condition.QueryConditionEntry;
 import io.github.neopen.core.persistence.condition.QueryConditionMapper;
 import org.springframework.data.domain.Sort;
 
@@ -307,12 +308,44 @@ public final class HqlWrapper<T> {
      * @return 当前构造器
      */
     public HqlWrapper<T> apply(Object param) {
-        QueryConditionMapper.apply(param, this::applyCondition);
+        Map<String, List<QueryConditionEntry>> groups = new LinkedHashMap<>();
+
+        for (QueryConditionEntry entry : QueryConditionMapper.resolve(param)) {
+            if (entry.grouped()) {
+                groups.computeIfAbsent(
+                        entry.group(),
+                        key -> new ArrayList<>()
+                ).add(entry);
+            } else {
+                applyEntry(entry);
+            }
+        }
+
+        groups.values().forEach(entries ->
+                anyOf(nested -> entries.forEach(nested::applyEntry)));
+
         return this;
     }
 
     /**
      * 应用注解解析出的单个条件。
+     *
+     * @param entry 查询条件
+     * @return 当前构造器
+     */
+    private HqlWrapper<T> applyEntry(QueryConditionEntry entry) {
+        applyCondition(
+                entry.field(),
+                entry.operator(),
+                entry.value(),
+                entry.second()
+        );
+
+        return this;
+    }
+
+    /**
+     * 应用单个条件。
      *
      * @param field    字段路径
      * @param operator 条件运算符
@@ -395,7 +428,7 @@ public final class HqlWrapper<T> {
      * @return 当前构造器
      */
     public HqlWrapper<T> and(Consumer<HqlWrapper<T>> nested) {
-        return addGroup(Connector.AND, nested);
+        return addGroup(Connector.AND, Connector.AND, nested);
     }
 
     /**
@@ -405,7 +438,21 @@ public final class HqlWrapper<T> {
      * @return 当前构造器
      */
     public HqlWrapper<T> or(Consumer<HqlWrapper<T>> nested) {
-        return addGroup(Connector.OR, nested);
+        return addGroup(Connector.OR, Connector.AND, nested);
+    }
+
+    /**
+     * 添加 OR 条件分组。
+     *
+     * <p>与 {@link #or(Consumer)} 不同，分组内部的条件也按 OR 组合，
+     * 分组整体与前后的条件按 AND 组合，例如
+     * {@code status = :p1 and (name like :p2 or code like :p3)}。</p>
+     *
+     * @param nested 分组条件
+     * @return 当前构造器
+     */
+    public HqlWrapper<T> anyOf(Consumer<HqlWrapper<T>> nested) {
+        return addGroup(Connector.AND, Connector.OR, nested);
     }
 
     /**
@@ -488,11 +535,13 @@ public final class HqlWrapper<T> {
      * 添加条件分组。
      *
      * @param connector 与前后条件的连接符
+     * @param innerConnector 分组内部连接符
      * @param nested    分组条件
      * @return 当前构造器
      */
     private HqlWrapper<T> addGroup(
             Connector connector,
+            Connector innerConnector,
             Consumer<HqlWrapper<T>> nested
     ) {
         if (nested == null) {
@@ -505,7 +554,9 @@ public final class HqlWrapper<T> {
         nested.accept(child);
 
         if (!child.nodes.isEmpty()) {
-            nodes.add(new GroupNode(connector, child.nodes));
+            nodes.add(
+                    new GroupNode(connector, child.nodes, innerConnector)
+            );
         }
 
         return this;
@@ -588,6 +639,22 @@ public final class HqlWrapper<T> {
             List<Node> nodes,
             BuildContext context
     ) {
+        return renderNodes(nodes, context, null);
+    }
+
+    /**
+     * 按指定连接符渲染条件节点。
+     *
+     * @param nodes     条件节点
+     * @param context   构建上下文
+     * @param connector 强制连接符；为 {@code null} 时使用节点自身连接符
+     * @return 条件片段
+     */
+    private static String renderNodes(
+            List<Node> nodes,
+            BuildContext context,
+            Connector connector
+    ) {
         StringBuilder fragment = new StringBuilder();
 
         for (Node node : nodes) {
@@ -598,8 +665,12 @@ public final class HqlWrapper<T> {
             }
 
             if (fragment.length() > 0) {
+                Connector actual = connector == null
+                        ? node.connector()
+                        : connector;
+
                 fragment.append(' ')
-                        .append(node.connector().keyword)
+                        .append(actual.keyword)
                         .append(' ');
             }
 
@@ -707,15 +778,21 @@ public final class HqlWrapper<T> {
      *
      * @param connector 连接符
      * @param children  子节点
+     * @param innerConnector 分组内部连接符
      */
     private record GroupNode(
             Connector connector,
-            List<Node> children
+            List<Node> children,
+            Connector innerConnector
     ) implements Node {
 
         @Override
         public String render(BuildContext context) {
-            String fragment = renderNodes(children, context);
+            String fragment = renderNodes(
+                    children,
+                    context,
+                    innerConnector
+            );
 
             return fragment.isEmpty()
                     ? ""

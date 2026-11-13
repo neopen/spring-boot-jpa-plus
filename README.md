@@ -17,6 +17,7 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **CRUD Operations** - Simplified common database operations.
 - **Batch Processing** - Convenient batch save, update, and delete operations.
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
+- **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, and a specification executor.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
 - **Pagination** - Simplified paginated queries and response handling.
 - **HQL & SQL** - Chained query builders, pagination with automatic count, batch updates, and native SQL access.
@@ -218,6 +219,36 @@ Specification<Order> spec = SpecWrapper.create(Order.class)
 
 `null` values, blank strings, empty collections, and empty arrays are skipped automatically. `HqlWrapper` and `SqlWrapper` provide the same `apply(param)` method; the SQL builder converts camelCase field names to snake_case columns unless `value` overrides the name. `IS_NULL` / `IS_NOT_NULL` treat the annotated field as a boolean switch.
 
+Conditions that share a `group` are combined with `OR`, while different groups and ungrouped conditions are joined with `AND`:
+
+```java
+public class OrderQueryParam {
+
+    @QueryCondition
+    private String status;
+
+    @QueryCondition(group = "keyword", operator = ConditionOperator.LIKE)
+    private String orderNo;
+
+    @QueryCondition(group = "keyword", operator = ConditionOperator.LIKE)
+    private String receiverName;
+}
+
+// status = ? and (order_no like ? or receiver_name like ?)
+```
+
+Nested parameter objects are scanned recursively (up to three levels) as long as the field itself has no `@QueryCondition`; conditions are flattened without a field prefix:
+
+```java
+public class OrderQueryParam {
+
+    @QueryCondition
+    private String status;
+
+    private KeywordFilter keyword;   // fields inside are scanned recursively
+}
+```
+
 ### Type-safe Attributes
 
 Criteria metamodel attributes can replace string field names when the static metamodel is generated:
@@ -239,6 +270,60 @@ Sort allowed = Sorts.parse("id,desc", Set.of("id", "totalAmount"));
 ```
 
 Unknown fields and invalid directions throw `IllegalArgumentException`; blank expressions return `Sort.unsorted()`.
+
+Nested property paths are validated segment by segment (up to three levels), and alias maps translate external field names to entity properties:
+
+```java
+Sort sort = Sorts.parse("customer.name,asc", Order.class);
+Sort aliased = Sorts.parse(
+        "name,desc",
+        Order.class,
+        Map.of("name", "customer.name")
+);
+```
+
+Alias targets are validated as well; an unknown alias target is rejected.
+
+### Logical Deletion
+
+Annotate a boolean field with `@LogicDelete` and the builder appends `field = false` automatically. The annotation is inherited from parent classes and cached per entity type:
+
+```java
+public class Order {
+
+    @LogicDelete
+    private Boolean deleted = Boolean.FALSE;
+}
+
+Specification<Order> spec = SpecWrapper.create(Order.class)
+        .filterDeleted()
+        .like("orderNo", "DS")
+        .toSpecification();
+
+// or combine with an existing specification
+Specification<Order> filtered = LogicDeletes.filter(Order.class, spec);
+```
+
+Only JPA Criteria queries are filtered. Native SQL statements must add the condition manually.
+
+### Specification Executor
+
+`JpaPlusSpecExecutor` centralizes paging, counting, slicing, and fetch pagination for `Specification` queries:
+
+```java
+JpaPlusSpecExecutor<Order> executor =
+        JpaPlusSpecExecutor.of(entityManager, Order.class, "id");
+
+Page<Order> page = executor.findPage(spec, PageRequest.of(0, 10));
+Slice<Order> slice = executor.findSlice(spec, PageRequest.of(0, 10));
+Page<Order> fetched = executor.findPage(
+        spec,
+        PageRequest.of(0, 10),
+        List.of("orderProducts")
+);
+```
+
+Count queries use `countDistinct` on the configured identifier to avoid duplicate rows from joins. `findSlice` fetches `pageSize + 1` rows instead of counting, and logical deletion filtering is enabled by default (`executor.logicDelete(false)` disables it). When fetch attributes are provided, the executor delegates to `FetchJoinPaging`.
 
 ### Fetch Join Pagination
 

@@ -59,6 +59,7 @@ public class OrderJpaServiceImpl extends AbstractOrderService {
         }
 
         SpecWrapper<Order> wrapper = SpecWrapper.create(Order.class)
+                .filterDeleted()
                 .apply(param);
 
         // 订单项条件存在时才建立连表，避免无谓的 join 和重复行。

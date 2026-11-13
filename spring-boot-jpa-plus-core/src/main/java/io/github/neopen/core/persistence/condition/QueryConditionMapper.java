@@ -7,15 +7,23 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
+import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 查询参数条件映射器。
  *
  * <p>扫描参数对象（含父类）上标注了 {@link QueryCondition} 的字段，
- * 按注解声明的运算符把非空参数交给 {@link ConditionApplier} 应用。</p>
+ * 按注解声明的运算符把非空参数解析为 {@link QueryConditionEntry}。</p>
+ *
+ * <p>支持嵌套参数对象：字段本身未标注 {@link QueryCondition} 且类型为
+ * 业务参数对象时，会递归扫描其字段，最多 3 层；JDK 类型、集合、Map、
+ * 数组与枚举不会被递归。嵌套对象的条件不添加字段前缀，字段路径可以
+ * 通过 {@link QueryCondition#value()} 显式指定。</p>
  *
  * <p>过滤规则：</p>
  * <ul>
@@ -29,12 +37,19 @@ import java.util.concurrent.ConcurrentHashMap;
  *         值为 {@code Boolean.FALSE} 时忽略。</li>
  * </ul>
  *
- * <p>注解元数据按参数类型缓存，重复调用不会重复反射扫描。</p>
+ * <p>注解元数据与嵌套字段按参数类型缓存，重复调用不会重复反射扫描。</p>
  */
 public final class QueryConditionMapper {
 
+    /** 嵌套参数对象允许的最大层级。 */
+    private static final int MAX_NESTED_DEPTH = 3;
+
     /** 参数类型与字段绑定的缓存。 */
     private static final Map<Class<?>, List<Binding>> CACHE =
+            new ConcurrentHashMap<>();
+
+    /** 参数类型与嵌套字段的缓存。 */
+    private static final Map<Class<?>, List<Field>> NESTED_CACHE =
             new ConcurrentHashMap<>();
 
     private QueryConditionMapper() {
@@ -43,9 +58,12 @@ public final class QueryConditionMapper {
     /**
      * 将参数对象上的条件应用到查询构造器。
      *
+     * <p>条件按注解解析顺序依次应用，分组信息会被忽略；需要按分组
+     * 组装 OR 条件时请使用 {@link #resolve(Object)}。</p>
+     *
      * @param param   查询参数，允许为 {@code null}
      * @param applier 条件应用回调
-     * @throws IllegalArgumentException 注解配置非法时抛出
+     * @throws IllegalArgumentException 注解配置非法或回调为空时抛出
      * @throws JpaPlusException         字段不可读取时抛出
      */
     public static void apply(Object param, ConditionApplier applier) {
@@ -59,8 +77,79 @@ public final class QueryConditionMapper {
             );
         }
 
-        for (Binding binding : bindingsOf(param.getClass())) {
-            binding.apply(param, applier);
+        for (QueryConditionEntry entry : resolve(param)) {
+            applier.apply(
+                    entry.field(),
+                    entry.operator(),
+                    entry.value(),
+                    entry.second()
+            );
+        }
+    }
+
+    /**
+     * 解析参数对象上的全部查询条件。
+     *
+     * <p>返回顺序与字段声明顺序一致，并包含嵌套参数对象中的条件。</p>
+     *
+     * @param param 查询参数，允许为 {@code null}
+     * @return 查询条件列表；参数为空时返回空列表
+     * @throws IllegalArgumentException 注解配置非法时抛出
+     * @throws JpaPlusException         字段不可读取时抛出
+     */
+    public static List<QueryConditionEntry> resolve(Object param) {
+        if (param == null) {
+            return List.of();
+        }
+
+        List<QueryConditionEntry> entries = new ArrayList<>();
+        Set<Object> visited = Collections.newSetFromMap(
+                new IdentityHashMap<>()
+        );
+        visited.add(param);
+
+        collect(param, param.getClass(), 0, visited, entries);
+
+        return List.copyOf(entries);
+    }
+
+    /**
+     * 收集当前参数对象与嵌套参数对象上的条件。
+     *
+     * @param param   参数对象
+     * @param type    参数类型
+     * @param depth   当前嵌套层级
+     * @param visited 已访问参数对象，用于循环检测
+     * @param entries 条件收集列表
+     */
+    private static void collect(
+            Object param,
+            Class<?> type,
+            int depth,
+            Set<Object> visited,
+            List<QueryConditionEntry> entries
+    ) {
+        for (Binding binding : bindingsOf(type)) {
+            QueryConditionEntry entry = binding.resolve(param);
+
+            if (entry != null) {
+                entries.add(entry);
+            }
+        }
+
+        if (depth >= MAX_NESTED_DEPTH) {
+            return;
+        }
+
+        for (Field field : nestedFieldsOf(type)) {
+            Object value = read(field, param);
+
+            if (value == null || !visited.add(value)) {
+                continue;
+            }
+
+            collect(value, field.getType(), depth + 1, visited, entries);
+            visited.remove(value);
         }
     }
 
@@ -105,6 +194,63 @@ public final class QueryConditionMapper {
     }
 
     /**
+     * 获取可递归扫描的嵌套参数字段。
+     *
+     * @param type 参数类型
+     * @return 嵌套字段列表
+     */
+    private static List<Field> nestedFieldsOf(Class<?> type) {
+        return NESTED_CACHE.computeIfAbsent(
+                type,
+                QueryConditionMapper::scanNestedFields
+        );
+    }
+
+    /**
+     * 扫描可作为嵌套参数对象的字段。
+     *
+     * @param type 参数类型
+     * @return 嵌套字段列表
+     */
+    private static List<Field> scanNestedFields(Class<?> type) {
+        List<Field> fields = new ArrayList<>();
+
+        for (Class<?> current = type;
+             current != null && current != Object.class;
+             current = current.getSuperclass()) {
+            for (Field field : current.getDeclaredFields()) {
+                if (Modifier.isStatic(field.getModifiers())
+                        || field.isSynthetic()
+                        || field.isAnnotationPresent(QueryCondition.class)
+                        || !isNestedType(field.getType())) {
+                    continue;
+                }
+
+                field.setAccessible(true);
+                fields.add(field);
+            }
+        }
+
+        return List.copyOf(fields);
+    }
+
+    /**
+     * 判断类型是否可以作为嵌套参数对象继续扫描。
+     *
+     * @param type 字段类型
+     * @return 可以递归时返回 {@code true}
+     */
+    private static boolean isNestedType(Class<?> type) {
+        return !type.isPrimitive()
+                && !type.isEnum()
+                && !type.isArray()
+                && !type.isInterface()
+                && !Collection.class.isAssignableFrom(type)
+                && !Map.class.isAssignableFrom(type)
+                && !type.getName().startsWith("java.");
+    }
+
+    /**
      * 创建字段绑定。
      *
      * @param type       参数类型
@@ -121,6 +267,9 @@ public final class QueryConditionMapper {
         String name = annotation.value().isBlank()
                 ? field.getName()
                 : annotation.value().trim();
+        String group = annotation.group().isBlank()
+                ? ""
+                : annotation.group().trim();
         Field endField = null;
 
         if (operator.parameterCount() > 1) {
@@ -148,7 +297,8 @@ public final class QueryConditionMapper {
                 name,
                 operator,
                 annotation.ignoreBlank(),
-                endField
+                endField,
+                group
         );
     }
 
@@ -211,6 +361,9 @@ public final class QueryConditionMapper {
         /** 区间结束字段，仅 BETWEEN 使用。 */
         private final Field endField;
 
+        /** 条件分组名。 */
+        private final String group;
+
         /**
          * 创建字段绑定。
          *
@@ -219,37 +372,45 @@ public final class QueryConditionMapper {
          * @param operator    条件运算符
          * @param ignoreBlank 是否忽略空白字符串
          * @param endField    区间结束字段
+         * @param group       条件分组名
          */
         private Binding(
                 Field field,
                 String name,
                 ConditionOperator operator,
                 boolean ignoreBlank,
-                Field endField
+                Field endField,
+                String group
         ) {
             this.field = field;
             this.name = name;
             this.operator = operator;
             this.ignoreBlank = ignoreBlank;
             this.endField = endField;
+            this.group = group;
         }
 
         /**
-         * 读取参数并把条件交给回调。
+         * 读取参数并解析条件。
          *
-         * @param param   查询参数
-         * @param applier 条件应用回调
+         * @param param 查询参数
+         * @return 查询条件；参数应忽略时返回 {@code null}
          */
-        private void apply(Object param, ConditionApplier applier) {
+        private QueryConditionEntry resolve(Object param) {
             Object value = read(field, param);
 
             if (skip(value)) {
-                return;
+                return null;
             }
 
             if (operator.parameterCount() == 0) {
-                applier.apply(name, operator, null, null);
-                return;
+                return new QueryConditionEntry(
+                        group,
+                        name,
+                        operator,
+                        null,
+                        null
+                );
             }
 
             Object second = null;
@@ -258,11 +419,17 @@ public final class QueryConditionMapper {
                 second = read(endField, param);
 
                 if (skip(second)) {
-                    return;
+                    return null;
                 }
             }
 
-            applier.apply(name, operator, value, second);
+            return new QueryConditionEntry(
+                    group,
+                    name,
+                    operator,
+                    value,
+                    second
+            );
         }
 
         /**

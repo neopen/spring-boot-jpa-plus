@@ -1,5 +1,6 @@
 package io.github.neopen.demo.bean.entity;
 
+import io.github.neopen.core.persistence.logicdelete.LogicDelete;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -145,6 +146,16 @@ public class Order {
      */
     @Column(name = "shipping_fee", precision = 10, scale = 2)
     private BigDecimal shippingFee;
+
+    /**
+     * 逻辑删除标记。
+     *
+     * <p>为 {@code false} 时数据有效，查询时可通过
+     * {@code SpecWrapper#filterDeleted()} 或查询执行器统一过滤。</p>
+     */
+    @LogicDelete
+    @Column(name = "deleted", nullable = false)
+    private Boolean deleted = Boolean.FALSE;
 
     /**
      * 关联的订单项列表。

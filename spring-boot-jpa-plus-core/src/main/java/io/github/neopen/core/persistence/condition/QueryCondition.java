@@ -62,4 +62,15 @@ public @interface QueryCondition {
      * @return 区间结束值所在字段名
      */
     String endField() default "";
+
+    /**
+     * 条件分组名。
+     *
+     * <p>同一分组内的条件按 OR 组合，不同分组之间以及与未分组条件
+     * 之间按 AND 组合。例如关键字搜索的多个候选字段可以配置为
+     * 同一个分组。</p>
+     *
+     * @return 条件分组名；空字符串表示不分组
+     */
+    String group() default "";
 }

@@ -3,6 +3,7 @@ package io.github.neopen.core.persistence.sort;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
+import java.util.Map;
 import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -88,6 +89,101 @@ class SortsTest {
         assertThat(sort).containsExactly(Sort.Order.desc("totalAmount"));
     }
 
+    /**
+     * 验证嵌套属性路径可用于排序。
+     */
+    @Test
+    void shouldAcceptNestedPath() {
+        Sort sort = Sorts.parse("customer.name,asc", Sample.class);
+
+        assertThat(sort).containsExactly(Sort.Order.asc("customer.name"));
+    }
+
+    /**
+     * 验证嵌套路径中的未知字段被拒绝。
+     */
+    @Test
+    void shouldRejectUnknownNestedField() {
+        assertThatThrownBy(
+                () -> Sorts.parse("customer.password,asc", Sample.class)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported sort field");
+    }
+
+    /**
+     * 验证简单类型之后无法继续展开路径。
+     */
+    @Test
+    void shouldRejectPathThroughSimpleType() {
+        assertThatThrownBy(
+                () -> Sorts.parse("customer.name.length,asc", Sample.class)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not sortable");
+    }
+
+    /**
+     * 验证路径层级超过上限时被拒绝。
+     */
+    @Test
+    void shouldRejectTooDeepPath() {
+        assertThatThrownBy(
+                () -> Sorts.parse(
+                        "customer.address.city.code,asc",
+                        Sample.class
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("too deep");
+    }
+
+    /**
+     * 验证别名映射转换为实体属性路径。
+     */
+    @Test
+    void shouldResolveAliasToEntityPath() {
+        Sort sort = Sorts.parse(
+                "name,desc",
+                Sample.class,
+                Map.of("name", "customer.name")
+        );
+
+        assertThat(sort).containsExactly(
+                Sort.Order.desc("customer.name")
+        );
+    }
+
+    /**
+     * 验证未登记别名的字段按原字段名校验。
+     */
+    @Test
+    void shouldFallbackToEntityFieldWhenAliasMissing() {
+        Sort sort = Sorts.parse(
+                "id,asc",
+                Sample.class,
+                Map.of("name", "customer.name")
+        );
+
+        assertThat(sort).containsExactly(Sort.Order.asc("id"));
+    }
+
+    /**
+     * 验证别名指向非法路径时被拒绝。
+     */
+    @Test
+    void shouldRejectInvalidAliasTarget() {
+        assertThatThrownBy(
+                () -> Sorts.parse(
+                        "name,asc",
+                        Sample.class,
+                        Map.of("name", "customer.password")
+                )
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Unsupported sort field");
+    }
+
     /** 父类字段。 */
     private static class BaseEntity {
 
@@ -106,5 +202,25 @@ class SortsTest {
 
         /** 金额。 */
         private Integer totalAmount;
+
+        /** 客户。 */
+        private Customer customer;
+    }
+
+    /** 客户。 */
+    private static class Customer {
+
+        /** 客户名称。 */
+        private String name;
+
+        /** 地址。 */
+        private Address address;
+    }
+
+    /** 地址。 */
+    private static class Address {
+
+        /** 城市。 */
+        private String city;
     }
 }

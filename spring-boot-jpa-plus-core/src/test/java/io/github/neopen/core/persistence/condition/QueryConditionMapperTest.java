@@ -132,6 +132,86 @@ class QueryConditionMapperTest {
     }
 
     /**
+     * 验证嵌套参数对象中的条件被递归解析。
+     */
+    @Test
+    void shouldResolveNestedParamConditions() {
+        NestedParam param = new NestedParam();
+        param.keyword = "机械";
+
+        InnerParam inner = new InnerParam();
+        inner.tenantId = 9L;
+        DeepParam deep = new DeepParam();
+        deep.status = "PAID";
+        inner.deep = deep;
+        param.inner = inner;
+
+        assertThat(collect(param)).containsExactly(
+                "keyword|LIKE|机械|null",
+                "tenant_id|EQ|9|null",
+                "status_code|EQ|PAID|null"
+        );
+    }
+
+    /**
+     * 验证循环引用的参数对象不会无限递归。
+     */
+    @Test
+    void shouldStopRecursionOnCyclicParam() {
+        CyclicParam root = new CyclicParam();
+        root.name = "root";
+        CyclicParam child = new CyclicParam();
+        child.name = "child";
+        root.child = child;
+        child.child = root;
+
+        assertThat(collect(root)).containsExactly(
+                "name|EQ|root|null",
+                "name|EQ|child|null"
+        );
+    }
+
+    /**
+     * 验证注解分组名被正确解析。
+     */
+    @Test
+    void shouldExposeGroupNameFromAnnotation() {
+        GroupParam param = new GroupParam();
+        param.status = "PAID";
+        param.orderNo = "SO";
+        param.receiver = "张";
+
+        assertThat(QueryConditionMapper.resolve(param))
+                .extracting(QueryConditionEntry::group)
+                .containsExactly("", "keyword", "keyword");
+    }
+
+    /**
+     * 验证同组条件在 HQL 构造器中组合为 OR 分组。
+     */
+    @Test
+    void shouldApplyGroupedConditionsAsOrBranch() {
+        GroupParam param = new GroupParam();
+        param.status = "PAID";
+        param.orderNo = "SO";
+        param.receiver = "张";
+
+        var query = HqlWrapper.create(SampleEntity.class)
+                .apply(param)
+                .build();
+
+        assertThat(query.getHql()).isEqualTo(
+                "select o from SampleEntity o"
+                        + " where o.status = :p1"
+                        + " and (o.orderNo like :p2"
+                        + " or o.receiver like :p3)"
+        );
+        assertThat(query.getParameters())
+                .containsEntry("p2", "%SO%")
+                .containsEntry("p3", "%张%");
+    }
+
+    /**
      * 收集参数映射出的条件描述。
      *
      * @param param 查询参数
@@ -353,6 +433,63 @@ class QueryConditionMapperTest {
         public void setMaxTotalAmount(Integer maxTotalAmount) {
             this.maxTotalAmount = maxTotalAmount;
         }
+    }
+
+    /** 嵌套查询参数。 */
+    private static class NestedParam {
+
+        /** 关键字。 */
+        @QueryCondition(operator = ConditionOperator.LIKE)
+        private String keyword;
+
+        /** 内层参数。 */
+        private InnerParam inner;
+    }
+
+    /** 内层查询参数。 */
+    private static class InnerParam {
+
+        /** 租户主键。 */
+        @QueryCondition(value = "tenant_id")
+        private Long tenantId;
+
+        /** 深层参数。 */
+        private DeepParam deep;
+    }
+
+    /** 深层查询参数。 */
+    private static class DeepParam {
+
+        /** 状态。 */
+        @QueryCondition(value = "status_code")
+        private String status;
+    }
+
+    /** 循环引用查询参数。 */
+    private static class CyclicParam {
+
+        /** 名称。 */
+        @QueryCondition
+        private String name;
+
+        /** 子节点。 */
+        private CyclicParam child;
+    }
+
+    /** 带条件分组的查询参数。 */
+    private static class GroupParam {
+
+        /** 状态。 */
+        @QueryCondition
+        private String status;
+
+        /** 订单编号，与收货人同组。 */
+        @QueryCondition(group = "keyword", operator = ConditionOperator.LIKE)
+        private String orderNo;
+
+        /** 收货人，与订单编号同组。 */
+        @QueryCondition(group = "keyword", operator = ConditionOperator.LIKE)
+        private String receiver;
     }
 
     /** HQL 测试实体。 */
