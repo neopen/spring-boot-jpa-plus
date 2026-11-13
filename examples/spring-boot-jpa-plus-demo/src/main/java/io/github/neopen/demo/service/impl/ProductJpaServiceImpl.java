@@ -1,5 +1,6 @@
 package io.github.neopen.demo.service.impl;
 
+import io.github.neopen.core.persistence.sort.Sorts;
 import io.github.neopen.core.persistence.spec.SpecWrapper;
 import io.github.neopen.demo.bean.entity.Product;
 import io.github.neopen.demo.bean.param.PageParam;
@@ -62,7 +63,11 @@ public class ProductJpaServiceImpl extends AbstractProductService {
     public Json<List<ProductVo>> getPage(ProductQueryParam param) throws Exception {
         PageRequest pageable = param == null
                 ? PageRequest.of(0, PageParam.DEFAULT_ROW)
-                : param.pageRequest();
+                : param.pageRequest(Sorts.parse(
+                        param.getSort() + ","
+                                + (param.getOrder() > 0 ? "asc" : "desc"),
+                        Product.class
+                ));
 
         Page<Product> productPage = productRepo.findAll(
                 buildSpecification(param),
@@ -161,32 +166,8 @@ public class ProductJpaServiceImpl extends AbstractProductService {
      * @return JPA 查询规范
      */
     private Specification<Product> buildSpecification(ProductQueryParam param) {
-        if (param == null) {
-            return (root, query, cb) -> cb.conjunction();
-        }
-
-        SpecWrapper<Product> wrapper = SpecWrapper.create(Product.class);
-
-        if (param.getProductName() != null && !param.getProductName().isBlank()) {
-            wrapper.like("productName", param.getProductName());
-        }
-
-        if (param.getProductType() != null && !param.getProductType().isBlank()) {
-            wrapper.eq("productType", param.getProductType());
-        }
-
-        if (param.getProductBrand() != null && !param.getProductBrand().isBlank()) {
-            wrapper.like("productBrand", param.getProductBrand());
-        }
-
-        if (param.getSkuCode() != null && !param.getSkuCode().isBlank()) {
-            wrapper.eq("skuCode", param.getSkuCode());
-        }
-
-        if (param.getActive() != null) {
-            wrapper.eq("isActive", param.getActive());
-        }
-
-        return wrapper.toSpecification();
+        return SpecWrapper.create(Product.class)
+                .apply(param)
+                .toSpecification();
     }
 }

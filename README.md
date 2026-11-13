@@ -193,6 +193,68 @@ SpecWrapper.create(Product.class)
         .toSpecification();
 ```
 
+### Annotation-driven Conditions
+
+Declare query semantics on the parameter object once, then reuse it across all three builders:
+
+```java
+public class OrderQueryParam {
+
+    @QueryCondition(operator = ConditionOperator.LIKE)
+    private String orderNo;
+
+    @QueryCondition(value = "totalAmount",
+            operator = ConditionOperator.BETWEEN,
+            endField = "maxTotalAmount")
+    private BigDecimal minTotalAmount;
+
+    private BigDecimal maxTotalAmount;
+}
+
+Specification<Order> spec = SpecWrapper.create(Order.class)
+        .apply(param)
+        .toSpecification();
+```
+
+`null` values, blank strings, empty collections, and empty arrays are skipped automatically. `HqlWrapper` and `SqlWrapper` provide the same `apply(param)` method; the SQL builder converts camelCase field names to snake_case columns unless `value` overrides the name. `IS_NULL` / `IS_NOT_NULL` treat the annotated field as a boolean switch.
+
+### Type-safe Attributes
+
+Criteria metamodel attributes can replace string field names when the static metamodel is generated:
+
+```java
+SpecWrapper.create(Order.class)
+        .eq(Order_.status, "PAID")
+        .isNotNull(Order_.paymentTime)
+        .toSpecification();
+```
+
+### Safe Sorting
+
+`Sorts` validates sort expressions against entity fields or an explicit allow-list before building a `Sort`, so external input cannot reference arbitrary properties:
+
+```java
+Sort sort = Sorts.parse("createTime,desc;id,asc", Order.class);
+Sort allowed = Sorts.parse("id,desc", Set.of("id", "totalAmount"));
+```
+
+Unknown fields and invalid directions throw `IllegalArgumentException`; blank expressions return `Sort.unsorted()`.
+
+### Fetch Join Pagination
+
+Fetching a collection together with pagination normally falls back to in-memory paging. `FetchJoinPaging` keeps pagination on the database side by querying IDs first and then loading the page with fetch joins:
+
+```java
+Page<Order> page = FetchJoinPaging.findPage(
+        entityManager,
+        Order.class,
+        "id",
+        SpecWrapper.create(Order.class).like("orderNo", "DS").toSpecification(),
+        List.of("orderProducts"),
+        PageRequest.of(0, 10, Sort.by("id"))
+);
+```
+
 ## SQL Query Builder
 
 `SqlWrapper` mirrors the HQL builder for native SQL: it generates named parameters, a count query, and optional ordering.
