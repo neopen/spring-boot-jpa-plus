@@ -1,5 +1,8 @@
 package io.github.neopen.core.persistence.spec;
 
+import io.github.neopen.core.persistence.condition.ConditionOperator;
+import io.github.neopen.core.persistence.condition.QueryCondition;
+import io.github.neopen.core.persistence.condition.QueryConditionMapper;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.From;
@@ -8,6 +11,7 @@ import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.persistence.metamodel.SingularAttribute;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
@@ -283,6 +287,256 @@ public final class SpecWrapper<T> implements Specification<T> {
      */
     public SpecWrapper<T> isNotNull(String field) {
         return add(field, StandardSpecOperator.IS_NOT_NULL);
+    }
+
+    /**
+     * 添加等于条件。
+     *
+     * @param attribute 实体属性
+     * @param value     字段值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> eq(
+            SingularAttribute<? super T, ?> attribute,
+            Object value
+    ) {
+        return eq(name(attribute), value);
+    }
+
+    /**
+     * 添加不等于条件。
+     *
+     * @param attribute 实体属性
+     * @param value     字段值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> ne(
+            SingularAttribute<? super T, ?> attribute,
+            Object value
+    ) {
+        return ne(name(attribute), value);
+    }
+
+    /**
+     * 添加大于条件。
+     *
+     * @param attribute 实体属性
+     * @param value     字段值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> gt(
+            SingularAttribute<? super T, ?> attribute,
+            Object value
+    ) {
+        return gt(name(attribute), value);
+    }
+
+    /**
+     * 添加大于或等于条件。
+     *
+     * @param attribute 实体属性
+     * @param value     字段值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> ge(
+            SingularAttribute<? super T, ?> attribute,
+            Object value
+    ) {
+        return ge(name(attribute), value);
+    }
+
+    /**
+     * 添加小于条件。
+     *
+     * @param attribute 实体属性
+     * @param value     字段值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> lt(
+            SingularAttribute<? super T, ?> attribute,
+            Object value
+    ) {
+        return lt(name(attribute), value);
+    }
+
+    /**
+     * 添加小于或等于条件。
+     *
+     * @param attribute 实体属性
+     * @param value     字段值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> le(
+            SingularAttribute<? super T, ?> attribute,
+            Object value
+    ) {
+        return le(name(attribute), value);
+    }
+
+    /**
+     * 添加模糊匹配条件，两侧自动补通配符。
+     *
+     * @param attribute 实体属性
+     * @param value     匹配值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> like(
+            SingularAttribute<? super T, ?> attribute,
+            String value
+    ) {
+        return like(name(attribute), value);
+    }
+
+    /**
+     * 添加模糊匹配条件，仅左侧补通配符。
+     *
+     * @param attribute 实体属性
+     * @param value     匹配值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> likeLeft(
+            SingularAttribute<? super T, ?> attribute,
+            String value
+    ) {
+        return likeLeft(name(attribute), value);
+    }
+
+    /**
+     * 添加模糊匹配条件，仅右侧补通配符。
+     *
+     * @param attribute 实体属性
+     * @param value     匹配值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> likeRight(
+            SingularAttribute<? super T, ?> attribute,
+            String value
+    ) {
+        return likeRight(name(attribute), value);
+    }
+
+    /**
+     * 添加不匹配条件，两侧自动补通配符。
+     *
+     * @param attribute 实体属性
+     * @param value     匹配值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> notLike(
+            SingularAttribute<? super T, ?> attribute,
+            String value
+    ) {
+        return notLike(name(attribute), value);
+    }
+
+    /**
+     * 添加集合包含条件。
+     *
+     * @param attribute 实体属性
+     * @param values    字段值集合
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> in(
+            SingularAttribute<? super T, ?> attribute,
+            Collection<?> values
+    ) {
+        return in(name(attribute), values);
+    }
+
+    /**
+     * 添加集合不包含条件。
+     *
+     * @param attribute 实体属性
+     * @param values    字段值集合
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> notIn(
+            SingularAttribute<? super T, ?> attribute,
+            Collection<?> values
+    ) {
+        return notIn(name(attribute), values);
+    }
+
+    /**
+     * 添加闭区间条件。
+     *
+     * @param attribute 实体属性
+     * @param start     起始值
+     * @param end       结束值
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> between(
+            SingularAttribute<? super T, ?> attribute,
+            Object start,
+            Object end
+    ) {
+        return between(name(attribute), start, end);
+    }
+
+    /**
+     * 添加为空条件。
+     *
+     * @param attribute 实体属性
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> isNull(
+            SingularAttribute<? super T, ?> attribute
+    ) {
+        return isNull(name(attribute));
+    }
+
+    /**
+     * 添加不为空条件。
+     *
+     * @param attribute 实体属性
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> isNotNull(
+            SingularAttribute<? super T, ?> attribute
+    ) {
+        return isNotNull(name(attribute));
+    }
+
+    /**
+     * 按查询参数上的 {@link QueryCondition} 注解自动追加条件。
+     *
+     * <p>空值、空白字符串、空集合和空数组会被忽略，具体规则见
+     * {@link QueryConditionMapper}。</p>
+     *
+     * @param param 查询参数，允许为 {@code null}
+     * @return 当前构造器
+     */
+    public SpecWrapper<T> apply(Object param) {
+        QueryConditionMapper.apply(param, this::applyCondition);
+        return this;
+    }
+
+    /**
+     * 应用注解解析出的单个条件。
+     *
+     * @param field    字段路径
+     * @param operator 条件运算符
+     * @param value    条件值
+     * @param second   区间结束值
+     */
+    private void applyCondition(
+            String field,
+            ConditionOperator operator,
+            Object value,
+            Object second
+    ) {
+        switch (operator) {
+            case IS_NULL -> isNull(field);
+            case IS_NOT_NULL -> isNotNull(field);
+            case BETWEEN -> between(field, value, second);
+            case IN -> in(field, operator.toCollection(value));
+            case NOT_IN -> notIn(field, operator.toCollection(value));
+            default -> add(
+                    field,
+                    StandardSpecOperator.of(operator),
+                    operator.decorate(value)
+            );
+        }
     }
 
     /**
@@ -674,6 +928,22 @@ public final class SpecWrapper<T> implements Specification<T> {
         Class<?> resultType = query.getResultType();
 
         return resultType == Long.class || resultType == long.class;
+    }
+
+    /**
+     * 获取实体属性名称。
+     *
+     * @param attribute 实体属性
+     * @return 属性名称
+     */
+    private static String name(SingularAttribute<?, ?> attribute) {
+        if (attribute == null) {
+            throw new IllegalArgumentException(
+                    "Attribute must not be null"
+            );
+        }
+
+        return attribute.getName();
     }
 
     /**

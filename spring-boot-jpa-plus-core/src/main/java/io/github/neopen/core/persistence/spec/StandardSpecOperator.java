@@ -1,5 +1,6 @@
 package io.github.neopen.core.persistence.spec;
 
+import io.github.neopen.core.persistence.condition.ConditionOperator;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Path;
@@ -215,5 +216,29 @@ public enum StandardSpecOperator implements SpecOperator {
     @Override
     public int parameterCount() {
         return parameterCount;
+    }
+
+    /**
+     * 将通用条件运算符转换为 Criteria 运算符。
+     *
+     * @param operator 通用条件运算符
+     * @return Criteria 运算符
+     */
+    public static StandardSpecOperator of(ConditionOperator operator) {
+        return switch (operator) {
+            case EQ -> EQ;
+            case NE -> NE;
+            case GT -> GT;
+            case GE -> GE;
+            case LT -> LT;
+            case LE -> LE;
+            case LIKE, LIKE_LEFT, LIKE_RIGHT -> LIKE;
+            case NOT_LIKE -> NOT_LIKE;
+            case IN -> IN;
+            case NOT_IN -> NOT_IN;
+            case BETWEEN -> BETWEEN;
+            case IS_NULL -> IS_NULL;
+            case IS_NOT_NULL -> IS_NOT_NULL;
+        };
     }
 }

@@ -1,5 +1,8 @@
 package io.github.neopen.core.persistence.hql;
 
+import io.github.neopen.core.persistence.condition.ConditionOperator;
+import io.github.neopen.core.persistence.condition.QueryCondition;
+import io.github.neopen.core.persistence.condition.QueryConditionMapper;
 import org.springframework.data.domain.Sort;
 
 import java.util.ArrayList;
@@ -292,6 +295,48 @@ public final class HqlWrapper<T> {
      */
     public HqlWrapper<T> isNotNull(String field) {
         return add(field, StandardHqlOperator.IS_NOT_NULL);
+    }
+
+    /**
+     * 按查询参数上的 {@link QueryCondition} 注解自动追加条件。
+     *
+     * <p>空值、空白字符串、空集合和空数组会被忽略，具体规则见
+     * {@link QueryConditionMapper}。字段名按 HQL 属性路径处理。</p>
+     *
+     * @param param 查询参数，允许为 {@code null}
+     * @return 当前构造器
+     */
+    public HqlWrapper<T> apply(Object param) {
+        QueryConditionMapper.apply(param, this::applyCondition);
+        return this;
+    }
+
+    /**
+     * 应用注解解析出的单个条件。
+     *
+     * @param field    字段路径
+     * @param operator 条件运算符
+     * @param value    条件值
+     * @param second   区间结束值
+     */
+    private void applyCondition(
+            String field,
+            ConditionOperator operator,
+            Object value,
+            Object second
+    ) {
+        switch (operator) {
+            case IS_NULL -> isNull(field);
+            case IS_NOT_NULL -> isNotNull(field);
+            case BETWEEN -> between(field, value, second);
+            case IN -> in(field, operator.toCollection(value));
+            case NOT_IN -> notIn(field, operator.toCollection(value));
+            default -> add(
+                    field,
+                    StandardHqlOperator.of(operator),
+                    operator.decorate(value)
+            );
+        }
     }
 
     /**
