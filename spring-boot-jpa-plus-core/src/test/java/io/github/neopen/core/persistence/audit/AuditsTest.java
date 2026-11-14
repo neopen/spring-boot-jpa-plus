@@ -31,6 +31,7 @@ class AuditsTest {
     void reset() {
         Audits.setClock(null);
         Audits.setAuditorSupplier(null);
+        Audits.setEnabled(true);
     }
 
     /**
@@ -134,6 +135,24 @@ class AuditsTest {
         assertThatThrownBy(() -> Audits.isAudited(InvalidAuditorEntity.class))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("must be String");
+    }
+
+    /**
+     * 验证关闭审计后不再写入任何字段。
+     */
+    @Test
+    void shouldSkipWhenDisabled() {
+        Audits.setClock(Clock.fixed(FIRST, ZoneOffset.UTC));
+        Audits.setAuditorSupplier(() -> "creator");
+        Audits.setEnabled(false);
+
+        AuditedEntity entity = new AuditedEntity();
+
+        new AuditListener().prePersist(entity);
+
+        assertThat(entity.getCreatedAt()).isNull();
+        assertThat(entity.getCreatedBy()).isNull();
+        assertThat(Audits.isEnabled()).isFalse();
     }
 
     /** 审计实体。 */

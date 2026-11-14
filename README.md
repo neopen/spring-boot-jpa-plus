@@ -315,6 +315,8 @@ int marked = LogicDeletes.deleteAll(entityManager, Order.class, orders);
 
 `deleteById` and `deleteAllById` execute a JPQL update and therefore skip entity lifecycle callbacks; `deleteAll` flips the field on managed entities. Entities without `@LogicDelete` are rejected with `IllegalArgumentException`.
 
+Filtering can be disabled globally through `LogicDeletes.setEnabled(false)` or `neopen.jpa.logic-delete.enabled=false`, which is useful for maintenance jobs that must see deleted rows. Write-side deletion is not affected by the switch.
+
 ### Specification Executor
 
 `JpaPlusSpecExecutor` centralizes paging, counting, slicing, and fetch pagination for `Specification` queries:
@@ -419,7 +421,7 @@ BatchOperation.forEachBatch(ids, 500, batch ->
         repository.deleteAllByIdInBatch(batch));
 ```
 
-Null entity managers, non-positive batch sizes, and null callbacks are rejected before any database work starts.
+Null entity managers, non-positive batch sizes, and null callbacks are rejected before any database work starts. The default used by the overloads without an explicit batch size can be changed with `BatchOperation.setDefaultBatchSize(200)` or `neopen.jpa.batch-size`.
 
 ## Auditing
 
@@ -452,6 +454,63 @@ Audits.setClock(Clock.systemDefaultZone());
 ```
 
 `@CreatedAt` and `@CreatedBy` are written on insert only, while `@UpdatedAt` and `@UpdatedBy` are refreshed on insert and update. Auditor fields are left untouched when the supplier returns `null`, and unsupported field types fail fast at the first scan.
+
+The starter can configure the same values: `neopen.jpa.audit.enabled` toggles filling, `neopen.jpa.audit.zone` selects the clock zone (default `UTC`), and `neopen.jpa.audit.auditor` provides a fixed operator name. Programmatic settings remain in effect when a property is not configured.
+
+## Parameter Mapping
+
+`ParamMapper` copies request parameters onto entities. Only non-null parameter fields are written, so one mapper serves both creates and partial updates. Names are matched after ignoring case and underscores, and setters take precedence over direct field access.
+
+```java
+Order order = ParamMapper.toEntity(orderParam, Order.class);
+ParamMapper.apply(orderParam, existingOrder);   // null parameter fields are skipped
+List<Order> orders = ParamMapper.toEntities(params, Order::new);
+```
+
+Use `@ParamField("orderNo")` to rename a parameter field and `@ParamIgnore` to exclude one:
+
+```java
+public class OrderParam {
+
+    @ParamField("orderNo")
+    private String number;
+
+    @ParamIgnore
+    private String checkToken;
+}
+```
+
+Numbers, strings, booleans, chars, and enums are converted automatically, and a missing no-arg constructor fails fast with `JpaPlusException`.
+
+## Idempotency
+
+`@Idempotent` protects methods from duplicate submissions. Two modes are available:
+
+```java
+// business key mode: SpEL key, de-duplicated for ttl seconds
+@Idempotent(required = true, key = "#orderNo", ttl = 30)
+public void submit(String orderNo) { }
+
+// one-time token mode: reads checkToken from the method arguments
+@Idempotent(required = true)
+public void confirm(SubmitRequest request) { }
+```
+
+Business keys are scoped per method and cached locally; duplicates raise `InvalidObjectException`. Token mode requires an HTTP request context and is skipped when the Servlet API is absent. The aspect is registered by the extension auto-configuration and can be disabled with `neopen.extension.idempotent.enabled=false`.
+
+## Rate Limiting
+
+`@RateLimit` limits a method with a local Guava `RateLimiter`:
+
+```java
+@RateLimit(permits = 10, interval = 1, unit = TimeUnit.SECONDS)
+public void submit() { }
+
+@RateLimit(key = "#userId", permits = 1, interval = 1)
+public void send(String userId) { }
+```
+
+The `key` expression uses SpEL and falls back to `Class#method` when empty. Rejected calls throw `RateLimitException` with the configured message. Rate limiters are local to a single JVM, so multi-instance deployments should use a distributed limiter. Disable the aspect with `neopen.extension.rate-limit.enabled=false`.
 
 ## Example Project
 

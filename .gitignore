@@ -27,6 +27,7 @@ target/
 /nbbuild/
 /dist/
 /nbdist/
+.screenshots/
 /.nb-gradle/
 .mvn/
 build/

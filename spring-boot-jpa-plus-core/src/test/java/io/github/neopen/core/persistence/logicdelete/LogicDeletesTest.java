@@ -11,6 +11,7 @@ import jakarta.persistence.criteria.Root;
 import jakarta.persistence.metamodel.EntityType;
 import jakarta.persistence.metamodel.Metamodel;
 import jakarta.persistence.metamodel.SingularAttribute;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.domain.Specification;
 
@@ -30,6 +31,14 @@ import static org.mockito.Mockito.when;
  * {@link LogicDeletes} 单元测试。
  */
 class LogicDeletesTest {
+
+    /**
+     * 恢复默认开关，避免测试间互相影响。
+     */
+    @AfterEach
+    void reset() {
+        LogicDeletes.setEnabled(true);
+    }
 
     /**
      * 验证标注了逻辑删除字段的实体被识别。
@@ -221,6 +230,41 @@ class LogicDeletesTest {
         )
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("@LogicDelete is required");
+    }
+
+    /**
+     * 验证关闭逻辑删除过滤后返回恒成立条件。
+     */
+    @Test
+    void shouldSkipFilterWhenDisabled() {
+        LogicDeletes.setEnabled(false);
+
+        Root<Order> root = mock(Root.class);
+        CriteriaQuery<?> query = mock(CriteriaQuery.class);
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        Predicate conjunction = mock(Predicate.class);
+
+        when(cb.conjunction()).thenReturn(conjunction);
+
+        Predicate predicate = LogicDeletes.filter(Order.class)
+                .toPredicate(root, query, cb);
+
+        assertThat(predicate).isSameAs(conjunction);
+        verify(root, never()).get("deleted");
+    }
+
+    /**
+     * 验证关闭过滤后业务条件原样返回。
+     */
+    @Test
+    void shouldReturnBusinessSpecificationWhenDisabled() {
+        LogicDeletes.setEnabled(false);
+
+        Specification<Order> business = (r, q, c) -> mock(Predicate.class);
+
+        assertThat(LogicDeletes.filter(Order.class, business))
+                .isSameAs(business);
+        assertThat(LogicDeletes.isEnabled()).isFalse();
     }
 
     /**

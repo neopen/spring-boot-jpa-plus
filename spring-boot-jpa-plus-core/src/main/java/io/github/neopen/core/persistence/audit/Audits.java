@@ -49,8 +49,32 @@ public final class Audits {
     /** 当前操作人提供者。 */
     private static volatile Supplier<String> auditorSupplier = () -> null;
 
+    /** 是否启用审计字段填充，默认启用。 */
+    private static volatile boolean enabled = true;
+
     /** 工具类不允许实例化。 */
     private Audits() {
+    }
+
+    /**
+     * 全局启用或关闭审计字段填充。
+     *
+     * <p>关闭后 {@link AuditListener} 仍然会被调用，但不再写入
+     * 时间与操作人字段，适用于数据迁移等不希望改动审计信息的场景。</p>
+     *
+     * @param enabled 是否启用
+     */
+    public static void setEnabled(boolean enabled) {
+        Audits.enabled = enabled;
+    }
+
+    /**
+     * 判断审计字段填充是否启用。
+     *
+     * @return 启用时返回 {@code true}
+     */
+    public static boolean isEnabled() {
+        return enabled;
     }
 
     /**
@@ -94,7 +118,7 @@ public final class Audits {
      * @param entity 实体
      */
     static void applyCreate(Object entity) {
-        if (entity == null) {
+        if (!enabled || entity == null) {
             return;
         }
 
@@ -114,7 +138,7 @@ public final class Audits {
      * @param entity 实体
      */
     static void applyUpdate(Object entity) {
-        if (entity == null) {
+        if (!enabled || entity == null) {
             return;
         }
 

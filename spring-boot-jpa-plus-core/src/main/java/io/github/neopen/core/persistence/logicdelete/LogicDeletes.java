@@ -28,8 +28,33 @@ import java.util.List;
  */
 public final class LogicDeletes {
 
+    /** 是否启用逻辑删除过滤，默认启用。 */
+    private static volatile boolean enabled = true;
+
     /** 工具类不允许实例化。 */
     private LogicDeletes() {
+    }
+
+    /**
+     * 全局启用或关闭逻辑删除过滤。
+     *
+     * <p>关闭后 {@link #filter(Class)} 与
+     * {@link #filter(Class, Specification)} 不再追加删除条件，
+     * 适用于需要查询已删除数据的后台任务。写侧删除方法不受影响。</p>
+     *
+     * @param enabled 是否启用过滤
+     */
+    public static void setEnabled(boolean enabled) {
+        LogicDeletes.enabled = enabled;
+    }
+
+    /**
+     * 判断逻辑删除过滤是否启用。
+     *
+     * @return 启用时返回 {@code true}
+     */
+    public static boolean isEnabled() {
+        return enabled;
     }
 
     /**
@@ -55,7 +80,13 @@ public final class LogicDeletes {
      * @throws IllegalArgumentException 实体类型为空或字段类型非法时抛出
      */
     public static <T> Specification<T> filter(Class<T> entityType) {
-        return LogicDeleteMetadata.find(requireType(entityType))
+        requireType(entityType);
+
+        if (!enabled) {
+            return (root, query, cb) -> cb.conjunction();
+        }
+
+        return LogicDeleteMetadata.find(entityType)
                 .<Specification<T>>map(metadata -> (root, query, cb) ->
                         cb.equal(root.get(metadata.fieldName()), false))
                 .orElseGet(() -> (root, query, cb) -> cb.conjunction());
@@ -78,7 +109,7 @@ public final class LogicDeletes {
     ) {
         requireType(entityType);
 
-        if (!isLogicDeleted(entityType)) {
+        if (!enabled || !isLogicDeleted(entityType)) {
             return specification;
         }
 

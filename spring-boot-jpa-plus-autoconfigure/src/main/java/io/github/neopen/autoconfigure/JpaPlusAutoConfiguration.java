@@ -69,6 +69,25 @@ public class JpaPlusAutoConfiguration {
     }
 
     /**
+     * 注册运行时配置器。
+     *
+     * <p>
+     * 逻辑删除、审计和批量操作以静态工具方法提供，
+     * 由该组件在启动时把配置属性写入全局设置。
+     * </p>
+     *
+     * @param properties JPA Plus 配置属性
+     * @return 运行时配置器
+     */
+    @Bean
+    @ConditionalOnMissingBean(JpaPlusRuntimeConfigurer.class)
+    public JpaPlusRuntimeConfigurer jpaPlusRuntimeConfigurer(
+            JpaPlusProperties properties
+    ) {
+        return new JpaPlusRuntimeConfigurer(properties);
+    }
+
+    /**
      * JPA Plus 执行器相关自动配置。
      *
      * <p>

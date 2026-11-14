@@ -16,10 +16,38 @@ import java.util.function.Consumer;
 public final class BatchOperation {
 
     /** 默认每批处理的实体数量。 */
-    private static final int DEFAULT_BATCH_SIZE = 500;
+    private static volatile int defaultBatchSize = 500;
 
     /** 工具类不允许实例化。 */
     private BatchOperation() {
+    }
+
+    /**
+     * 设置默认批次大小。
+     *
+     * <p>未显式传入批次大小的重载方法会使用该值。自动配置会读取
+     * {@code neopen.jpa.batch-size} 并调用此方法。</p>
+     *
+     * @param batchSize 每批处理的实体数量，必须大于 0
+     * @throws IllegalArgumentException 批次大小不大于 0
+     */
+    public static void setDefaultBatchSize(int batchSize) {
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException(
+                    "Default batchSize must be greater than zero"
+            );
+        }
+
+        BatchOperation.defaultBatchSize = batchSize;
+    }
+
+    /**
+     * 获取默认批次大小。
+     *
+     * @return 每批处理的实体数量
+     */
+    public static int getDefaultBatchSize() {
+        return defaultBatchSize;
     }
 
     /**
@@ -93,7 +121,7 @@ public final class BatchOperation {
         return mergeAll(
                 entityManager,
                 entities,
-                DEFAULT_BATCH_SIZE
+                defaultBatchSize
         );
     }
 
@@ -211,7 +239,7 @@ public final class BatchOperation {
         removeAll(
                 entityManager,
                 entities,
-                DEFAULT_BATCH_SIZE
+                defaultBatchSize
         );
     }
 

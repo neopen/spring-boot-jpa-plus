@@ -1,6 +1,7 @@
 package io.github.neopen.core.persistence.batch;
 
 import jakarta.persistence.EntityManager;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
@@ -16,6 +17,14 @@ import static org.mockito.Mockito.verify;
  * {@link BatchOperation} 单元测试。
  */
 class BatchOperationTest {
+
+    /**
+     * 恢复默认批次大小。
+     */
+    @AfterEach
+    void reset() {
+        BatchOperation.setDefaultBatchSize(500);
+    }
 
     /**
      * 验证按批持久化并在结束时刷新。
@@ -113,5 +122,34 @@ class BatchOperationTest {
         BatchOperation.forEachBatch(List.<Integer>of(), 10, batches::addAll);
 
         assertThat(batches).isEmpty();
+    }
+
+    /**
+     * 验证默认批次大小可配置。
+     */
+    @Test
+    void shouldUseConfigurableDefaultBatchSize() {
+        BatchOperation.setDefaultBatchSize(2);
+
+        EntityManager entityManager = mock(EntityManager.class);
+
+        BatchOperation.removeAll(
+                entityManager,
+                List.of("a", "b", "c", "d", "e")
+        );
+
+        verify(entityManager, times(3)).flush();
+        verify(entityManager, times(3)).clear();
+        assertThat(BatchOperation.getDefaultBatchSize()).isEqualTo(2);
+    }
+
+    /**
+     * 验证非法默认批次大小被拒绝。
+     */
+    @Test
+    void shouldRejectInvalidDefaultBatchSize() {
+        assertThatThrownBy(() -> BatchOperation.setDefaultBatchSize(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("greater than zero");
     }
 }
