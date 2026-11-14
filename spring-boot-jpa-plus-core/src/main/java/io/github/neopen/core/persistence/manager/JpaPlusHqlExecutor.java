@@ -2,7 +2,9 @@ package io.github.neopen.core.persistence.manager;
 
 import io.github.neopen.core.persistence.hql.HqlQuery;
 import io.github.neopen.core.persistence.hql.HqlWrapper;
+import io.github.neopen.core.persistence.mapping.ResultMapper;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.Tuple;
 import jakarta.persistence.TypedQuery;
 
 import org.springframework.data.domain.Page;
@@ -115,6 +117,219 @@ public class JpaPlusHqlExecutor {
                 .getResultList();
 
         return result.isEmpty() ? null : result.get(0);
+    }
+
+    /**
+     * 查询 HQL 结果并映射为 DTO 列表。
+     *
+     * <p>HQL 的 select 子句需要为每个投影列指定别名，例如
+     * {@code select o.orderNo as orderNo from Order o}。列名会忽略
+     * 大小写与下划线后与 DTO 属性匹配。</p>
+     *
+     * @param <T>        DTO 类型
+     * @param hql        HQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型，必须有无参构造器
+     * @return 映射后的 DTO 列表
+     */
+    public <T> List<T> queryForDtoList(
+            String hql,
+            Map<String, ?> parameters,
+            Class<T> dtoType
+    ) {
+        TypedQuery<Tuple> query =
+                entityManager.createQuery(hql, Tuple.class);
+
+        bindParameters(query, parameters);
+
+        return ResultMapper.mapRows(query.getResultList(), dtoType);
+    }
+
+    /**
+     * 使用 HQL 构造器查询并映射为 DTO 列表。
+     *
+     * @param <T>     DTO 类型
+     * @param wrapper HQL 构造器
+     * @param dtoType DTO 类型
+     * @return 映射后的 DTO 列表
+     */
+    public <T> List<T> queryForDtoList(
+            HqlWrapper<?> wrapper,
+            Class<T> dtoType
+    ) {
+        HqlQuery query = wrapper.build();
+
+        return queryForDtoList(
+                query.getHql(),
+                query.getParameters(),
+                dtoType
+        );
+    }
+
+    /**
+     * 查询单条 HQL 结果并映射为 DTO。
+     *
+     * @param <T>        DTO 类型
+     * @param hql        HQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型
+     * @return 第一条结果；无结果时返回 {@code null}
+     */
+    public <T> T queryForDtoObject(
+            String hql,
+            Map<String, ?> parameters,
+            Class<T> dtoType
+    ) {
+        TypedQuery<Tuple> query =
+                entityManager.createQuery(hql, Tuple.class);
+
+        bindParameters(query, parameters);
+
+        List<Tuple> result = query
+                .setMaxResults(1)
+                .getResultList();
+
+        return result.isEmpty()
+                ? null
+                : ResultMapper.mapRow(result.get(0), dtoType);
+    }
+
+    /**
+     * 使用 HQL 构造器查询单条结果并映射为 DTO。
+     *
+     * @param <T>     DTO 类型
+     * @param wrapper HQL 构造器
+     * @param dtoType DTO 类型
+     * @return 第一条结果；无结果时返回 {@code null}
+     */
+    public <T> T queryForDtoObject(
+            HqlWrapper<?> wrapper,
+            Class<T> dtoType
+    ) {
+        HqlQuery query = wrapper.build();
+
+        return queryForDtoObject(
+                query.getHql(),
+                query.getParameters(),
+                dtoType
+        );
+    }
+
+    /**
+     * 分页查询 HQL 结果并映射为 DTO，自动派生 count 语句。
+     *
+     * @param <T>        DTO 类型
+     * @param hql        HQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型
+     * @param pageable   分页及排序参数，必须为分页状态
+     * @return DTO 分页结果
+     */
+    public <T> Page<T> queryForDtoPage(
+            String hql,
+            Map<String, ?> parameters,
+            Class<T> dtoType,
+            Pageable pageable
+    ) {
+        return queryForDtoPage(
+                hql,
+                buildCountHql(hql),
+                parameters,
+                dtoType,
+                pageable
+        );
+    }
+
+    /**
+     * 使用指定 count 语句分页查询 HQL 结果并映射为 DTO。
+     *
+     * @param <T>        DTO 类型
+     * @param hql        HQL 查询语句
+     * @param countHql   HQL 统计语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型
+     * @param pageable   分页及排序参数，必须为分页状态
+     * @return DTO 分页结果
+     */
+    public <T> Page<T> queryForDtoPage(
+            String hql,
+            String countHql,
+            Map<String, ?> parameters,
+            Class<T> dtoType,
+            Pageable pageable
+    ) {
+        if (hql == null || hql.isBlank()) {
+            throw new IllegalArgumentException(
+                    "HQL must not be blank"
+            );
+        }
+
+        if (countHql == null || countHql.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Count HQL must not be blank"
+            );
+        }
+
+        if (pageable == null || pageable.isUnpaged()) {
+            throw new IllegalArgumentException(
+                    "Pageable must be paged"
+            );
+        }
+
+        TypedQuery<Tuple> query = entityManager.createQuery(
+                applySort(hql, pageable.getSort()),
+                Tuple.class
+        );
+
+        bindParameters(query, parameters);
+
+        List<Tuple> content = query
+                .setFirstResult(Math.toIntExact(pageable.getOffset()))
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
+
+        TypedQuery<Long> countQuery =
+                entityManager.createQuery(countHql, Long.class);
+
+        bindParameters(countQuery, parameters);
+
+        return new PageImpl<>(
+                ResultMapper.mapRows(content, dtoType),
+                pageable,
+                countQuery.getSingleResult()
+        );
+    }
+
+    /**
+     * 使用 HQL 构造器分页查询并映射为 DTO。
+     *
+     * @param <T>      DTO 类型
+     * @param wrapper  HQL 构造器
+     * @param dtoType  DTO 类型
+     * @param pageable 分页及排序参数，必须为分页状态
+     * @return DTO 分页结果
+     */
+    public <T> Page<T> queryForDtoPage(
+            HqlWrapper<?> wrapper,
+            Class<T> dtoType,
+            Pageable pageable
+    ) {
+        HqlQuery query = wrapper.build();
+        String hql = query.getBaseHql();
+
+        if (pageable.getSort().isSorted()) {
+            hql = applySort(hql, pageable.getSort());
+        } else if (query.getOrderBy() != null) {
+            hql = hql + " order by " + query.getOrderBy();
+        }
+
+        return queryForDtoPage(
+                hql,
+                query.getCountHql(),
+                query.getParameters(),
+                dtoType,
+                pageable
+        );
     }
 
     /**

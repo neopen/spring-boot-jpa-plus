@@ -17,7 +17,8 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **CRUD Operations** - Simplified common database operations.
 - **Batch Processing** - Convenient batch save, update, and delete operations.
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
-- **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, and a specification executor.
+- **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, a specification executor, and DTO projection.
+- **Auditing** - `@CreatedAt` / `@UpdatedAt` / `@CreatedBy` / `@UpdatedBy` fields maintained automatically.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
 - **Pagination** - Simplified paginated queries and response handling.
 - **HQL & SQL** - Chained query builders, pagination with automatic count, batch updates, and native SQL access.
@@ -304,7 +305,15 @@ Specification<Order> spec = SpecWrapper.create(Order.class)
 Specification<Order> filtered = LogicDeletes.filter(Order.class, spec);
 ```
 
-Only JPA Criteria queries are filtered. Native SQL statements must add the condition manually.
+Only JPA Criteria queries are filtered. Native SQL statements must add the condition manually. The write side is available as well:
+
+```java
+// flag rows instead of removing them
+int affected = LogicDeletes.deleteById(entityManager, Order.class, 1L);
+int marked = LogicDeletes.deleteAll(entityManager, Order.class, orders);
+```
+
+`deleteById` and `deleteAllById` execute a JPQL update and therefore skip entity lifecycle callbacks; `deleteAll` flips the field on managed entities. Entities without `@LogicDelete` are rejected with `IllegalArgumentException`.
 
 ### Specification Executor
 
@@ -324,6 +333,13 @@ Page<Order> fetched = executor.findPage(
 ```
 
 Count queries use `countDistinct` on the configured identifier to avoid duplicate rows from joins. `findSlice` fetches `pageSize + 1` rows instead of counting, and logical deletion filtering is enabled by default (`executor.logicDelete(false)` disables it). When fetch attributes are provided, the executor delegates to `FetchJoinPaging`.
+
+`findById` applies the same logical deletion filter, and `deleteById` / `deleteAllById` delegate to `LogicDeletes` when the entity is annotated:
+
+```java
+Order order = executor.findById(1L);
+executor.deleteById(1L);
+```
 
 ### Fetch Join Pagination
 
@@ -367,6 +383,75 @@ Page<Product> page = sqlExecutor.queryForPage(
         PageRequest.of(0, 10, Sort.by("id").descending())
 );
 ```
+
+## DTO Projection
+
+`JpaPlusSqlExecutor` and `JpaPlusHqlExecutor` map native SQL or HQL results to DTOs. Column aliases are matched to DTO properties after ignoring case and underscores, so `order_no`, `orderNo`, and `ORDER_NO` all target `orderNo`. The DTO only needs a no-arg constructor.
+
+```java
+List<OrderSummary> list = new JpaPlusSqlExecutor(entityManager).queryForDtoList(
+        "select id, order_no as orderNo, total_amount as totalAmount"
+                + " from t_order where order_no like :prefix",
+        Map.of("prefix", "DS-%"),
+        OrderSummary.class
+);
+
+Page<OrderSummary> page = new JpaPlusHqlExecutor(entityManager).queryForDtoPage(
+        "select o.orderNo as orderNo, o.totalAmount as totalAmount"
+                + " from Order o where o.orderNo like :prefix",
+        Map.of("prefix", "DS-%"),
+        OrderSummary.class,
+        PageRequest.of(0, 10)
+);
+```
+
+Values are converted to the target field type for numbers, strings, booleans, and enums, and unknown columns are ignored. `queryForDtoObject` returns the first row or `null`, while `queryForDtoPage` derives the count statement automatically (pass an explicit count query for `group by` or `distinct`).
+
+## Batch Operations
+
+`BatchOperation` flushes and clears the persistence context in batches:
+
+```java
+BatchOperation.persistAll(entityManager, orders, 500);
+BatchOperation.removeAll(entityManager, orders, 500);
+
+BatchOperation.forEachBatch(ids, 500, batch ->
+        repository.deleteAllByIdInBatch(batch));
+```
+
+Null entity managers, non-positive batch sizes, and null callbacks are rejected before any database work starts.
+
+## Auditing
+
+Add `@EntityListeners(AuditListener.class)` to the entity and annotate the audit fields:
+
+```java
+@Entity
+@EntityListeners(AuditListener.class)
+public class Order {
+
+    @CreatedAt
+    private Instant createdAt;
+
+    @UpdatedAt
+    private Instant updatedAt;
+
+    @CreatedBy
+    private String createdBy;
+
+    @UpdatedBy
+    private String updatedBy;
+}
+```
+
+Time fields support `Instant`, `LocalDateTime`, `LocalDate`, `OffsetDateTime`, `ZonedDateTime`, `java.util.Date`, and `long` epoch milliseconds. Configure the auditor and clock once at startup:
+
+```java
+Audits.setAuditorSupplier(() -> currentUserId());
+Audits.setClock(Clock.systemDefaultZone());
+```
+
+`@CreatedAt` and `@CreatedBy` are written on insert only, while `@UpdatedAt` and `@UpdatedBy` are refreshed on insert and update. Auditor fields are left untouched when the supplier returns `null`, and unsupported field types fail fast at the first scan.
 
 ## Example Project
 

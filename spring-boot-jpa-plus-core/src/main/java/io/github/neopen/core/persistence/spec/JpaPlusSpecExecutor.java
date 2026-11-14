@@ -18,6 +18,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 /**
@@ -271,6 +272,70 @@ public class JpaPlusSpecExecutor<T> {
         }
 
         return new SliceImpl<>(content, pageable, hasNext);
+    }
+
+    /**
+     * 按主键查询实体。
+     *
+     * <p>查询会自动追加逻辑删除过滤，已删除实体返回 {@code null}。</p>
+     *
+     * @param id 主键值
+     * @return 实体；不存在或已删除时返回 {@code null}
+     */
+    public T findById(Object id) {
+        if (id == null) {
+            return null;
+        }
+
+        List<T> result = findAll(
+                (root, query, cb) -> cb.equal(root.get(idAttribute), id)
+        );
+
+        return result.isEmpty() ? null : result.get(0);
+    }
+
+    /**
+     * 按主键执行逻辑删除。
+     *
+     * <p>实体必须标注
+     * {@link io.github.neopen.core.persistence.logicdelete.LogicDelete}。</p>
+     *
+     * @param id 主键值
+     * @return 受影响的记录数
+     * @throws IllegalArgumentException 实体未标注逻辑删除注解时抛出
+     */
+    public int deleteById(Object id) {
+        return LogicDeletes.deleteById(entityManager, entityType, id);
+    }
+
+    /**
+     * 按主键批量执行逻辑删除。
+     *
+     * @param ids 主键集合
+     * @return 受影响的记录数
+     * @throws IllegalArgumentException 实体未标注逻辑删除注解时抛出
+     */
+    public int deleteAllById(Collection<?> ids) {
+        return LogicDeletes.deleteAllById(
+                entityManager,
+                entityType,
+                ids
+        );
+    }
+
+    /**
+     * 将实体标记为已删除。
+     *
+     * @param entities 待删除实体
+     * @return 标记的实体数量
+     * @throws IllegalArgumentException 实体未标注逻辑删除注解时抛出
+     */
+    public int deleteAll(Collection<T> entities) {
+        return LogicDeletes.deleteAll(
+                entityManager,
+                entityType,
+                entities
+        );
     }
 
     /**

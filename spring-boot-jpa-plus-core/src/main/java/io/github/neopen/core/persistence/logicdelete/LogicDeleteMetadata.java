@@ -21,13 +21,17 @@ final class LogicDeleteMetadata {
     /** 逻辑删除字段名。 */
     private final String fieldName;
 
+    /** 逻辑删除字段。 */
+    private final Field field;
+
     /**
      * 创建逻辑删除元数据。
      *
-     * @param fieldName 逻辑删除字段名
+     * @param field 逻辑删除字段
      */
-    private LogicDeleteMetadata(String fieldName) {
-        this.fieldName = fieldName;
+    private LogicDeleteMetadata(Field field) {
+        this.fieldName = field.getName();
+        this.field = field;
     }
 
     /**
@@ -70,7 +74,9 @@ final class LogicDeleteMetadata {
                     );
                 }
 
-                return Optional.of(new LogicDeleteMetadata(field.getName()));
+                field.setAccessible(true);
+
+                return Optional.of(new LogicDeleteMetadata(field));
             }
         }
 
@@ -84,5 +90,14 @@ final class LogicDeleteMetadata {
      */
     String fieldName() {
         return fieldName;
+    }
+
+    /**
+     * 获取逻辑删除字段。
+     *
+     * @return 逻辑删除字段
+     */
+    Field field() {
+        return field;
     }
 }

@@ -1,5 +1,10 @@
 package io.github.neopen.demo.bean.entity;
 
+import io.github.neopen.core.persistence.audit.AuditListener;
+import io.github.neopen.core.persistence.audit.CreatedAt;
+import io.github.neopen.core.persistence.audit.CreatedBy;
+import io.github.neopen.core.persistence.audit.UpdatedAt;
+import io.github.neopen.core.persistence.audit.UpdatedBy;
 import io.github.neopen.core.persistence.logicdelete.LogicDelete;
 import jakarta.persistence.*;
 import lombok.Data;
@@ -16,6 +21,7 @@ import java.util.List;
 @Data
 @NoArgsConstructor
 @Entity
+@EntityListeners(AuditListener.class)
 @Table(name = "t_order")
 public class Order {
 
@@ -48,14 +54,30 @@ public class Order {
     /**
      * 创建时间
      */
+    @CreatedAt
     @Column(name = "create_time", nullable = false)
     private LocalDateTime createTime;
 
     /**
      * 更新时间
      */
+    @UpdatedAt
     @Column(name = "update_time")
     private LocalDateTime updateTime;
+
+    /**
+     * 创建人
+     */
+    @CreatedBy
+    @Column(name = "created_by", length = 64)
+    private String createdBy;
+
+    /**
+     * 更新人
+     */
+    @UpdatedBy
+    @Column(name = "updated_by", length = 64)
+    private String updatedBy;
 
     /**
      * 用户ID

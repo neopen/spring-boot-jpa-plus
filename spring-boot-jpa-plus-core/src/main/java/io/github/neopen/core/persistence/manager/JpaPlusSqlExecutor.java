@@ -1,9 +1,11 @@
 package io.github.neopen.core.persistence.manager;
 
+import io.github.neopen.core.persistence.mapping.ResultMapper;
 import io.github.neopen.core.persistence.sql.SqlQuery;
 import io.github.neopen.core.persistence.sql.SqlWrapper;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
+import jakarta.persistence.Tuple;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -179,6 +181,198 @@ public class JpaPlusSqlExecutor {
                 .getResultList();
 
         return result.isEmpty() ? null : result.get(0);
+    }
+
+    /**
+     * 查询原生 SQL 并映射为 DTO 列表。
+     *
+     * <p>列名会忽略大小写与下划线后与 DTO 属性匹配，例如
+     * {@code order_no} 可映射到 {@code orderNo}。</p>
+     *
+     * @param <T>        DTO 类型
+     * @param sql        原生 SQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型，必须有无参构造器
+     * @return 映射后的 DTO 列表
+     */
+    public <T> List<T> queryForDtoList(
+            String sql,
+            Map<String, ?> parameters,
+            Class<T> dtoType
+    ) {
+        Query query = entityManager.createNativeQuery(sql, Tuple.class);
+
+        bindParameters(query, parameters);
+
+        return ResultMapper.mapRows(query.getResultList(), dtoType);
+    }
+
+    /**
+     * 使用 SQL 构造器查询并映射为 DTO 列表。
+     *
+     * @param <T>     DTO 类型
+     * @param wrapper SQL 构造器
+     * @param dtoType DTO 类型
+     * @return 映射后的 DTO 列表
+     */
+    public <T> List<T> queryForDtoList(
+            SqlWrapper wrapper,
+            Class<T> dtoType
+    ) {
+        SqlQuery query = wrapper.build();
+
+        return queryForDtoList(
+                query.getSql(),
+                query.getParameters(),
+                dtoType
+        );
+    }
+
+    /**
+     * 查询单条原生 SQL 结果并映射为 DTO。
+     *
+     * @param <T>        DTO 类型
+     * @param sql        原生 SQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型
+     * @return 第一条结果；无结果时返回 {@code null}
+     */
+    public <T> T queryForDtoObject(
+            String sql,
+            Map<String, ?> parameters,
+            Class<T> dtoType
+    ) {
+        Query query = entityManager.createNativeQuery(sql, Tuple.class);
+
+        bindParameters(query, parameters);
+
+        List<?> result = query
+                .setMaxResults(1)
+                .getResultList();
+
+        return result.isEmpty()
+                ? null
+                : ResultMapper.mapRow(result.get(0), dtoType);
+    }
+
+    /**
+     * 使用 SQL 构造器查询单条结果并映射为 DTO。
+     *
+     * @param <T>     DTO 类型
+     * @param wrapper SQL 构造器
+     * @param dtoType DTO 类型
+     * @return 第一条结果；无结果时返回 {@code null}
+     */
+    public <T> T queryForDtoObject(
+            SqlWrapper wrapper,
+            Class<T> dtoType
+    ) {
+        SqlQuery query = wrapper.build();
+
+        return queryForDtoObject(
+                query.getSql(),
+                query.getParameters(),
+                dtoType
+        );
+    }
+
+    /**
+     * 执行原生 SQL 分页查询并映射为 DTO，自动派生 count SQL。
+     *
+     * @param <T>        DTO 类型
+     * @param sql        原生 SQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型
+     * @param pageable   分页与排序参数
+     * @return DTO 分页结果
+     */
+    public <T> Page<T> queryForDtoPage(
+            String sql,
+            Map<String, ?> parameters,
+            Class<T> dtoType,
+            Pageable pageable
+    ) {
+        return queryForDtoPage(
+                sql,
+                buildCountSql(sql),
+                parameters,
+                dtoType,
+                pageable
+        );
+    }
+
+    /**
+     * 执行原生 SQL 分页查询并映射为 DTO，使用显式 count SQL。
+     *
+     * @param <T>        DTO 类型
+     * @param sql        原生 SQL 查询语句
+     * @param countSql   统计总数的 SQL
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param dtoType    DTO 类型
+     * @param pageable   分页与排序参数
+     * @return DTO 分页结果
+     */
+    public <T> Page<T> queryForDtoPage(
+            String sql,
+            String countSql,
+            Map<String, ?> parameters,
+            Class<T> dtoType,
+            Pageable pageable
+    ) {
+        validatePageable(pageable);
+
+        String pagedSql = applySort(sql, pageable.getSort(), null);
+
+        long total = queryCount(normalize(countSql), parameters);
+        List<?> content = queryTuplePage(pagedSql, parameters, pageable);
+
+        return new PageImpl<>(
+                ResultMapper.mapRows(content, dtoType),
+                pageable,
+                total
+        );
+    }
+
+    /**
+     * 使用 SQL 构造器执行分页查询并映射为 DTO。
+     *
+     * @param <T>     DTO 类型
+     * @param wrapper SQL 构造器
+     * @param dtoType DTO 类型
+     * @param pageable 分页与排序参数
+     * @return DTO 分页结果
+     */
+    public <T> Page<T> queryForDtoPage(
+            SqlWrapper wrapper,
+            Class<T> dtoType,
+            Pageable pageable
+    ) {
+        validatePageable(pageable);
+
+        SqlQuery query = wrapper.build();
+        String sql = query.getBaseSql();
+
+        if (pageable.getSort().isSorted()) {
+            sql = applySort(sql, pageable.getSort(), wrapper.getAlias());
+        } else if (query.getOrderBy() != null) {
+            sql = sql + " order by " + query.getOrderBy();
+        }
+
+        long total = queryCount(
+                query.getCountSql(),
+                query.getParameters()
+        );
+        List<?> content = queryTuplePage(
+                sql,
+                query.getParameters(),
+                pageable
+        );
+
+        return new PageImpl<>(
+                ResultMapper.mapRows(content, dtoType),
+                pageable,
+                total
+        );
     }
 
     /**
@@ -408,6 +602,29 @@ public class JpaPlusSqlExecutor {
         bindParameters(query, parameters);
 
         return query.executeUpdate();
+    }
+
+    /**
+     * 执行分页数据查询并保留列名，用于 DTO 映射。
+     *
+     * @param sql        已包含排序的查询语句
+     * @param parameters 命名参数
+     * @param pageable   分页参数
+     * @return 元组结果列表
+     */
+    private List<?> queryTuplePage(
+            String sql,
+            Map<String, ?> parameters,
+            Pageable pageable
+    ) {
+        Query query = entityManager.createNativeQuery(sql, Tuple.class);
+
+        bindParameters(query, parameters);
+
+        return query
+                .setFirstResult(Math.toIntExact(pageable.getOffset()))
+                .setMaxResults(pageable.getPageSize())
+                .getResultList();
     }
 
     /**

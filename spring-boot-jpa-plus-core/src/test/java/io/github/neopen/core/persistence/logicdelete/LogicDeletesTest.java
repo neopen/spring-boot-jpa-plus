@@ -1,17 +1,28 @@
 package io.github.neopen.core.persistence.logicdelete;
 
 import io.github.neopen.core.persistence.spec.SpecWrapper;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.Query;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Root;
+import jakarta.persistence.metamodel.EntityType;
+import jakarta.persistence.metamodel.Metamodel;
+import jakarta.persistence.metamodel.SingularAttribute;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.jpa.domain.Specification;
 
+import java.util.List;
+import java.util.Set;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -140,6 +151,116 @@ class LogicDeletesTest {
         assertThat(predicate).isSameAs(combined);
     }
 
+    /**
+     * 验证按主键逻辑删除生成更新语句。
+     */
+    @Test
+    void shouldUpdateDeletedFlagById() {
+        EntityManager entityManager = mockEntityManager();
+        Query query = mockQuery(entityManager, 1);
+
+        int affected = LogicDeletes.deleteById(
+                entityManager,
+                Order.class,
+                5L
+        );
+
+        assertThat(affected).isEqualTo(1);
+        verify(entityManager).createQuery(
+                "update Order e set e.deleted = true where e.id in :ids"
+        );
+        verify(query).setParameter("ids", List.of(5L));
+        verify(query).executeUpdate();
+    }
+
+    /**
+     * 验证空主键集合不会执行语句。
+     */
+    @Test
+    void shouldSkipEmptyIdCollection() {
+        EntityManager entityManager = mockEntityManager();
+
+        assertThat(LogicDeletes.deleteAllById(
+                entityManager,
+                Order.class,
+                List.of()
+        )).isZero();
+
+        verify(entityManager, never()).createQuery(anyString());
+    }
+
+    /**
+     * 验证实体标记为已删除。
+     */
+    @Test
+    void shouldMarkEntitiesAsDeleted() {
+        EntityManager entityManager = mockEntityManager();
+        Order first = new Order();
+        Order second = new Order();
+
+        int count = LogicDeletes.deleteAll(
+                entityManager,
+                Order.class,
+                List.of(first, second)
+        );
+
+        assertThat(count).isEqualTo(2);
+        assertThat(first.isDeleted()).isTrue();
+        assertThat(second.isDeleted()).isTrue();
+    }
+
+    /**
+     * 验证未标注注解的实体拒绝逻辑删除。
+     */
+    @Test
+    void shouldRejectLogicDeleteForAnnotatedOnly() {
+        EntityManager entityManager = mockEntityManager();
+
+        assertThatThrownBy(
+                () -> LogicDeletes.deleteById(entityManager, Plain.class, 1L)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("@LogicDelete is required");
+    }
+
+    /**
+     * 创建带实体元数据的模拟实体管理器。
+     *
+     * @return 实体管理器
+     */
+    private EntityManager mockEntityManager() {
+        EntityManager entityManager = mock(EntityManager.class);
+        Metamodel metamodel = mock(Metamodel.class);
+        EntityType<Order> entityType = mock(EntityType.class);
+        SingularAttribute<? super Order, ?> id =
+                mock(SingularAttribute.class);
+
+        when(entityManager.getMetamodel()).thenReturn(metamodel);
+        doReturn(entityType).when(metamodel).entity(Order.class);
+        when(entityType.getName()).thenReturn("Order");
+        when(entityType.getSingularAttributes()).thenReturn(Set.of(id));
+        when(id.isId()).thenReturn(true);
+        when(id.getName()).thenReturn("id");
+
+        return entityManager;
+    }
+
+    /**
+     * 模拟更新语句。
+     *
+     * @param entityManager 实体管理器
+     * @param affected      受影响行数
+     * @return 查询对象
+     */
+    private Query mockQuery(EntityManager entityManager, int affected) {
+        Query query = mock(Query.class);
+
+        when(entityManager.createQuery(anyString())).thenReturn(query);
+        when(query.executeUpdate()).thenReturn(affected);
+
+        return query;
+    }
+
     /** 带逻辑删除字段的实体。 */
     private static class Order {
 
@@ -152,6 +273,15 @@ class LogicDeletesTest {
         /** 是否已删除。 */
         @LogicDelete
         private Boolean deleted;
+
+        /**
+         * 判断是否已标记删除。
+         *
+         * @return 是否已删除
+         */
+        boolean isDeleted() {
+            return Boolean.TRUE.equals(deleted);
+        }
     }
 
     /** 不带逻辑删除字段的实体。 */
