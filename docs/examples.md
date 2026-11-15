@@ -8,6 +8,35 @@
 - **连表与过滤**：`OrderJpaServiceImpl.buildPredicates` 用 `SpecWrapper` 连 `orderProducts`，按明细名称与数量过滤，自动 `distinct` 保证分页计数正确，并支持发件人手机号与订单金额区间。
 - **商品库存**：`SpecWrapper` 查询与 HQL、原生 SQL 的对照实现，原生字段比较、批量补货、基于 `SqlWrapper` 的聚合统计。
 - **同一接口三种实现**：`OrderService` 与 `ProductService` 各有 JPA、HQL、原生 SQL 三套实现。
+- **0.5 新增能力**：`QueryFeatureService`、`CustomerSecretService` 与 `AuditConfiguration` 演示请求分页、union、数据源作用域、字段加密与审计操作人。
+
+## 0.5 新能力示例
+
+`QueryFeatureController` 集中演示 0.5 新增能力，代码见 `service/QueryFeatureService`、`service/CustomerSecretService`：
+
+| 方法 | 路径 | 演示内容 |
+| --- | --- | --- |
+| GET | `/feature/page?page=1&size=10&sort=id,desc` | `PageParams` 校验页码、每页数量与排序字段 |
+| GET | `/feature/union` | `SqlWrapper.union` 合并已支付与已取消订单 |
+| GET | `/feature/scope?orderNo=SD-` | `JpaPlusScope` 绑定 `archive-view` 作用域后读取已逻辑删除订单 |
+| POST | `/feature/secret?customerNo=C-001&idCard=...&phone=...` | 随机 IV 与确定性加密字段写入 |
+| GET | `/feature/secret?phone=13800001234` | 按确定性密文等值查询手机号 |
+
+对应配置位于 `application.yml`：
+
+```yaml
+neopen:
+  jpa:
+    encryption:
+      key: demo-encryption-key
+    scopes:
+      archive-view:
+        logic-delete-enabled: false
+```
+
+- `archive-view` 作用域只关闭逻辑删除过滤，其他查询仍然过滤已删除数据。
+- 手机号使用 `DeterministicEncryptedFieldConverter`，查询前把明文加密为密文即可匹配；身份证号使用随机 IV，相同明文每次密文不同。
+- `AuditConfiguration` 注册 `AuditorProvider`，优先读取 `X-Demo-User` 请求头，非 Web 场景回退为 `demo-user`。
 
 ## 路由划分
 

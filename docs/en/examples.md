@@ -8,6 +8,35 @@
 - **Joins and filtering**: `OrderJpaServiceImpl.buildPredicates` uses `SpecWrapper` to join `orderProducts`, filters by item name and quantity, enables `distinct` automatically so that pagination counting stays correct, and supports the sender phone number and order amount range.
 - **Product stock**: a `SpecWrapper` query compared with HQL and native SQL implementations, native field comparisons, batch restocking, and aggregate statistics based on `SqlWrapper`.
 - **Three implementations of the same interface**: `OrderService` and `ProductService` each have JPA, HQL and native SQL implementations.
+- **New in 0.5**: `QueryFeatureService`, `CustomerSecretService` and `AuditConfiguration` demonstrate request paging, union, datasource scopes, field encryption and the audit auditor.
+
+## 0.5 feature examples
+
+`QueryFeatureController` collects the capabilities added in 0.5. See `service/QueryFeatureService` and `service/CustomerSecretService`:
+
+| Method | Path | Demonstration |
+| --- | --- | --- |
+| GET | `/feature/page?page=1&size=10&sort=id,desc` | `PageParams` validates page number, page size and sort fields |
+| GET | `/feature/union` | `SqlWrapper.union` merges paid and cancelled orders |
+| GET | `/feature/scope?orderNo=SD-` | `JpaPlusScope` binds the `archive-view` scope to read logically deleted orders |
+| POST | `/feature/secret?customerNo=C-001&idCard=...&phone=...` | Writes fields with random IV and deterministic encryption |
+| GET | `/feature/secret?phone=13800001234` | Equality search by deterministic ciphertext |
+
+The matching configuration lives in `application.yml`:
+
+```yaml
+neopen:
+  jpa:
+    encryption:
+      key: demo-encryption-key
+    scopes:
+      archive-view:
+        logic-delete-enabled: false
+```
+
+- The `archive-view` scope only disables the logic delete filter; other queries still exclude deleted rows.
+- Phone numbers use `DeterministicEncryptedFieldConverter`, so encrypt the plaintext before querying; ID cards use a random IV, so the same plaintext produces different ciphertext each time.
+- `AuditConfiguration` registers an `AuditorProvider` that reads the `X-Demo-User` header and falls back to `demo-user` outside a web request.
 
 ## Route layout
 

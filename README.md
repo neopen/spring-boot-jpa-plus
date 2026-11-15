@@ -18,15 +18,16 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **Batch Processing** - Convenient batch save, update, and delete operations.
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
 - **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, a specification executor, and DTO projection.
-- **Auditing** - `@CreatedAt` / `@UpdatedAt` / `@CreatedBy` / `@UpdatedBy` fields maintained automatically.
+- **Auditing** - `@CreatedAt` / `@UpdatedAt` / `@CreatedBy` / `@UpdatedBy` fields maintained automatically, with an `AuditorProvider` SPI for the current user.
 - **Enum Conversion** - Persist enums as explicit database values instead of constant names.
-- **Field Encryption** - Transparent AES-GCM encryption for annotated string fields.
+- **Field Encryption** - Transparent AES-GCM encryption for annotated string fields, with key rotation and a deterministic mode for equality search.
+- **Multi-datasource Scopes** - Isolate logic-delete, auditing, encryption, and batch switches by a thread-bound scope.
 - **Tree & IDs** - Build trees from flat lists and generate snowflake identifiers.
-- **Data Desensitization** - Mask names, phones, ID cards, bank cards, emails, and addresses.
-- **Reliability Aspects** - Optimistic-lock retry and slow-method logging.
+- **Data Desensitization** - Mask names, phones, ID cards, bank cards, emails, and addresses for fastjson2 and Jackson.
+- **Reliability Aspects** - Optimistic-lock retry, slow-method logging, and slow SQL logging.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
-- **Pagination** - Simplified paginated queries and response handling.
-- **HQL & SQL** - Chained query builders, pagination with automatic count, batch updates, and native SQL access.
+- **Pagination** - Simplified paginated queries, validated request paging parameters, and response handling.
+- **HQL & SQL** - Chained query builders with grouping, parameterized subqueries, union, pagination with automatic count, batch updates, and native SQL access.
 - **Auto Configuration** - Seamless Spring Boot integration.
 - **Modular Architecture** - Independent modules and optional extensions.
 
