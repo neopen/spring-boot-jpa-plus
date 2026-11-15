@@ -425,6 +425,78 @@ class EncryptedFieldsTest {
     }
 
     /**
+     * 验证作用域内的密钥轮换与当前密钥切换。
+     */
+    @Test
+    void shouldRotateKeysWithinScope() {
+        EncryptedFields.setKeys(
+                "secondary",
+                Map.of("v1", "secondary-1"),
+                "v1"
+        );
+
+        String first = JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encrypt("rotate")
+        );
+
+        assertThat(first).startsWith("v1:");
+
+        EncryptedFields.setKeys(
+                "secondary",
+                Map.of("v1", "secondary-1", "v2", "secondary-2"),
+                "v2"
+        );
+
+        String second = JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encrypt("rotate")
+        );
+
+        assertThat(second).startsWith("v2:");
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.decrypt(first)
+        )).isEqualTo("rotate");
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                EncryptedFields::getActiveKeyId
+        )).isEqualTo("v2");
+
+        EncryptedFields.setActiveKey("secondary", "v1");
+
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                EncryptedFields::getActiveKeyId
+        )).isEqualTo("v1");
+    }
+
+    /**
+     * 验证作用域内的确定性加密与全局密钥相互独立。
+     */
+    @Test
+    void shouldEncryptDeterministicallyWithinScope() {
+        EncryptedFields.setKey("secondary", "secondary-secret");
+
+        String scoped = JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encryptDeterministic("13800000000")
+        );
+        String scopedAgain = JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encryptDeterministic("13800000000")
+        );
+        String global = EncryptedFields.encryptDeterministic("13800000000");
+
+        assertThat(scoped).isEqualTo(scopedAgain);
+        assertThat(scoped).isNotEqualTo(global);
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.decrypt(scoped)
+        )).isEqualTo("13800000000");
+    }
+
+    /**
      * 验证确定性加密转换器双向转换。
      */
     @Test

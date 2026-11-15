@@ -240,6 +240,49 @@ class JpaPlusSqlExecutorTest {
                 .hasMessageContaining("already contains order by");
     }
 
+    /**
+     * 验证 union 分页排序按输出列名追加，不带表别名。
+     */
+    @Test
+    void shouldPageUnionWithoutAliasInSort() {
+        SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
+                .select("o.id")
+                .eq("status", "PAID")
+                .union(
+                        SqlWrapper.create("t_order_archive", "a")
+                                .select("a.id")
+                                .eq("status", "CLOSED")
+                );
+        String baseSql = "select o.id from t_order o where o.status = :p1"
+                + " union select a.id from t_order_archive a"
+                + " where a.status = :p2";
+        String dataSql = baseSql + " order by id desc";
+        String countSql = "select count(*) from ("
+                + baseSql + ") jpa_plus_count";
+
+        when(entityManager.createNativeQuery(dataSql, SampleEntity.class))
+                .thenReturn(dataQuery);
+        when(entityManager.createNativeQuery(countSql)).thenReturn(countQuery);
+        when(dataQuery.setFirstResult(0)).thenReturn(dataQuery);
+        when(dataQuery.setMaxResults(10)).thenReturn(dataQuery);
+        when(dataQuery.getResultList())
+                .thenReturn(List.of(new SampleEntity(1L)));
+        when(countQuery.getSingleResult()).thenReturn(1L);
+
+        Page<SampleEntity> page = executor.queryForPage(
+                wrapper,
+                SampleEntity.class,
+                PageRequest.of(0, 10, Sort.by(Sort.Direction.DESC, "id"))
+        );
+
+        assertThat(page.getTotalElements()).isEqualTo(1);
+        assertThat(page.getContent()).hasSize(1);
+        verify(dataQuery).setParameter("p1", "PAID");
+        verify(dataQuery).setParameter("p2", "CLOSED");
+        verify(countQuery).setParameter("p1", "PAID");
+        verify(countQuery).setParameter("p2", "CLOSED");
+    }
+
     @Test
     void shouldQueryTypedObject() {
         String sql = "select * from t_order where id = :id";

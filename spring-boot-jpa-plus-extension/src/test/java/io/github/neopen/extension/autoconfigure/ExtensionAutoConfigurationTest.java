@@ -4,6 +4,7 @@ import io.github.neopen.extension.aspect.IdempotentAspect;
 import io.github.neopen.extension.aspect.OptimisticLockRetryAspect;
 import io.github.neopen.extension.aspect.RateLimitAspect;
 import io.github.neopen.extension.aspect.SlowLogAspect;
+import io.github.neopen.extension.desensitize.DesensitizeModule;
 import io.github.neopen.extension.response.JsonPageConverter;
 import io.github.neopen.extension.response.JsonPageResponseFactory;
 import org.junit.jupiter.api.Test;
@@ -38,6 +39,7 @@ class ExtensionAutoConfigurationTest {
                     OptimisticLockRetryAspect.class
             );
             assertThat(context).hasSingleBean(SlowLogAspect.class);
+            assertThat(context).hasSingleBean(DesensitizeModule.class);
         });
     }
 

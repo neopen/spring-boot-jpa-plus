@@ -100,6 +100,30 @@ class AuditsTest {
     }
 
     /**
+     * 验证作用域可以单独配置操作人提供者。
+     */
+    @Test
+    void shouldUseScopedAuditorProvider() {
+        Audits.setClock(Clock.fixed(FIRST, ZoneOffset.UTC));
+        Audits.setAuditorSupplier(() -> "global");
+        Audits.setAuditorProvider("secondary", () -> "scoped-provider");
+
+        AuditedEntity entity = new AuditedEntity();
+        JpaPlusScope.run(
+                "secondary",
+                () -> new AuditListener().prePersist(entity)
+        );
+
+        assertThat(entity.getCreatedBy()).isEqualTo("scoped-provider");
+        assertThat(entity.getCreatedAt()).isEqualTo(FIRST);
+
+        AuditedEntity global = new AuditedEntity();
+        new AuditListener().prePersist(global);
+
+        assertThat(global.getCreatedBy()).isEqualTo("global");
+    }
+
+    /**
      * 验证插入时填充全部审计字段。
      */
     @Test

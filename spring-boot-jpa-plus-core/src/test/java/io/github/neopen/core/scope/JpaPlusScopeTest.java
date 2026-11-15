@@ -3,9 +3,11 @@ package io.github.neopen.core.scope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -102,6 +104,53 @@ class JpaPlusScopeTest {
         } finally {
             executor.shutdownNow();
         }
+    }
+
+    /**
+     * 验证两个线程各自绑定不同作用域时互不干扰。
+     *
+     * @throws Exception 线程执行失败
+     */
+    @Test
+    void shouldIsolateConcurrentScopes() throws Exception {
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+        CyclicBarrier barrier = new CyclicBarrier(2);
+
+        try {
+            Future<String> first = executor.submit(() -> JpaPlusScope.call(
+                    "first",
+                    () -> currentAfterBarrier(barrier)
+            ));
+            Future<String> second = executor.submit(() -> JpaPlusScope.call(
+                    "second",
+                    () -> currentAfterBarrier(barrier)
+            ));
+
+            assertThat(first.get()).isEqualTo("first");
+            assertThat(second.get()).isEqualTo("second");
+            assertThat(JpaPlusScope.current()).isNull();
+        } finally {
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * 等待两个线程都进入作用域后再读取。
+     *
+     * @param barrier 同步屏障
+     * @return 当前线程绑定的作用域
+     */
+    private static String currentAfterBarrier(CyclicBarrier barrier) {
+        try {
+            barrier.await(5, TimeUnit.SECONDS);
+        } catch (Exception e) {
+            throw new IllegalStateException(
+                    "Cannot synchronize scoped threads",
+                    e
+            );
+        }
+
+        return JpaPlusScope.current();
     }
 
     /**
