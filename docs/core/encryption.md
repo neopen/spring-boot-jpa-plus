@@ -103,6 +103,10 @@ IV 由 `HMAC-SHA256(密钥, 明文)` 前 12 字节派生，因此相同明文得
 wrapper.eq("phone", EncryptedFields.encryptDeterministic(phone));
 ```
 
+::: warning 查询时避免二次加密
+JPA 生成的 JPQL 或 Criteria 查询会再次应用字段转换器，传入密文会被再加密一次。使用 Spring Data 派生查询时直接传明文，或改用原生 SQL 比较密文列，示例见[示例项目](/examples)。
+:::
+
 ::: warning 安全权衡
 确定性加密会泄露明文是否相同以及出现频率。只对确实需要等值检索的字段使用，其余字段保持默认的随机 IV 模式。
 :::
