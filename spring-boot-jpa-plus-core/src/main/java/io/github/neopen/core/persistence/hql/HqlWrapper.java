@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * HQL 查询构造器。
@@ -49,6 +50,19 @@ public final class HqlWrapper<T> {
 
     /** 查询参数字段到 HQL 属性路径的映射。 */
     private final Map<String, String> aliases = new LinkedHashMap<>();
+
+    /** select 表达式。 */
+    private final List<String> selectColumns = new ArrayList<>();
+
+    /** 分组表达式。 */
+    private final List<String> groupByColumns = new ArrayList<>();
+
+    /** having 条件片段；未设置时为 {@code null}。 */
+    private String having;
+
+    /** 可作为属性路径自动补全别名的简单表达式。 */
+    private static final String SIMPLE_PROPERTY =
+            "[A-Za-z_$][A-Za-z0-9_$]*(\\.[A-Za-z_$][A-Za-z0-9_$]*)*";
 
     /**
      * 创建查询构造器。
@@ -396,7 +410,28 @@ public final class HqlWrapper<T> {
      * @throws IllegalArgumentException 子查询为空时抛出
      */
     public HqlWrapper<T> exists(String subQuery) {
-        return addRaw("exists (" + requireFragment(subQuery) + ")");
+        return exists(subQuery, null);
+    }
+
+    /**
+     * 追加带命名参数的 {@code exists} 子查询条件。
+     *
+     * <p>子查询中的 {@code :参数名} 会替换为框架生成的参数名并完成
+     * 绑定，子查询结构仍应来自开发者编写的静态 HQL。</p>
+     *
+     * @param subQuery   子查询内容，不包含 {@code exists} 关键字
+     * @param parameters 子查询命名参数，允许为 {@code null}
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空时抛出
+     */
+    public HqlWrapper<T> exists(
+            String subQuery,
+            Map<String, Object> parameters
+    ) {
+        return addRaw(
+                "exists (" + requireFragment(subQuery) + ")",
+                parameters
+        );
     }
 
     /**
@@ -410,7 +445,28 @@ public final class HqlWrapper<T> {
      * @throws IllegalArgumentException 子查询为空时抛出
      */
     public HqlWrapper<T> notExists(String subQuery) {
-        return addRaw("not exists (" + requireFragment(subQuery) + ")");
+        return notExists(subQuery, null);
+    }
+
+    /**
+     * 追加带命名参数的 {@code not exists} 子查询条件。
+     *
+     * <p>子查询中的 {@code :参数名} 会替换为框架生成的参数名并完成
+     * 绑定，子查询结构仍应来自开发者编写的静态 HQL。</p>
+     *
+     * @param subQuery   子查询内容，不包含 {@code not exists} 关键字
+     * @param parameters 子查询命名参数，允许为 {@code null}
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空时抛出
+     */
+    public HqlWrapper<T> notExists(
+            String subQuery,
+            Map<String, Object> parameters
+    ) {
+        return addRaw(
+                "not exists (" + requireFragment(subQuery) + ")",
+                parameters
+        );
     }
 
     /**
@@ -586,6 +642,74 @@ public final class HqlWrapper<T> {
     }
 
     /**
+     * 指定 select 表达式。
+     *
+     * <p>简单属性名会自动补全根实体别名，函数、聚合等表达式按原样
+     * 使用。未调用时默认查询根实体。</p>
+     *
+     * @param expressions select 表达式
+     * @return 当前构造器
+     */
+    public HqlWrapper<T> select(String... expressions) {
+        if (expressions != null) {
+            for (String expression : expressions) {
+                if (expression != null && !expression.isBlank()) {
+                    selectColumns.add(
+                            selectExpression(expression)
+                    );
+                }
+            }
+        }
+
+        return this;
+    }
+
+    /**
+     * 追加分组表达式。
+     *
+     * <p>简单属性名会自动补全根实体别名。分组查询的统计语句仍然按
+     * 行计数，不统计分组数量，适合报表查询而不适合分页总数统计。</p>
+     *
+     * @param expressions 分组表达式
+     * @return 当前构造器
+     */
+    public HqlWrapper<T> groupBy(String... expressions) {
+        if (expressions != null) {
+            for (String expression : expressions) {
+                if (expression != null && !expression.isBlank()) {
+                    groupByColumns.add(
+                            selectExpression(expression)
+                    );
+                }
+            }
+        }
+
+        return this;
+    }
+
+    /**
+     * 设置 {@code having} 条件片段。
+     *
+     * <p>片段原样追加到 {@code group by} 之后，只能传入开发者编写的
+     * 静态 HQL，禁止拼接用户输入。重复调用会覆盖之前的值。</p>
+     *
+     * @param fragment having 条件片段
+     * @return 当前构造器
+     * @throws IllegalArgumentException 片段为空时抛出
+     */
+    public HqlWrapper<T> having(String fragment) {
+        if (fragment == null || fragment.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Having fragment must not be blank"
+            );
+        }
+
+        this.having = fragment.trim();
+
+        return this;
+    }
+
+    /**
      * 构建不可变查询描述。
      *
      * <p>每次调用都会重新分配参数名，可重复构建。</p>
@@ -599,12 +723,25 @@ public final class HqlWrapper<T> {
         String from = "from " + entityType.getSimpleName()
                 + " " + alias;
 
-        String baseHql = "select " + alias + " " + from;
+        String select = selectColumns.isEmpty()
+                ? alias
+                : String.join(", ", selectColumns);
+
+        String baseHql = "select " + select + " " + from;
         String countHql = "select count(*) " + from;
 
         if (!where.isEmpty()) {
             baseHql += " where " + where;
             countHql += " where " + where;
+        }
+
+        if (!groupByColumns.isEmpty()) {
+            baseHql += " group by "
+                    + String.join(", ", groupByColumns);
+        }
+
+        if (having != null) {
+            baseHql += " having " + having;
         }
 
         Map<String, Object> parameters =
@@ -659,7 +796,30 @@ public final class HqlWrapper<T> {
      * @return 当前构造器
      */
     private HqlWrapper<T> addRaw(String fragment) {
-        nodes.add(new RawNode(Connector.AND, fragment));
+        return addRaw(fragment, null);
+    }
+
+    /**
+     * 添加带命名参数的静态条件片段。
+     *
+     * @param fragment   条件片段
+     * @param parameters 命名参数，允许为 {@code null}
+     * @return 当前构造器
+     */
+    private HqlWrapper<T> addRaw(
+            String fragment,
+            Map<String, Object> parameters
+    ) {
+        nodes.add(
+                new RawNode(
+                        Connector.AND,
+                        fragment,
+                        parameters == null
+                                ? Collections.emptyMap()
+                                : new LinkedHashMap<>(parameters)
+                )
+        );
+
         return this;
     }
 
@@ -694,6 +854,22 @@ public final class HqlWrapper<T> {
         return field.startsWith(alias + ".")
                 ? field
                 : alias + "." + field;
+    }
+
+    /**
+     * 将 select 或分组表达式转换为带别名的 HQL 片段。
+     *
+     * <p>只有简单属性路径才补全别名，函数和聚合表达式保持原样。</p>
+     *
+     * @param expression 表达式
+     * @return HQL 片段
+     */
+    private String selectExpression(String expression) {
+        String value = expression.trim();
+
+        return value.matches(SIMPLE_PROPERTY)
+                ? path(value)
+                : value;
     }
 
     /**
@@ -876,17 +1052,31 @@ public final class HqlWrapper<T> {
     /**
      * 恒真或恒假节点。
      *
-     * @param connector 连接符
-     * @param fragment  条件片段
+     * @param connector  连接符
+     * @param fragment   条件片段
+     * @param parameters 命名参数
      */
     private record RawNode(
             Connector connector,
-            String fragment
+            String fragment,
+            Map<String, Object> parameters
     ) implements Node {
 
         @Override
         public String render(BuildContext context) {
-            return fragment;
+            String rendered = fragment;
+
+            for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+                String name = context.bind(entry.getValue());
+
+                rendered = rendered.replaceAll(
+                        ":" + Pattern.quote(entry.getKey())
+                                + "(?![A-Za-z0-9_])",
+                        ":" + name
+                );
+            }
+
+            return rendered;
         }
     }
 
@@ -946,12 +1136,23 @@ public final class HqlWrapper<T> {
             List<String> names = new ArrayList<>(values.length);
 
             for (Object value : values) {
-                String name = "p" + (++index);
-                parameters.put(name, value);
-                names.add(name);
+                names.add(bind(value));
             }
 
             return names;
+        }
+
+        /**
+         * 绑定单个参数并返回参数名。
+         *
+         * @param value 参数值
+         * @return 参数名
+         */
+        private String bind(Object value) {
+            String name = "p" + (++index);
+            parameters.put(name, value);
+
+            return name;
         }
     }
 }

@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -186,6 +187,123 @@ class SqlWrapperTest {
         private SampleQuery(String keyword) {
             this.keyword = keyword;
         }
+    }
+
+    /**
+     * 验证 group by、having 与参数化 exists 组合。
+     */
+    @Test
+    void shouldBuildGroupByHavingAndParameterizedExists() {
+        SqlQuery query = SqlWrapper.create("t_order")
+                .select("status", "count(*) as total")
+                .groupBy("status")
+                .having("count(*) > 1")
+                .exists(
+                        "select 1 from t_order_item i"
+                                + " where i.order_id = o.id"
+                                + " and i.sku = :sku",
+                        Map.of("sku", "A-1")
+                )
+                .build();
+
+        String base = "select status, count(*) as total"
+                + " from t_order o"
+                + " where exists (select 1 from t_order_item i"
+                + " where i.order_id = o.id"
+                + " and i.sku = :p1)"
+                + " group by o.status"
+                + " having count(*) > 1";
+
+        assertThat(query.getBaseSql()).isEqualTo(base);
+        assertThat(query.getCountSql()).isEqualTo(
+                "select count(*) from (" + base + ") jpa_plus_count"
+        );
+        assertThat(query.getParameters()).containsEntry("p1", "A-1");
+
+        assertThatThrownBy(() -> SqlWrapper.create("t_order").having(" "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * 验证 union 合并语句、参数与统计语句。
+     */
+    @Test
+    void shouldBuildUnionWithMergedParameters() {
+        SqlWrapper archived = SqlWrapper.create("t_order_archive", "a")
+                .select("a.id", "a.order_no")
+                .eq("a.status", "CLOSED");
+
+        SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
+                .select("o.id", "o.order_no")
+                .eq("status", "PAID")
+                .union(archived)
+                .orderByDesc("id");
+
+        SqlQuery query = wrapper.build();
+
+        String base = "select o.id, o.order_no from t_order o"
+                + " where o.status = :p1"
+                + " union "
+                + "select a.id, a.order_no from t_order_archive a"
+                + " where a.status = :p2";
+
+        assertThat(wrapper.hasUnion()).isTrue();
+        assertThat(wrapper.getSortAlias()).isNull();
+        assertThat(query.getBaseSql()).isEqualTo(base);
+        assertThat(query.getSql()).isEqualTo(base + " order by id desc");
+        assertThat(query.getCountSql()).isEqualTo(
+                "select count(*) from (" + base + ") jpa_plus_count"
+        );
+        assertThat(query.getParameters())
+                .containsEntry("p1", "PAID")
+                .containsEntry("p2", "CLOSED");
+    }
+
+    /**
+     * 验证 union all 保留重复行并支持多段合并。
+     */
+    @Test
+    void shouldBuildUnionAllForMultipleParts() {
+        SqlWrapper first = SqlWrapper.create("t_order_2024", "y1")
+                .select("y1.id");
+        SqlWrapper second = SqlWrapper.create("t_order_2025", "y2")
+                .select("y2.id");
+
+        SqlQuery query = SqlWrapper.create("t_order", "o")
+                .select("o.id")
+                .unionAll(first, second)
+                .build();
+
+        assertThat(query.getBaseSql()).isEqualTo(
+                "select o.id from t_order o"
+                        + " union all select y1.id from t_order_2024 y1"
+                        + " union all select y2.id from t_order_2025 y2"
+        );
+    }
+
+    /**
+     * 验证 union 子查询的非法用法被拒绝。
+     */
+    @Test
+    void shouldRejectInvalidUnionParts() {
+        assertThatThrownBy(() -> SqlWrapper.create("t_order")
+                .union((SqlWrapper) null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Union part must not be null");
+
+        assertThatThrownBy(() -> SqlWrapper.create("t_order")
+                .union(SqlWrapper.create("t_order_archive")
+                        .orderByAsc("id")))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("order by");
+
+        SqlWrapper nested = SqlWrapper.create("t_order_2024")
+                .union(SqlWrapper.create("t_order_2025"));
+
+        assertThatThrownBy(() -> SqlWrapper.create("t_order")
+                .union(nested))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Nested union");
     }
 
     @Test

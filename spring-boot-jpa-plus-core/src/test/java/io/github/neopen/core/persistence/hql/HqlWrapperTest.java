@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -174,6 +175,66 @@ class HqlWrapperTest {
         private SampleQuery(String keyword) {
             this.keyword = keyword;
         }
+    }
+
+    /**
+     * 验证 select、group by 与 having 组合。
+     */
+    @Test
+    void shouldBuildSelectGroupByAndHaving() {
+        HqlQuery query = HqlWrapper.create(SampleEntity.class)
+                .select("status", "count(id)")
+                .groupBy("status")
+                .having("count(o.id) > 1")
+                .build();
+
+        assertThat(query.getBaseHql()).isEqualTo(
+                "select o.status, count(id) from SampleEntity o"
+                        + " group by o.status"
+                        + " having count(o.id) > 1"
+        );
+
+        assertThat(query.getCountHql())
+                .isEqualTo("select count(*) from SampleEntity o");
+
+        assertThatThrownBy(() -> HqlWrapper.create(SampleEntity.class)
+                .having(" "))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    /**
+     * 验证 exists 子查询的命名参数绑定。
+     */
+    @Test
+    void shouldBindParametersInExistsSubQuery() {
+        HqlQuery query = HqlWrapper.create(SampleEntity.class)
+                .exists(
+                        "select 1 from OrderItem i"
+                                + " where i.orderId = o.id"
+                                + " and i.sku = :sku",
+                        Map.of("sku", "A-1")
+                )
+                .notExists(
+                        "select 1 from Payment p"
+                                + " where p.orderId = o.id"
+                                + " and p.channel = :channel",
+                        Map.of("channel", "WECHAT")
+                )
+                .build();
+
+        assertThat(query.getBaseHql()).isEqualTo(
+                "select o from SampleEntity o"
+                        + " where exists (select 1 from OrderItem i"
+                        + " where i.orderId = o.id"
+                        + " and i.sku = :p1)"
+                        + " and not exists (select 1 from Payment p"
+                        + " where p.orderId = o.id"
+                        + " and p.channel = :p2)"
+        );
+
+        assertThat(query.getParameters())
+                .containsEntry("p1", "A-1")
+                .containsEntry("p2", "WECHAT");
     }
 
     /** 测试实体占位。 */

@@ -13,6 +13,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 /**
  * 原生 SQL 查询构造器。
@@ -54,6 +55,12 @@ public final class SqlWrapper {
 
     /** 分组列。 */
     private final List<String> groupByColumns = new ArrayList<>();
+
+    /** having 条件片段；未设置时为 {@code null}。 */
+    private String having;
+
+    /** union 子查询。 */
+    private final List<UnionPart> unions = new ArrayList<>();
 
     /** 排序项。 */
     private final List<OrderItem> orders = new ArrayList<>();
@@ -431,7 +438,28 @@ public final class SqlWrapper {
      * @throws IllegalArgumentException 子查询为空时抛出
      */
     public SqlWrapper exists(String subQuery) {
-        return addRaw("exists (" + requireFragment(subQuery) + ")");
+        return exists(subQuery, null);
+    }
+
+    /**
+     * 追加带命名参数的 {@code exists} 子查询条件。
+     *
+     * <p>子查询中的 {@code :参数名} 会替换为框架生成的参数名并完成
+     * 绑定，子查询结构仍应来自开发者编写的静态 SQL。</p>
+     *
+     * @param subQuery   子查询内容，不包含 {@code exists} 关键字
+     * @param parameters 子查询命名参数，允许为 {@code null}
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空时抛出
+     */
+    public SqlWrapper exists(
+            String subQuery,
+            Map<String, Object> parameters
+    ) {
+        return addRaw(
+                "exists (" + requireFragment(subQuery) + ")",
+                parameters
+        );
     }
 
     /**
@@ -445,7 +473,28 @@ public final class SqlWrapper {
      * @throws IllegalArgumentException 子查询为空时抛出
      */
     public SqlWrapper notExists(String subQuery) {
-        return addRaw("not exists (" + requireFragment(subQuery) + ")");
+        return notExists(subQuery, null);
+    }
+
+    /**
+     * 追加带命名参数的 {@code not exists} 子查询条件。
+     *
+     * <p>子查询中的 {@code :参数名} 会替换为框架生成的参数名并完成
+     * 绑定，子查询结构仍应来自开发者编写的静态 SQL。</p>
+     *
+     * @param subQuery   子查询内容，不包含 {@code not exists} 关键字
+     * @param parameters 子查询命名参数，允许为 {@code null}
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空时抛出
+     */
+    public SqlWrapper notExists(
+            String subQuery,
+            Map<String, Object> parameters
+    ) {
+        return addRaw(
+                "not exists (" + requireFragment(subQuery) + ")",
+                parameters
+        );
     }
 
     /**
@@ -600,6 +649,30 @@ public final class SqlWrapper {
     }
 
     /**
+     * 设置 {@code having} 条件片段。
+     *
+     * <p>片段原样追加到 {@code group by} 之后，仅对分组查询有效。
+     * 只能传入开发者编写的静态 SQL，禁止拼接用户输入。重复调用会
+     * 覆盖之前的值。统计语句已按子查询包装，分组和 having 会被
+     * 正确计入总数。</p>
+     *
+     * @param fragment having 条件片段
+     * @return 当前构造器
+     * @throws IllegalArgumentException 片段为空时抛出
+     */
+    public SqlWrapper having(String fragment) {
+        if (fragment == null || fragment.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Having fragment must not be blank"
+            );
+        }
+
+        this.having = fragment.trim();
+
+        return this;
+    }
+
+    /**
      * 追加升序排序。
      *
      * @param columns 列名
@@ -649,26 +722,7 @@ public final class SqlWrapper {
      */
     public SqlQuery build() {
         BuildContext context = new BuildContext();
-        String where = renderNodes(nodes, context);
-
-        String select = selectColumns.isEmpty()
-                ? alias + ".*"
-                : String.join(", ", selectColumns);
-
-        String baseSql = "select " + select
-                + " from " + table + " " + alias;
-
-        if (!where.isEmpty()) {
-            baseSql += " where " + where;
-        }
-
-        if (!groupByColumns.isEmpty()) {
-            List<String> groups = groupByColumns.stream()
-                    .map(this::path)
-                    .toList();
-
-            baseSql += " group by " + String.join(", ", groups);
-        }
+        String baseSql = render(context);
 
         String countSql = "select count(*) from ("
                 + baseSql + ") " + COUNT_ALIAS;
@@ -682,8 +736,114 @@ public final class SqlWrapper {
                 baseSql,
                 countSql,
                 parameters,
-                renderOrders()
+                renderOrders(unions.isEmpty())
         );
+    }
+
+    /**
+     * 渲染完整查询，包含 union 子查询。
+     *
+     * @param context 共享的构建上下文
+     * @return 查询语句
+     */
+    private String render(BuildContext context) {
+        StringBuilder sql = new StringBuilder(renderPart(context));
+
+        for (UnionPart part : unions) {
+            SqlWrapper other = part.wrapper();
+
+            if (other.hasUnion()) {
+                throw new IllegalArgumentException(
+                        "Nested union is not supported"
+                );
+            }
+
+            if (!other.orders.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Union part must not contain order by"
+                );
+            }
+
+            sql.append(part.all() ? " union all " : " union ")
+                    .append(other.renderPart(context));
+        }
+
+        return sql.toString();
+    }
+
+    /**
+     * 渲染不含 union 与排序的单段查询。
+     *
+     * @param context 共享的构建上下文
+     * @return 查询语句
+     */
+    private String renderPart(BuildContext context) {
+        String where = renderNodes(nodes, context);
+        String select = selectColumns.isEmpty()
+                ? alias + ".*"
+                : String.join(", ", selectColumns);
+
+        StringBuilder sql = new StringBuilder("select ")
+                .append(select)
+                .append(" from ")
+                .append(table)
+                .append(' ')
+                .append(alias);
+
+        if (!where.isEmpty()) {
+            sql.append(" where ").append(where);
+        }
+
+        if (!groupByColumns.isEmpty()) {
+            List<String> groups = groupByColumns.stream()
+                    .map(this::path)
+                    .toList();
+
+            sql.append(" group by ").append(String.join(", ", groups));
+        }
+
+        if (having != null) {
+            sql.append(" having ").append(having);
+        }
+
+        return sql.toString();
+    }
+
+    /**
+     * 追加 union 子查询。
+     *
+     * @param all    是否使用 {@code union all}
+     * @param others 子查询构造器
+     * @return 当前构造器
+     */
+    private SqlWrapper addUnions(boolean all, SqlWrapper... others) {
+        if (others == null) {
+            return this;
+        }
+
+        for (SqlWrapper other : others) {
+            if (other == null) {
+                throw new IllegalArgumentException(
+                        "Union part must not be null"
+                );
+            }
+
+            if (other.hasUnion()) {
+                throw new IllegalArgumentException(
+                        "Nested union is not supported"
+                );
+            }
+
+            if (!other.orders.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "Union part must not contain order by"
+                );
+            }
+
+            unions.add(new UnionPart(all, other));
+        }
+
+        return this;
     }
 
     /**
@@ -725,8 +885,91 @@ public final class SqlWrapper {
      * @return 当前构造器
      */
     private SqlWrapper addRaw(String fragment) {
-        nodes.add(new RawNode(Connector.AND, fragment));
+        return addRaw(fragment, null);
+    }
+
+    /**
+     * 添加带命名参数的静态条件片段。
+     *
+     * @param fragment   条件片段
+     * @param parameters 命名参数，允许为 {@code null}
+     * @return 当前构造器
+     */
+    private SqlWrapper addRaw(
+            String fragment,
+            Map<String, Object> parameters
+    ) {
+        nodes.add(
+                new RawNode(
+                        Connector.AND,
+                        fragment,
+                        parameters == null
+                                ? Collections.emptyMap()
+                                : new LinkedHashMap<>(parameters)
+                )
+        );
+
         return this;
+    }
+
+    /**
+     * 追加 {@code union} 子查询。
+     *
+     * <p>子查询可以来自另一个 {@link SqlWrapper}，各子查询的 select
+     * 列数量和顺序必须一致。子查询自身的排序会被拒绝，需要排序时在
+     * 当前构造器上调用排序方法，作用于整个 union 结果。</p>
+     *
+     * <pre>{@code
+     * SqlWrapper archived = SqlWrapper.create("t_order_archive", "a")
+     *         .select("a.id", "a.order_no");
+     *
+     * SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
+     *         .select("o.id", "o.order_no")
+     *         .union(archived)
+     *         .orderByDesc("id");
+     * }</pre>
+     *
+     * @param others 子查询构造器，不能为 {@code null}
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空、包含排序或嵌套 union 时抛出
+     */
+    public SqlWrapper union(SqlWrapper... others) {
+        return addUnions(false, others);
+    }
+
+    /**
+     * 追加 {@code union all} 子查询。
+     *
+     * <p>与 {@link #union(SqlWrapper...)} 的区别是不去重，可用于合并
+     * 多张结构相同的数据表。</p>
+     *
+     * @param others 子查询构造器，不能为 {@code null}
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空、包含排序或嵌套 union 时抛出
+     */
+    public SqlWrapper unionAll(SqlWrapper... others) {
+        return addUnions(true, others);
+    }
+
+    /**
+     * 判断是否包含 union 子查询。
+     *
+     * @return 包含时返回 {@code true}
+     */
+    public boolean hasUnion() {
+        return !unions.isEmpty();
+    }
+
+    /**
+     * 获取排序时可用的表别名。
+     *
+     * <p>union 查询的排序作用于结果集，不能带表别名，因此返回
+     * {@code null}，由调用方按输出列名排序。</p>
+     *
+     * @return 表别名；union 查询返回 {@code null}
+     */
+    public String getSortAlias() {
+        return unions.isEmpty() ? alias : null;
     }
 
     /**
@@ -802,9 +1045,10 @@ public final class SqlWrapper {
     /**
      * 渲染排序片段。
      *
+     * @param prefixAlias 是否为简单列名补全表别名
      * @return 排序片段；没有排序时返回 {@code null}
      */
-    private String renderOrders() {
+    private String renderOrders(boolean prefixAlias) {
         if (orders.isEmpty()) {
             return null;
         }
@@ -813,12 +1057,33 @@ public final class SqlWrapper {
 
         for (OrderItem order : orders) {
             parts.add(
-                    order.path()
+                    renderOrderPath(order.path(), prefixAlias)
                             + (order.ascending() ? " asc" : " desc")
             );
         }
 
         return String.join(", ", parts);
+    }
+
+    /**
+     * 渲染排序字段路径。
+     *
+     * <p>union 查询的排序作用于结果集，需要去掉表别名前缀。</p>
+     *
+     * @param path        排序字段路径
+     * @param prefixAlias 是否保留表别名
+     * @return 排序字段
+     */
+    private String renderOrderPath(String path, boolean prefixAlias) {
+        if (prefixAlias) {
+            return path;
+        }
+
+        String prefix = alias + ".";
+
+        return path.startsWith(prefix)
+                ? path.substring(prefix.length())
+                : path;
     }
 
     /**
@@ -979,17 +1244,31 @@ public final class SqlWrapper {
     /**
      * 恒真或恒假节点。
      *
-     * @param connector 连接符
-     * @param fragment  条件片段
+     * @param connector  连接符
+     * @param fragment   条件片段
+     * @param parameters 命名参数
      */
     private record RawNode(
             Connector connector,
-            String fragment
+            String fragment,
+            Map<String, Object> parameters
     ) implements Node {
 
         @Override
         public String render(BuildContext context) {
-            return fragment;
+            String rendered = fragment;
+
+            for (Map.Entry<String, Object> entry : parameters.entrySet()) {
+                String name = context.bind(entry.getValue());
+
+                rendered = rendered.replaceAll(
+                        ":" + Pattern.quote(entry.getKey())
+                                + "(?![A-Za-z0-9_])",
+                        ":" + name
+                );
+            }
+
+            return rendered;
         }
     }
 
@@ -1029,6 +1308,15 @@ public final class SqlWrapper {
     private record OrderItem(String path, boolean ascending) {
     }
 
+    /**
+     * union 子查询。
+     *
+     * @param all     是否使用 {@code union all}
+     * @param wrapper 子查询构造器
+     */
+    private record UnionPart(boolean all, SqlWrapper wrapper) {
+    }
+
     /** 构建上下文，负责参数命名与收集。 */
     private static final class BuildContext {
 
@@ -1049,12 +1337,23 @@ public final class SqlWrapper {
             List<String> names = new ArrayList<>(values.length);
 
             for (Object value : values) {
-                String name = "p" + (++index);
-                parameters.put(name, value);
-                names.add(name);
+                names.add(bind(value));
             }
 
             return names;
+        }
+
+        /**
+         * 绑定单个参数并返回参数名。
+         *
+         * @param value 参数值
+         * @return 参数名
+         */
+        private String bind(Object value) {
+            String name = "p" + (++index);
+            parameters.put(name, value);
+
+            return name;
         }
     }
 }

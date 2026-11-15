@@ -357,7 +357,7 @@ public class JpaPlusSqlExecutor {
         String sql = query.getBaseSql();
 
         if (pageable.getSort().isSorted()) {
-            sql = applySort(sql, pageable.getSort(), wrapper.getAlias());
+            sql = applySort(sql, pageable.getSort(), wrapper.getSortAlias());
         } else if (query.getOrderBy() != null) {
             sql = sql + " order by " + query.getOrderBy();
         }
@@ -530,7 +530,7 @@ public class JpaPlusSqlExecutor {
         String sql = query.getBaseSql();
 
         if (pageable.getSort().isSorted()) {
-            sql = applySort(sql, pageable.getSort(), wrapper.getAlias());
+            sql = applySort(sql, pageable.getSort(), wrapper.getSortAlias());
         } else if (query.getOrderBy() != null) {
             sql = sql + " order by " + query.getOrderBy();
         }
@@ -563,7 +563,7 @@ public class JpaPlusSqlExecutor {
         String sql = query.getBaseSql();
 
         if (pageable.getSort().isSorted()) {
-            sql = applySort(sql, pageable.getSort(), wrapper.getAlias());
+            sql = applySort(sql, pageable.getSort(), wrapper.getSortAlias());
         } else if (query.getOrderBy() != null) {
             sql = sql + " order by " + query.getOrderBy();
         }
