@@ -2,7 +2,9 @@ package io.github.neopen.extension.autoconfigure;
 
 import com.google.common.util.concurrent.RateLimiter;
 import io.github.neopen.extension.aspect.IdempotentAspect;
+import io.github.neopen.extension.aspect.OptimisticLockRetryAspect;
 import io.github.neopen.extension.aspect.RateLimitAspect;
+import io.github.neopen.extension.aspect.SlowLogAspect;
 import io.github.neopen.extension.response.DefaultJsonPageResponseFactory;
 import io.github.neopen.extension.response.JsonPageConverter;
 import io.github.neopen.extension.response.JsonPageResponseFactory;
@@ -13,6 +15,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.dao.OptimisticLockingFailureException;
 
 /**
  * JPA Plus 扩展组件自动配置。
@@ -99,6 +102,56 @@ public class ExtensionAutoConfiguration {
         @ConditionalOnMissingBean(RateLimitAspect.class)
         public RateLimitAspect rateLimitAspect() {
             return new RateLimitAspect();
+        }
+    }
+
+    /**
+     * 乐观锁重试切面配置。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass({Aspect.class, OptimisticLockingFailureException.class})
+    @ConditionalOnProperty(
+            prefix = "neopen.extension.retry",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    static class RetryAspectConfiguration {
+
+        /**
+         * 注册乐观锁重试切面。
+         *
+         * @return 重试切面
+         */
+        @Bean
+        @ConditionalOnMissingBean(OptimisticLockRetryAspect.class)
+        public OptimisticLockRetryAspect optimisticLockRetryAspect() {
+            return new OptimisticLockRetryAspect();
+        }
+    }
+
+    /**
+     * 慢方法日志切面配置。
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(Aspect.class)
+    @ConditionalOnProperty(
+            prefix = "neopen.extension.slow-log",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    static class SlowLogAspectConfiguration {
+
+        /**
+         * 注册慢方法日志切面。
+         *
+         * @return 慢日志切面
+         */
+        @Bean
+        @ConditionalOnMissingBean(SlowLogAspect.class)
+        public SlowLogAspect slowLogAspect() {
+            return new SlowLogAspect();
         }
     }
 }

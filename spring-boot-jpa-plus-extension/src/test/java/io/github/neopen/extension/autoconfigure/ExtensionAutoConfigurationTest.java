@@ -1,7 +1,9 @@
 package io.github.neopen.extension.autoconfigure;
 
 import io.github.neopen.extension.aspect.IdempotentAspect;
+import io.github.neopen.extension.aspect.OptimisticLockRetryAspect;
 import io.github.neopen.extension.aspect.RateLimitAspect;
+import io.github.neopen.extension.aspect.SlowLogAspect;
 import io.github.neopen.extension.response.JsonPageConverter;
 import io.github.neopen.extension.response.JsonPageResponseFactory;
 import org.junit.jupiter.api.Test;
@@ -32,6 +34,10 @@ class ExtensionAutoConfigurationTest {
             assertThat(context).hasSingleBean(JsonPageConverter.class);
             assertThat(context).hasSingleBean(RateLimitAspect.class);
             assertThat(context).hasSingleBean(IdempotentAspect.class);
+            assertThat(context).hasSingleBean(
+                    OptimisticLockRetryAspect.class
+            );
+            assertThat(context).hasSingleBean(SlowLogAspect.class);
         });
     }
 
@@ -42,10 +48,16 @@ class ExtensionAutoConfigurationTest {
     void shouldDisableAspectsByProperty() {
         runner.withPropertyValues(
                 "neopen.extension.rate-limit.enabled=false",
-                "neopen.extension.idempotent.enabled=false"
+                "neopen.extension.idempotent.enabled=false",
+                "neopen.extension.retry.enabled=false",
+                "neopen.extension.slow-log.enabled=false"
         ).run(context -> {
             assertThat(context).doesNotHaveBean(RateLimitAspect.class);
             assertThat(context).doesNotHaveBean(IdempotentAspect.class);
+            assertThat(context).doesNotHaveBean(
+                    OptimisticLockRetryAspect.class
+            );
+            assertThat(context).doesNotHaveBean(SlowLogAspect.class);
         });
     }
 }
