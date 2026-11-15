@@ -36,6 +36,19 @@ logging:
     org.apache.kafka: info
     org.springframework.kafka: warn
 
+neopen:
+  jpa:
+    encryption:
+      # 演示字段加密，生产环境必须替换并通过环境变量注入
+      key: demo-encryption-key
+    slow-sql:
+      enabled: true
+      threshold-ms: 500
+    scopes:
+      # 归档查询作用域：只影响绑定该作用域的线程，其他查询仍过滤已删除数据
+      archive-view:
+        logic-delete-enabled: false
+
 management:
   endpoints:
     web:
