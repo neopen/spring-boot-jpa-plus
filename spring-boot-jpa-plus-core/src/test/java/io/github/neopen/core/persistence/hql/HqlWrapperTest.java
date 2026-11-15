@@ -1,11 +1,13 @@
 package io.github.neopen.core.persistence.hql;
 
+import io.github.neopen.core.persistence.condition.QueryCondition;
 import org.junit.jupiter.api.Test;
 import org.springframework.data.domain.Sort;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 /**
  * {@link HqlWrapper} 单元测试。
@@ -117,6 +119,61 @@ class HqlWrapperTest {
 
         assertThat(query.getOrderBy())
                 .isEqualTo("t.status asc, t.createTime desc");
+    }
+
+    @Test
+    void shouldAppendRawAndExistsFragments() {
+        HqlQuery query = HqlWrapper.create(SampleEntity.class)
+                .raw("1 = 1")
+                .exists("select 1 from OrderItem i where i.orderId = o.id")
+                .notExists("select 1 from Payment p where p.orderId = o.id")
+                .build();
+
+        assertThat(query.getBaseHql()).isEqualTo(
+                "select o from SampleEntity o where 1 = 1"
+                        + " and exists (select 1 from OrderItem i"
+                        + " where i.orderId = o.id)"
+                        + " and not exists (select 1 from Payment p"
+                        + " where p.orderId = o.id)"
+        );
+
+        assertThatThrownBy(() -> HqlWrapper.create(SampleEntity.class)
+                .raw(" "))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> HqlWrapper.create(SampleEntity.class)
+                .exists(null))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldMapQueryParameterFieldToHqlPath() {
+        HqlQuery query = HqlWrapper.create(SampleEntity.class)
+                .alias("keyword", "order.status")
+                .apply(new SampleQuery("PAID"))
+                .build();
+
+        assertThat(query.getBaseHql()).isEqualTo(
+                "select o from SampleEntity o where o.order.status = :p1"
+        );
+        assertThat(query.getParameters()).containsEntry("p1", "PAID");
+    }
+
+    /** 测试查询参数。 */
+    private static final class SampleQuery {
+
+        /** 关键字。 */
+        @QueryCondition
+        private final String keyword;
+
+        /**
+         * 创建查询参数。
+         *
+         * @param keyword 关键字
+         */
+        private SampleQuery(String keyword) {
+            this.keyword = keyword;
+        }
     }
 
     /** 测试实体占位。 */

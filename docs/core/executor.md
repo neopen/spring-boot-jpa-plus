@@ -28,6 +28,7 @@ JpaPlusSpecExecutor<Order> custom =
 | `Page<T> findPage(Specification<T> spec, Pageable pageable, List<String> fetchAttributes)` | fetch join 分页 |
 | `Slice<T> findSlice(Specification<T> spec, Pageable pageable)` | 切片查询 |
 | `long count(Specification<T> spec)` | 计数 |
+| `boolean exists(Specification<T> spec)` | 判断是否存在，基于 count |
 
 ## 分页与计数
 

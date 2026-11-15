@@ -94,6 +94,31 @@ SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
 | `or(...)` | 分组与前序条件 `OR`，内部 `AND` |
 | `anyOf(...)` | 分组内部 `OR`，整体与前序条件 `AND` |
 
+## 原生片段与子查询
+
+```java
+SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
+        .raw("1 = 1")
+        .exists("select 1 from t_order_item i where i.order_id = o.id")
+        .notExists("select 1 from t_payment p where p.order_id = o.id");
+```
+
+| 方法 | 生成片段 |
+| --- | --- |
+| `raw(String fragment)` | `fragment` |
+| `exists(String subQuery)` | `exists (subQuery)` |
+| `notExists(String subQuery)` | `not exists (subQuery)` |
+
+片段原样拼入语句，不参与参数绑定，只能传入开发者编写的静态 SQL，禁止拼接用户输入。
+
+注解条件需要把参数名映射到列名时使用 `alias`。字段名先按映射替换，再执行驼峰转下划线：
+
+```java
+SqlWrapper wrapper = SqlWrapper.create("t_order")
+        .alias("keyword", "order_no")
+        .apply(queryParam);
+```
+
 ## 执行
 
 ```java

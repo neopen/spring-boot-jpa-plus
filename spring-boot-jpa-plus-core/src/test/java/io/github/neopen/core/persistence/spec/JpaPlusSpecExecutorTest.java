@@ -123,6 +123,41 @@ class JpaPlusSpecExecutorTest {
     }
 
     /**
+     * 验证 exists 按统计结果判断是否存在。
+     */
+    @Test
+    void shouldReportExistenceByCount() {
+        EntityManager entityManager = mock(EntityManager.class);
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        CriteriaQuery<Long> query = mock(CriteriaQuery.class);
+        Root<Sample> root = mock(Root.class);
+        Path<Object> idPath = mock(Path.class);
+        Path<Object> deletedPath = mock(Path.class);
+        Expression<Long> countExpression = mock(Expression.class);
+        Predicate logicPredicate = mock(Predicate.class);
+        TypedQuery<Long> typedQuery = mock(TypedQuery.class);
+
+        when(entityManager.getCriteriaBuilder()).thenReturn(cb);
+        when(cb.createQuery(Long.class)).thenReturn(query);
+        when(query.from(Sample.class)).thenReturn(root);
+        when(root.get("id")).thenReturn(idPath);
+        when(cb.countDistinct(idPath)).thenReturn(countExpression);
+        when(root.get("deleted")).thenReturn(deletedPath);
+        when(cb.equal(deletedPath, false)).thenReturn(logicPredicate);
+        when(entityManager.createQuery(query)).thenReturn(typedQuery);
+        when(typedQuery.getSingleResult()).thenReturn(1L);
+
+        JpaPlusSpecExecutor<Sample> executor =
+                JpaPlusSpecExecutor.of(entityManager, Sample.class);
+
+        assertThat(executor.exists(null)).isTrue();
+
+        when(typedQuery.getSingleResult()).thenReturn(0L);
+
+        assertThat(executor.exists(null)).isFalse();
+    }
+
+    /**
      * 验证切片查询多取一条判断下一页。
      */
     @Test

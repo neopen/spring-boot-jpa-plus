@@ -349,6 +349,19 @@ public class JpaPlusSpecExecutor<T> {
     }
 
     /**
+     * 判断是否存在满足条件的记录。
+     *
+     * <p>与 {@link #count(Specification)} 使用相同的逻辑删除过滤，
+     * 但只关心是否存在，便于校验唯一性或做前置判断。</p>
+     *
+     * @param specification 查询条件，允许为 {@code null}
+     * @return 存在记录时返回 {@code true}
+     */
+    public boolean exists(Specification<T> specification) {
+        return countInternal(effective(specification)) > 0L;
+    }
+
+    /**
      * 统计满足条件的记录数。
      *
      * <p>使用 {@code countDistinct(主键)}，避免连表产生重复计数。</p>

@@ -1,5 +1,6 @@
 package io.github.neopen.core.persistence.sql;
 
+import io.github.neopen.core.persistence.condition.QueryCondition;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 
@@ -129,6 +130,62 @@ class SqlWrapperTest {
         );
         assertThat(query.getParameters())
                 .containsEntry("p1", "DS");
+    }
+
+    @Test
+    void shouldAppendRawAndExistsFragments() {
+        SqlQuery query = SqlWrapper.create("t_order")
+                .raw("1 = 1")
+                .exists("select 1 from t_order_item i"
+                        + " where i.order_id = o.id")
+                .notExists("select 1 from t_payment p"
+                        + " where p.order_id = o.id")
+                .build();
+
+        assertThat(query.getBaseSql()).isEqualTo(
+                "select o.* from t_order o where 1 = 1"
+                        + " and exists (select 1 from t_order_item i"
+                        + " where i.order_id = o.id)"
+                        + " and not exists (select 1 from t_payment p"
+                        + " where p.order_id = o.id)"
+        );
+
+        assertThatThrownBy(() -> SqlWrapper.create("t_order").raw(" "))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> SqlWrapper.create("t_order")
+                .notExists(""))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void shouldMapQueryParameterFieldToColumn() {
+        SqlQuery query = SqlWrapper.create("t_order")
+                .alias("keyword", "order_no")
+                .apply(new SampleQuery("DS"))
+                .build();
+
+        assertThat(query.getBaseSql()).isEqualTo(
+                "select o.* from t_order o where o.order_no = :p1"
+        );
+        assertThat(query.getParameters()).containsEntry("p1", "DS");
+    }
+
+    /** 测试查询参数。 */
+    private static final class SampleQuery {
+
+        /** 关键字。 */
+        @QueryCondition
+        private final String keyword;
+
+        /**
+         * 创建查询参数。
+         *
+         * @param keyword 关键字
+         */
+        private SampleQuery(String keyword) {
+            this.keyword = keyword;
+        }
     }
 
     @Test

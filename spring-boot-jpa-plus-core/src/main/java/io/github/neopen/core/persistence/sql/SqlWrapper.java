@@ -54,6 +54,9 @@ public final class SqlWrapper {
     /** 排序项。 */
     private final List<OrderItem> orders = new ArrayList<>();
 
+    /** 查询参数字段到数据库列名的映射。 */
+    private final Map<String, String> aliases = new LinkedHashMap<>();
+
     /**
      * 创建查询构造器。
      *
@@ -365,14 +368,94 @@ public final class SqlWrapper {
     }
 
     /**
+     * 映射查询参数的字段名到数据库列名。
+     *
+     * <p>仅影响 {@link #apply(Object)} 解析出的条件。字段名先按该映射
+     * 替换，再执行驼峰转下划线处理，因此映射目标应直接写列名。</p>
+     *
+     * @param property 查询参数字段名
+     * @param column   数据库列名
+     * @return 当前构造器
+     * @throws IllegalArgumentException 参数为空时抛出
+     */
+    public SqlWrapper alias(String property, String column) {
+        if (property == null || property.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Property must not be blank"
+            );
+        }
+
+        if (column == null || column.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Alias column must not be blank"
+            );
+        }
+
+        aliases.put(property.trim(), column.trim());
+
+        return this;
+    }
+
+    /**
+     * 追加原生 SQL 条件片段。
+     *
+     * <p>片段按 AND 组合，片段不做任何转义，只能传入开发者编写的
+     * 静态字符串，禁止拼接用户输入。</p>
+     *
+     * @param fragment 条件片段
+     * @return 当前构造器
+     * @throws IllegalArgumentException 片段为空时抛出
+     */
+    public SqlWrapper raw(String fragment) {
+        if (fragment == null || fragment.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Raw fragment must not be blank"
+            );
+        }
+
+        return addRaw(fragment.trim());
+    }
+
+    /**
+     * 追加 {@code exists} 子查询条件。
+     *
+     * <p>子查询内容原样嵌入 {@code exists (...)}，只能传入开发者编写的
+     * 静态 SQL，禁止拼接用户输入。</p>
+     *
+     * @param subQuery 子查询内容，不包含 {@code exists} 关键字
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空时抛出
+     */
+    public SqlWrapper exists(String subQuery) {
+        return addRaw("exists (" + requireFragment(subQuery) + ")");
+    }
+
+    /**
+     * 追加 {@code not exists} 子查询条件。
+     *
+     * <p>子查询内容原样嵌入 {@code not exists (...)}，只能传入开发者
+     * 编写的静态 SQL，禁止拼接用户输入。</p>
+     *
+     * @param subQuery 子查询内容，不包含 {@code not exists} 关键字
+     * @return 当前构造器
+     * @throws IllegalArgumentException 子查询为空时抛出
+     */
+    public SqlWrapper notExists(String subQuery) {
+        return addRaw("not exists (" + requireFragment(subQuery) + ")");
+    }
+
+    /**
      * 应用注解解析出的单个条件。
+     *
+     * <p>字段名会先经过 {@link #alias(String, String)} 映射，再执行
+     * 驼峰转下划线处理。</p>
      *
      * @param entry 查询条件
      * @return 当前构造器
      */
     private SqlWrapper applyEntry(QueryConditionEntry entry) {
         applyCondition(
-                entry.field(),
+                resolveAlias(entry.field()),
                 entry.operator(),
                 entry.value(),
                 entry.second()
@@ -619,6 +702,7 @@ public final class SqlWrapper {
         }
 
         SqlWrapper child = new SqlWrapper(table, alias);
+        child.aliases.putAll(aliases);
         nested.accept(child);
 
         if (!child.nodes.isEmpty()) {
@@ -783,6 +867,33 @@ public final class SqlWrapper {
         }
 
         return fragment.toString();
+    }
+
+    /**
+     * 解析查询参数字段对应的列名。
+     *
+     * @param field 查询参数字段名
+     * @return 映射后的列名；未配置映射时返回原值
+     */
+    private String resolveAlias(String field) {
+        return aliases.getOrDefault(field, field);
+    }
+
+    /**
+     * 校验原生子查询片段。
+     *
+     * @param fragment 子查询片段
+     * @return 去除首尾空白后的片段
+     * @throws IllegalArgumentException 片段为空时抛出
+     */
+    private static String requireFragment(String fragment) {
+        if (fragment == null || fragment.isBlank()) {
+            throw new IllegalArgumentException(
+                    "Sub query must not be blank"
+            );
+        }
+
+        return fragment.trim();
     }
 
     /**

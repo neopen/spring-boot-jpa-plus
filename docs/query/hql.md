@@ -172,6 +172,31 @@ HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
 HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class).apply(queryParam);
 ```
 
+查询参数字段名与属性路径不一致时，用 `alias` 建立映射。映射只影响 `apply` 解析出的条件：
+
+```java
+HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
+        .alias("keyword", "order.status")
+        .apply(queryParam);
+```
+
+### 原生片段与子查询
+
+```java
+HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
+        .raw("1 = 1")
+        .exists("select 1 from OrderItem i where i.order.id = o.id")
+        .notExists("select 1 from Payment p where p.order.id = o.id");
+```
+
+| 方法 | 生成片段 |
+| --- | --- |
+| `raw(String fragment)` | `fragment` |
+| `exists(String subQuery)` | `exists (subQuery)` |
+| `notExists(String subQuery)` | `not exists (subQuery)` |
+
+这三个方法把内容原样拼入语句，不参与参数绑定，只能传入开发者编写的静态 HQL，禁止拼接用户输入。
+
 ## 分页
 
 ### 使用构造器
