@@ -1,6 +1,7 @@
 package io.github.neopen.core.persistence.encrypt;
 
 import io.github.neopen.core.exception.JpaPlusException;
+import io.github.neopen.core.scope.JpaPlusScope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,6 +9,7 @@ import org.junit.jupiter.api.Test;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -33,7 +35,9 @@ class EncryptedFieldsTest {
     @AfterEach
     void tearDown() {
         EncryptedFields.clearKey();
+        EncryptedFields.clearScope("secondary");
         EncryptedFields.setEnabled(true);
+        JpaPlusScope.clear();
     }
 
     /**
@@ -265,5 +269,176 @@ class EncryptedFieldsTest {
 
         assertThat(EncryptedFields.hasKey()).isFalse();
         assertThat(EncryptedFields.isEnabled()).isTrue();
+    }
+
+    /**
+     * 验证多密钥轮换：新数据使用当前密钥加密，旧数据仍可解密。
+     */
+    @Test
+    void shouldRotateKeysAndKeepOldDataReadable() {
+        EncryptedFields.setKeys(Map.of("v1", "secret-1"), "v1");
+
+        String first = EncryptedFields.encrypt("rotate-me");
+
+        assertThat(first).startsWith("v1:");
+        assertThat(EncryptedFields.getActiveKeyId()).isEqualTo("v1");
+
+        EncryptedFields.setKeys(
+                Map.of("v1", "secret-1", "v2", "secret-2"),
+                "v2"
+        );
+
+        String second = EncryptedFields.encrypt("rotate-me");
+
+        assertThat(second).startsWith("v2:");
+        assertThat(second).isNotEqualTo(first);
+        assertThat(EncryptedFields.decrypt(first)).isEqualTo("rotate-me");
+        assertThat(EncryptedFields.decrypt(second)).isEqualTo("rotate-me");
+    }
+
+    /**
+     * 验证历史无前缀密文在轮换后仍可通过回退尝试解密。
+     */
+    @Test
+    void shouldDecryptLegacyCipherTextAfterRotation() {
+        EncryptedFields.setKey("legacy-secret");
+        String legacy = EncryptedFields.encrypt("legacy-value");
+
+        assertThat(legacy).doesNotContain(":");
+
+        EncryptedFields.setKeys(
+                Map.of("legacy", "legacy-secret", "current", "new-secret"),
+                "current"
+        );
+
+        assertThat(EncryptedFields.decrypt(legacy))
+                .isEqualTo("legacy-value");
+    }
+
+    /**
+     * 验证未知密钥编号给出明确异常。
+     */
+    @Test
+    void shouldRejectUnknownKeyId() {
+        assertThatThrownBy(() ->
+                EncryptedFields.decrypt("missing:dmFsdWU="))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("Unknown encryption key id");
+    }
+
+    /**
+     * 验证切换当前密钥与非法配置校验。
+     */
+    @Test
+    void shouldSwitchActiveKeyAndValidateConfiguration() {
+        EncryptedFields.setKeys(
+                Map.of("v1", "secret-1", "v2", "secret-2"),
+                "v2"
+        );
+
+        EncryptedFields.setActiveKey("v1");
+
+        assertThat(EncryptedFields.getActiveKeyId()).isEqualTo("v1");
+        assertThat(EncryptedFields.encrypt("value")).startsWith("v1:");
+
+        assertThatThrownBy(() -> EncryptedFields.setActiveKey("v3"))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("not configured");
+
+        assertThatThrownBy(() -> EncryptedFields.setKeys(
+                Map.of("v1", "secret-1", "v2", "secret-2"),
+                null
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Active encryption key");
+
+        assertThatThrownBy(() -> EncryptedFields.setKeys(
+                Map.of("v1", "secret-1"),
+                "v2"
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not configured");
+
+        assertThatThrownBy(() -> EncryptedFields.setKeys(
+                Map.of("a:b", "secret"),
+                null
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining(":");
+
+        assertThatThrownBy(() -> EncryptedFields.setKeys(
+                Map.of(" ", "secret"),
+                null
+        )).isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("key id");
+
+        assertThatThrownBy(() -> EncryptedFields.setKeys(null, null))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("keys");
+    }
+
+    /**
+     * 验证确定性加密：相同明文密文一致且可解密。
+     */
+    @Test
+    void shouldEncryptDeterministically() {
+        String first = EncryptedFields.encryptDeterministic("13800000000");
+        String second = EncryptedFields.encryptDeterministic("13800000000");
+        String other = EncryptedFields.encryptDeterministic("13900000000");
+
+        assertThat(first).isEqualTo(second);
+        assertThat(first).isNotEqualTo(other);
+        assertThat(EncryptedFields.decrypt(first))
+                .isEqualTo("13800000000");
+        assertThat(EncryptedFields.decrypt(other))
+                .isEqualTo("13900000000");
+    }
+
+    /**
+     * 验证按数据源作用域使用独立密钥与开关。
+     */
+    @Test
+    void shouldUseScopedKeysAndSwitch() {
+        EncryptedFields.setKey("secondary", "secondary-secret");
+
+        String globalValue = EncryptedFields.encrypt("value");
+        String scopedValue = JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encrypt("value")
+        );
+
+        assertThat(scopedValue).isNotEqualTo(globalValue);
+        assertThat(EncryptedFields.decrypt(globalValue)).isEqualTo("value");
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.decrypt(scopedValue)
+        )).isEqualTo("value");
+
+        assertThatThrownBy(() -> EncryptedFields.decrypt(scopedValue))
+                .isInstanceOf(JpaPlusException.class);
+
+        EncryptedFields.setEnabled("secondary", false);
+
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encrypt("value")
+        )).isEqualTo("value");
+        assertThat(EncryptedFields.isEnabled()).isTrue();
+        assertThat(EncryptedFields.isEnabled("secondary")).isFalse();
+    }
+
+    /**
+     * 验证确定性加密转换器双向转换。
+     */
+    @Test
+    void shouldConvertDeterministicallyWithConverter() {
+        DeterministicEncryptedFieldConverter converter =
+                new DeterministicEncryptedFieldConverter();
+
+        String first = converter.convertToDatabaseColumn("13800000000");
+        String second = converter.convertToDatabaseColumn("13800000000");
+
+        assertThat(first).isEqualTo(second);
+        assertThat(converter.convertToEntityAttribute(first))
+                .isEqualTo("13800000000");
+        assertThat(converter.convertToDatabaseColumn(null)).isNull();
+        assertThat(converter.convertToEntityAttribute(null)).isNull();
     }
 }
