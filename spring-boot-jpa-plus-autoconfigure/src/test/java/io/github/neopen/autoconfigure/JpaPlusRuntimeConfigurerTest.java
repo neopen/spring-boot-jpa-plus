@@ -7,11 +7,13 @@ import io.github.neopen.core.persistence.audit.CreatedBy;
 import io.github.neopen.core.persistence.batch.BatchOperation;
 import io.github.neopen.core.persistence.encrypt.EncryptedFields;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
+import io.github.neopen.core.scope.JpaPlusScope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -32,6 +34,11 @@ class JpaPlusRuntimeConfigurerTest {
         BatchOperation.setDefaultBatchSize(500);
         EncryptedFields.setEnabled(true);
         EncryptedFields.clearKey();
+        LogicDeletes.clearScope("secondary");
+        Audits.clearScope("secondary");
+        BatchOperation.clearScope("secondary");
+        EncryptedFields.clearScope("secondary");
+        JpaPlusScope.clear();
     }
 
     /**
@@ -140,6 +147,107 @@ class JpaPlusRuntimeConfigurerTest {
 
         assertThat(EncryptedFields.decrypt(EncryptedFields.encrypt("v")))
                 .isEqualTo("v");
+    }
+
+    /**
+     * 验证多密钥配置与轮换。
+     */
+    @Test
+    void shouldApplyEncryptionKeys() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.getEncryption().getKeys().put("v1", "secret-1");
+        properties.getEncryption().getKeys().put("v2", "secret-2");
+        properties.getEncryption().setActiveKeyId("v2");
+
+        new JpaPlusRuntimeConfigurer(properties);
+
+        assertThat(EncryptedFields.getActiveKeyId()).isEqualTo("v2");
+        assertThat(EncryptedFields.encrypt("value")).startsWith("v2:");
+        assertThat(EncryptedFields.decrypt(EncryptedFields.encrypt("value")))
+                .isEqualTo("value");
+    }
+
+    /**
+     * 验证操作人提供者优先于固定操作人配置。
+     */
+    @Test
+    void shouldPreferAuditorProvider() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.getAudit().setAuditor("system");
+
+        new JpaPlusRuntimeConfigurer(
+                properties,
+                () -> "from-provider"
+        );
+
+        AuditedEntity entity = new AuditedEntity();
+
+        new AuditListener().prePersist(entity);
+
+        assertThat(entity.createdBy).isEqualTo("from-provider");
+    }
+
+    /**
+     * 验证按数据源作用域写入隔离开关与密钥。
+     */
+    @Test
+    void shouldApplyScopeConfiguration() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.getEncryption().setKey("global-key");
+        properties.getAudit().setAuditor("global-auditor");
+
+        JpaPlusProperties.Scope scope = new JpaPlusProperties.Scope();
+        scope.setBatchSize(100);
+        scope.setLogicDeleteEnabled(false);
+        scope.setAuditEnabled(false);
+        scope.setEncryptionEnabled(true);
+        scope.setEncryptionKeys(
+                Map.of("v1", "secondary-secret")
+        );
+        scope.setEncryptionActiveKeyId("v1");
+
+        properties.getScopes().put("secondary", scope);
+
+        new JpaPlusRuntimeConfigurer(properties);
+
+        assertThat(BatchOperation.getDefaultBatchSize()).isEqualTo(500);
+        assertThat(BatchOperation.getDefaultBatchSize("secondary"))
+                .isEqualTo(100);
+        assertThat(LogicDeletes.isEnabled()).isTrue();
+        assertThat(LogicDeletes.isEnabled("secondary")).isFalse();
+        assertThat(Audits.isEnabled("secondary")).isFalse();
+
+        String scoped = JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.encrypt("value")
+        );
+
+        assertThat(scoped).startsWith("v1:");
+        assertThat(JpaPlusScope.call(
+                "secondary",
+                () -> EncryptedFields.decrypt(scoped)
+        )).isEqualTo("value");
+    }
+
+    /**
+     * 验证作用域未配置的项沿用全局设置。
+     */
+    @Test
+    void shouldKeepGlobalSettingsForUnconfiguredScopeItems() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.setBatchSize(300);
+
+        properties.getScopes().put(
+                "secondary",
+                new JpaPlusProperties.Scope()
+        );
+
+        new JpaPlusRuntimeConfigurer(properties);
+
+        assertThat(BatchOperation.getDefaultBatchSize("secondary"))
+                .isEqualTo(300);
+        assertThat(LogicDeletes.isEnabled("secondary")).isTrue();
+        assertThat(Audits.isEnabled("secondary")).isTrue();
     }
 
     /** 审计实体。 */

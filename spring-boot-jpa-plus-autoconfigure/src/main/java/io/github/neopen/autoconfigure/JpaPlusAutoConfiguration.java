@@ -1,10 +1,12 @@
 package io.github.neopen.autoconfigure;
 
+import io.github.neopen.core.persistence.audit.AuditorProvider;
 import io.github.neopen.core.persistence.manager.JpaPlusHqlExecutor;
 import io.github.neopen.core.persistence.manager.JpaPlusSqlExecutor;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -78,17 +80,50 @@ public class JpaPlusAutoConfiguration {
      * <p>
      * 逻辑删除、审计和批量操作以静态工具方法提供，
      * 由该组件在启动时把配置属性写入全局设置。
+     * 如果容器中存在 {@link AuditorProvider} Bean，
+     * 审计字段会优先使用它获取当前操作人。
      * </p>
      *
-     * @param properties JPA Plus 配置属性
+     * @param properties       JPA Plus 配置属性
+     * @param auditorProvider  操作人提供者，允许不存在
      * @return 运行时配置器
      */
     @Bean
     @ConditionalOnMissingBean(JpaPlusRuntimeConfigurer.class)
     public JpaPlusRuntimeConfigurer jpaPlusRuntimeConfigurer(
+            JpaPlusProperties properties,
+            ObjectProvider<AuditorProvider> auditorProvider
+    ) {
+        return new JpaPlusRuntimeConfigurer(
+                properties,
+                auditorProvider.getIfAvailable()
+        );
+    }
+
+    /**
+     * 注册慢 SQL 日志定制器。
+     *
+     * <p>
+     * 仅在 {@code neopen.jpa.slow-sql.enabled=true} 时生效，
+     * 通过 Hibernate 内置阈值输出执行时间超过阈值的 SQL。
+     * </p>
+     *
+     * @param properties JPA Plus 配置属性
+     * @return Hibernate 属性定制器
+     */
+    @Bean
+    @ConditionalOnMissingBean(SlowSqlHibernateCustomizer.class)
+    @ConditionalOnProperty(
+            prefix = "neopen.jpa.slow-sql",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public SlowSqlHibernateCustomizer jpaPlusSlowSqlCustomizer(
             JpaPlusProperties properties
     ) {
-        return new JpaPlusRuntimeConfigurer(properties);
+        return new SlowSqlHibernateCustomizer(
+                properties.getSlowSql().getThresholdMs()
+        );
     }
 
     /**

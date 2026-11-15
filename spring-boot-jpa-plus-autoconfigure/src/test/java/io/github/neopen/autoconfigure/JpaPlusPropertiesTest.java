@@ -27,6 +27,27 @@ class JpaPlusPropertiesTest {
         assertThat(properties.getAudit().getAuditor()).isNull();
         assertThat(properties.getEncryption().isEnabled()).isTrue();
         assertThat(properties.getEncryption().getKey()).isNull();
+        assertThat(properties.getEncryption().getKeys()).isEmpty();
+        assertThat(properties.getEncryption().getActiveKeyId()).isNull();
+        assertThat(properties.getSlowSql().isEnabled()).isFalse();
+        assertThat(properties.getSlowSql().getThresholdMs()).isEqualTo(1000L);
+    }
+
+    /**
+     * 验证慢 SQL 阈值必须大于 0。
+     */
+    @Test
+    void shouldRejectNonPositiveSlowSqlThreshold() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+
+        assertThatThrownBy(() -> properties.getSlowSql().setThresholdMs(0))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("threshold-ms must be greater than zero");
+
+        properties.getSlowSql().setThresholdMs(2000L);
+
+        assertThat(properties.getSlowSql().getThresholdMs())
+                .isEqualTo(2000L);
     }
 
     /**

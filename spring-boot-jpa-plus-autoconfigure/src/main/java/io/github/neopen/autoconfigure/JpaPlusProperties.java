@@ -2,6 +2,9 @@ package io.github.neopen.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.util.LinkedHashMap;
+import java.util.Map;
+
 /**
  * JPA Plus 全局配置属性。
  *
@@ -119,6 +122,25 @@ public class JpaPlusProperties {
      * </p>
      */
     private Encryption encryption = new Encryption();
+
+    /**
+     * 慢 SQL 日志配置。
+     *
+     * <p>
+     * 默认值：关闭。
+     * </p>
+     */
+    private SlowSql slowSql = new SlowSql();
+
+    /**
+     * 按数据源作用域配置的开关。
+     *
+     * <p>
+     * 键为作用域名称，与 {@code JpaPlusScope} 绑定时使用的名称一致。
+     * 未配置的项沿用全局配置。默认值：空。
+     * </p>
+     */
+    private Map<String, Scope> scopes = new LinkedHashMap<>();
 
     /**
      * 获取是否启用 JPA Plus。
@@ -255,6 +277,42 @@ public class JpaPlusProperties {
     }
 
     /**
+     * 获取慢 SQL 日志配置。
+     *
+     * @return 慢 SQL 配置
+     */
+    public SlowSql getSlowSql() {
+        return slowSql;
+    }
+
+    /**
+     * 获取按数据源作用域配置的开关。
+     *
+     * @return 作用域名称到开关配置的映射
+     */
+    public Map<String, Scope> getScopes() {
+        return scopes;
+    }
+
+    /**
+     * 设置按数据源作用域配置的开关。
+     *
+     * @param scopes 作用域名称到开关配置的映射
+     */
+    public void setScopes(Map<String, Scope> scopes) {
+        this.scopes = scopes;
+    }
+
+    /**
+     * 设置慢 SQL 日志配置。
+     *
+     * @param slowSql 慢 SQL 配置
+     */
+    public void setSlowSql(SlowSql slowSql) {
+        this.slowSql = slowSql;
+    }
+
+    /**
      * 逻辑删除过滤配置。
      */
     public static class LogicDelete {
@@ -324,6 +382,27 @@ public class JpaPlusProperties {
         private String key;
 
         /**
+         * 多密钥配置，用于密钥轮换。
+         *
+         * <p>
+         * 键为密钥编号，值为密钥字符串。配置后新数据使用
+         * {@link #activeKeyId} 对应的密钥加密并在密文前加编号前缀，
+         * 旧编号的密文仍可正常解密。
+         * </p>
+         */
+        private Map<String, String> keys = new LinkedHashMap<>();
+
+        /**
+         * 当前加密使用的密钥编号。
+         *
+         * <p>
+         * 配置多把密钥时必须指定；未配置且只有一把密钥时自动使用
+         * 该密钥。默认值：空。
+         * </p>
+         */
+        private String activeKeyId;
+
+        /**
          * 获取是否启用字段加密。
          *
          * @return 启用时返回 {@code true}
@@ -357,6 +436,121 @@ public class JpaPlusProperties {
          */
         public void setKey(String key) {
             this.key = key;
+        }
+
+        /**
+         * 获取多密钥配置。
+         *
+         * @return 密钥编号到密钥字符串的映射
+         */
+        public Map<String, String> getKeys() {
+            return keys;
+        }
+
+        /**
+         * 设置多密钥配置。
+         *
+         * @param keys 密钥编号到密钥字符串的映射
+         */
+        public void setKeys(Map<String, String> keys) {
+            this.keys = keys;
+        }
+
+        /**
+         * 获取当前加密使用的密钥编号。
+         *
+         * @return 密钥编号；未配置时返回 {@code null}
+         */
+        public String getActiveKeyId() {
+            return activeKeyId;
+        }
+
+        /**
+         * 设置当前加密使用的密钥编号。
+         *
+         * @param activeKeyId 密钥编号
+         */
+        public void setActiveKeyId(String activeKeyId) {
+            this.activeKeyId = activeKeyId;
+        }
+    }
+
+    /**
+     * 慢 SQL 日志配置。
+     *
+     * <p>
+     * 开启后通过 Hibernate 内置的慢查询阈值记录执行时间超过阈值的
+     * SQL，日志级别由 {@code org.hibernate.SQL_SLOW} 控制。
+     * </p>
+     */
+    public static class SlowSql {
+
+        /**
+         * 创建默认慢 SQL 配置。
+         */
+        public SlowSql() {
+        }
+
+        /**
+         * 是否启用慢 SQL 日志。
+         *
+         * <p>
+         * 默认值：false。开启后对 JDBC 语句有少量计时开销。
+         * </p>
+         */
+        private boolean enabled = false;
+
+        /**
+         * 慢 SQL 阈值，单位毫秒。
+         *
+         * <p>
+         * 默认值：1000。执行时间大于该值的语句会被记录。
+         * </p>
+         */
+        private long thresholdMs = 1000L;
+
+        /**
+         * 获取是否启用慢 SQL 日志。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用慢 SQL 日志。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        /**
+         * 获取慢 SQL 阈值。
+         *
+         * @return 阈值，单位毫秒
+         */
+        public long getThresholdMs() {
+            return thresholdMs;
+        }
+
+        /**
+         * 设置慢 SQL 阈值。
+         *
+         * @param thresholdMs 阈值，单位毫秒，必须大于 0
+         * @throws IllegalArgumentException 阈值不大于 0 时抛出
+         */
+        public void setThresholdMs(long thresholdMs) {
+            if (thresholdMs <= 0) {
+                throw new IllegalArgumentException(
+                        "neopen.jpa.slow-sql.threshold-ms must be "
+                                + "greater than zero"
+                );
+            }
+
+            this.thresholdMs = thresholdMs;
         }
     }
 
@@ -452,6 +646,260 @@ public class JpaPlusProperties {
          */
         public void setZone(String zone) {
             this.zone = zone;
+        }
+    }
+
+    /**
+     * 单个数据源作用域的开关配置。
+     *
+     * <p>
+     * 所有字段默认 {@code null}，表示沿用全局配置；只有显式配置的
+     * 项才会覆盖全局值。绑定示例：
+     * </p>
+     *
+     * <pre>{@code
+     * neopen:
+     *   jpa:
+     *     scopes:
+     *       secondary:
+     *         batch-size: 200
+     *         logic-delete-enabled: false
+     *         audit-enabled: false
+     *         encryption-keys:
+     *           v1: secondary-secret
+     * }</pre>
+     */
+    public static class Scope {
+
+        /**
+         * 创建默认作用域配置。
+         */
+        public Scope() {
+        }
+
+        /**
+         * 该作用域的批次大小。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局 {@code batch-size}。
+         * </p>
+         */
+        private Integer batchSize;
+
+        /**
+         * 该作用域是否启用逻辑删除过滤。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局配置。
+         * </p>
+         */
+        private Boolean logicDeleteEnabled;
+
+        /**
+         * 该作用域是否启用审计字段填充。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局配置。
+         * </p>
+         */
+        private Boolean auditEnabled;
+
+        /**
+         * 该作用域使用的固定操作人。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局操作人或容器中的
+         * {@code AuditorProvider}。
+         * </p>
+         */
+        private String auditAuditor;
+
+        /**
+         * 该作用域是否启用字段加密。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局配置。
+         * </p>
+         */
+        private Boolean encryptionEnabled;
+
+        /**
+         * 该作用域的加密密钥。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局密钥。
+         * </p>
+         */
+        private String encryptionKey;
+
+        /**
+         * 该作用域的多密钥配置。
+         *
+         * <p>
+         * 键为密钥编号，值为密钥字符串。默认值：空。
+         * </p>
+         */
+        private Map<String, String> encryptionKeys = new LinkedHashMap<>();
+
+        /**
+         * 该作用域当前加密使用的密钥编号。
+         *
+         * <p>
+         * 默认值：空。
+         * </p>
+         */
+        private String encryptionActiveKeyId;
+
+        /**
+         * 获取该作用域的批次大小。
+         *
+         * @return 批次大小；未配置时返回 {@code null}
+         */
+        public Integer getBatchSize() {
+            return batchSize;
+        }
+
+        /**
+         * 设置该作用域的批次大小。
+         *
+         * @param batchSize 批次大小，必须大于 0
+         * @throws IllegalArgumentException 批次大小不大于 0
+         */
+        public void setBatchSize(Integer batchSize) {
+            if (batchSize != null && batchSize <= 0) {
+                throw new IllegalArgumentException(
+                        "neopen.jpa.scopes.*.batch-size must be "
+                                + "greater than zero"
+                );
+            }
+
+            this.batchSize = batchSize;
+        }
+
+        /**
+         * 获取该作用域是否启用逻辑删除过滤。
+         *
+         * @return 是否启用；未配置时返回 {@code null}
+         */
+        public Boolean getLogicDeleteEnabled() {
+            return logicDeleteEnabled;
+        }
+
+        /**
+         * 设置该作用域是否启用逻辑删除过滤。
+         *
+         * @param logicDeleteEnabled 是否启用
+         */
+        public void setLogicDeleteEnabled(Boolean logicDeleteEnabled) {
+            this.logicDeleteEnabled = logicDeleteEnabled;
+        }
+
+        /**
+         * 获取该作用域是否启用审计字段填充。
+         *
+         * @return 是否启用；未配置时返回 {@code null}
+         */
+        public Boolean getAuditEnabled() {
+            return auditEnabled;
+        }
+
+        /**
+         * 设置该作用域是否启用审计字段填充。
+         *
+         * @param auditEnabled 是否启用
+         */
+        public void setAuditEnabled(Boolean auditEnabled) {
+            this.auditEnabled = auditEnabled;
+        }
+
+        /**
+         * 获取该作用域的固定操作人。
+         *
+         * @return 操作人名称；未配置时返回 {@code null}
+         */
+        public String getAuditAuditor() {
+            return auditAuditor;
+        }
+
+        /**
+         * 设置该作用域的固定操作人。
+         *
+         * @param auditAuditor 操作人名称
+         */
+        public void setAuditAuditor(String auditAuditor) {
+            this.auditAuditor = auditAuditor;
+        }
+
+        /**
+         * 获取该作用域是否启用字段加密。
+         *
+         * @return 是否启用；未配置时返回 {@code null}
+         */
+        public Boolean getEncryptionEnabled() {
+            return encryptionEnabled;
+        }
+
+        /**
+         * 设置该作用域是否启用字段加密。
+         *
+         * @param encryptionEnabled 是否启用
+         */
+        public void setEncryptionEnabled(Boolean encryptionEnabled) {
+            this.encryptionEnabled = encryptionEnabled;
+        }
+
+        /**
+         * 获取该作用域的加密密钥。
+         *
+         * @return 加密密钥；未配置时返回 {@code null}
+         */
+        public String getEncryptionKey() {
+            return encryptionKey;
+        }
+
+        /**
+         * 设置该作用域的加密密钥。
+         *
+         * @param encryptionKey 加密密钥
+         */
+        public void setEncryptionKey(String encryptionKey) {
+            this.encryptionKey = encryptionKey;
+        }
+
+        /**
+         * 获取该作用域的多密钥配置。
+         *
+         * @return 密钥编号到密钥字符串的映射
+         */
+        public Map<String, String> getEncryptionKeys() {
+            return encryptionKeys;
+        }
+
+        /**
+         * 设置该作用域的多密钥配置。
+         *
+         * @param encryptionKeys 密钥编号到密钥字符串的映射
+         */
+        public void setEncryptionKeys(Map<String, String> encryptionKeys) {
+            this.encryptionKeys = encryptionKeys;
+        }
+
+        /**
+         * 获取该作用域当前加密使用的密钥编号。
+         *
+         * @return 密钥编号；未配置时返回 {@code null}
+         */
+        public String getEncryptionActiveKeyId() {
+            return encryptionActiveKeyId;
+        }
+
+        /**
+         * 设置该作用域当前加密使用的密钥编号。
+         *
+         * @param encryptionActiveKeyId 密钥编号
+         */
+        public void setEncryptionActiveKeyId(String encryptionActiveKeyId) {
+            this.encryptionActiveKeyId = encryptionActiveKeyId;
         }
     }
 }
