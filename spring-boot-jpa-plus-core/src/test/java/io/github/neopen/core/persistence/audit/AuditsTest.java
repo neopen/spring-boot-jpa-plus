@@ -1,5 +1,6 @@
 package io.github.neopen.core.persistence.audit;
 
+import io.github.neopen.core.scope.JpaPlusScope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 
@@ -25,6 +26,30 @@ class AuditsTest {
             Instant.parse("2026-02-01T00:00:00Z");
 
     /**
+     * 验证通过 {@link AuditorProvider} SPI 提供当前操作人。
+     */
+    @Test
+    void shouldUseAuditorProvider() {
+        Audits.setClock(Clock.fixed(FIRST, ZoneOffset.UTC));
+        Audits.setAuditorProvider(() -> "from-provider");
+
+        AuditedEntity entity = new AuditedEntity();
+
+        new AuditListener().prePersist(entity);
+
+        assertThat(entity.getCreatedBy()).isEqualTo("from-provider");
+        assertThat(entity.getUpdatedBy()).isEqualTo("from-provider");
+
+        Audits.setAuditorProvider(null);
+
+        AuditedEntity cleared = new AuditedEntity();
+
+        new AuditListener().prePersist(cleared);
+
+        assertThat(cleared.getCreatedBy()).isNull();
+    }
+
+    /**
      * 恢复默认配置，避免测试间互相影响。
      */
     @AfterEach
@@ -32,6 +57,46 @@ class AuditsTest {
         Audits.setClock(null);
         Audits.setAuditorSupplier(null);
         Audits.setEnabled(true);
+        Audits.clearScope("secondary");
+        JpaPlusScope.clear();
+    }
+
+    /**
+     * 验证按数据源作用域隔离审计开关与操作人。
+     */
+    @Test
+    void shouldApplyScopedAuditSettings() {
+        Audits.setClock(Clock.fixed(FIRST, ZoneOffset.UTC));
+        Audits.setAuditorSupplier(() -> "global");
+        Audits.setEnabled("secondary", false);
+
+        AuditedEntity skipped = new AuditedEntity();
+        JpaPlusScope.run(
+                "secondary",
+                () -> new AuditListener().prePersist(skipped)
+        );
+
+        assertThat(skipped.getCreatedAt()).isNull();
+        assertThat(skipped.getCreatedBy()).isNull();
+
+        Audits.setEnabled("secondary", true);
+        Audits.setAuditorSupplier("secondary", () -> "scoped");
+
+        AuditedEntity scoped = new AuditedEntity();
+        JpaPlusScope.run(
+                "secondary",
+                () -> new AuditListener().prePersist(scoped)
+        );
+
+        assertThat(scoped.getCreatedAt()).isEqualTo(FIRST);
+        assertThat(scoped.getCreatedBy()).isEqualTo("scoped");
+
+        AuditedEntity global = new AuditedEntity();
+        new AuditListener().prePersist(global);
+
+        assertThat(global.getCreatedBy()).isEqualTo("global");
+        assertThat(Audits.isEnabled()).isTrue();
+        assertThat(Audits.isEnabled("unknown")).isTrue();
     }
 
     /**

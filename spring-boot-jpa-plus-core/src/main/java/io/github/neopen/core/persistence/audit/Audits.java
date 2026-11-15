@@ -1,6 +1,7 @@
 package io.github.neopen.core.persistence.audit;
 
 import io.github.neopen.core.exception.JpaPlusException;
+import io.github.neopen.core.scope.JpaPlusScope;
 
 import java.lang.reflect.Field;
 import java.time.Clock;
@@ -10,6 +11,8 @@ import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 import java.util.Date;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 /**
@@ -56,6 +59,14 @@ public final class Audits {
     /** 是否启用审计字段填充，默认启用。 */
     private static volatile boolean enabled = true;
 
+    /** 按数据源作用域配置的审计开关。 */
+    private static final Map<String, Boolean> scopeEnabled =
+            new ConcurrentHashMap<>();
+
+    /** 按数据源作用域配置的操作人提供者。 */
+    private static final Map<String, Supplier<String>> scopeAuditors =
+            new ConcurrentHashMap<>();
+
     /** 工具类不允许实例化。 */
     private Audits() {
     }
@@ -73,12 +84,38 @@ public final class Audits {
     }
 
     /**
-     * 判断审计字段填充是否启用。
+     * 为指定数据源作用域设置审计开关。
+     *
+     * @param scope   作用域名称，等于默认作用域时等同于全局设置
+     * @param enabled 是否启用
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void setEnabled(String scope, boolean enabled) {
+        if (JpaPlusScope.isDefault(scope)) {
+            setEnabled(enabled);
+            return;
+        }
+
+        scopeEnabled.put(JpaPlusScope.requireName(scope), enabled);
+    }
+
+    /**
+     * 判断全局审计字段填充是否启用。
      *
      * @return 启用时返回 {@code true}
      */
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    /**
+     * 判断指定作用域的审计字段填充是否启用。
+     *
+     * @param scope 作用域名称，允许为 {@code null}
+     * @return 启用时返回 {@code true}
+     */
+    public static boolean isEnabled(String scope) {
+        return activeEnabled(scope);
     }
 
     /**
@@ -104,6 +141,69 @@ public final class Audits {
     }
 
     /**
+     * 设置当前操作人提供者。
+     *
+     * <p>Spring Boot 环境通常注册 {@link AuditorProvider} Bean 即可，
+     * 自动配置会把该 Bean 接入审计填充。</p>
+     *
+     * @param provider 操作人提供者；传 {@code null} 时不写入操作人字段
+     */
+    public static void setAuditorProvider(AuditorProvider provider) {
+        setAuditorSupplier(
+                provider == null ? null : provider::getAuditor
+        );
+    }
+
+    /**
+     * 为指定数据源作用域设置操作人提供者。
+     *
+     * @param scope    作用域名称，等于默认作用域时等同于全局设置
+     * @param supplier 操作人提供者；传 {@code null} 时该作用域不写入操作人
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void setAuditorSupplier(
+            String scope,
+            Supplier<String> supplier
+    ) {
+        if (JpaPlusScope.isDefault(scope)) {
+            setAuditorSupplier(supplier);
+            return;
+        }
+
+        scopeAuditors.put(JpaPlusScope.requireName(scope), supplier);
+    }
+
+    /**
+     * 为指定数据源作用域设置操作人提供者。
+     *
+     * @param scope    作用域名称，等于默认作用域时等同于全局设置
+     * @param provider 操作人提供者；传 {@code null} 时该作用域不写入操作人
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void setAuditorProvider(
+            String scope,
+            AuditorProvider provider
+    ) {
+        setAuditorSupplier(
+                scope,
+                provider == null ? null : provider::getAuditor
+        );
+    }
+
+    /**
+     * 清除指定数据源作用域的审计开关与操作人配置。
+     *
+     * @param scope 作用域名称
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void clearScope(String scope) {
+        String name = JpaPlusScope.requireName(scope);
+
+        scopeEnabled.remove(name);
+        scopeAuditors.remove(name);
+    }
+
+    /**
      * 判断实体是否声明了审计字段。
      *
      * @param entityType 实体类型
@@ -122,7 +222,7 @@ public final class Audits {
      * @param entity 实体
      */
     static void applyCreate(Object entity) {
-        if (!enabled || entity == null) {
+        if (!activeEnabled() || entity == null) {
             return;
         }
 
@@ -142,7 +242,7 @@ public final class Audits {
      * @param entity 实体
      */
     static void applyUpdate(Object entity) {
-        if (!enabled || entity == null) {
+        if (!activeEnabled() || entity == null) {
             return;
         }
 
@@ -177,7 +277,7 @@ public final class Audits {
             return;
         }
 
-        String auditor = auditorSupplier.get();
+        String auditor = activeAuditor().get();
 
         if (auditor != null && !auditor.isBlank()) {
             write(field, entity, auditor);
@@ -245,5 +345,47 @@ public final class Audits {
                     e
             );
         }
+    }
+
+    /**
+     * 判断当前作用域的审计填充是否启用。
+     *
+     * @return 启用时返回 {@code true}
+     */
+    private static boolean activeEnabled() {
+        return activeEnabled(JpaPlusScope.currentScopeName());
+    }
+
+    /**
+     * 解析指定作用域生效的审计开关。
+     *
+     * @param scope 作用域名称，允许为 {@code null}
+     * @return 启用时返回 {@code true}
+     */
+    private static boolean activeEnabled(String scope) {
+        if (scope == null) {
+            return enabled;
+        }
+
+        Boolean scoped = scopeEnabled.get(scope);
+
+        return scoped == null ? enabled : scoped;
+    }
+
+    /**
+     * 获取当前作用域生效的操作人提供者。
+     *
+     * @return 操作人提供者
+     */
+    private static Supplier<String> activeAuditor() {
+        String scope = JpaPlusScope.currentScopeName();
+
+        if (scope == null) {
+            return auditorSupplier;
+        }
+
+        Supplier<String> scoped = scopeAuditors.get(scope);
+
+        return scoped == null ? auditorSupplier : scoped;
     }
 }
