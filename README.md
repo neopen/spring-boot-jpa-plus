@@ -160,7 +160,10 @@ public class OrderServiceImpl
 
 ## Documentation
 
-- [HQL Usage Guide](docs/hql.md) - Chained conditions, pagination, counting, batch queries, and custom operators.
+Full documentation, including usage guides and API reference, is published at
+[docs site](https://neopen.github.io/spring-boot-jpa-plus/).
+
+- [HQL Usage Guide](https://neopen.github.io/spring-boot-jpa-plus/query/hql) - Chained conditions, pagination, counting, batch queries, and custom operators.
 
 ## JPA Specification Builder
 
