@@ -4,7 +4,7 @@
 
 ## 能力范围
 
-- 链式构造 `where`、`group by`、`order by`
+- 链式构造 `where`、`group by`、`having`、`union`、`order by`
 - 列名自动驼峰转下划线
 - 分页返回 `Page<T>`，自动派生 count
 - 结果可映射为实体、`Object[]`、`Map` 或 DTO
@@ -64,6 +64,8 @@ query.getParameters();
 | `apply(Object param)` | 解析 `@QueryCondition` |
 | `and / or / anyOf(Consumer<SqlWrapper>)` | 嵌套条件分组 |
 | `groupBy(String... columns)` | 分组 |
+| `having(String fragment)` | 分组过滤，原样拼接，仅接受静态字符串 |
+| `union / unionAll(SqlWrapper...)` | 合并结构一致的多段查询 |
 | `orderByAsc / orderByDesc(String... columns)` | 排序 |
 | `orderBy(Sort sort)` | 按 Spring `Sort` 排序 |
 | `build()` | 生成不可变 `SqlQuery` |
@@ -107,9 +109,87 @@ SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
 | --- | --- |
 | `raw(String fragment)` | `fragment` |
 | `exists(String subQuery)` | `exists (subQuery)` |
+| `exists(String subQuery, Map<String, Object> params)` | `exists (subQuery)`，绑定命名参数 |
 | `notExists(String subQuery)` | `not exists (subQuery)` |
+| `notExists(String subQuery, Map<String, Object> params)` | `not exists (subQuery)`，绑定命名参数 |
 
-片段原样拼入语句，不参与参数绑定，只能传入开发者编写的静态 SQL，禁止拼接用户输入。
+子查询中的 `:参数名` 会替换为框架生成的参数名并完成绑定：
+
+```java
+SqlWrapper wrapper = SqlWrapper.create("t_order")
+        .exists(
+                "select 1 from t_order_item i"
+                        + " where i.order_id = o.id and i.sku = :sku",
+                Map.of("sku", "A-1001")
+        );
+```
+
+::: warning 安全提示
+`raw`、`exists`、`notExists` 的语句结构会原样拼入 SQL，只能传入开发者编写的静态字符串，禁止拼接用户输入。查询值请通过参数 Map 传入。
+:::
+
+## 分组与聚合
+
+```java
+SqlWrapper wrapper = SqlWrapper.create("t_order")
+        .select("status", "count(*) as total")
+        .groupBy("status")
+        .having("count(*) > 10");
+
+Page<Object[]> page = sqlExecutor.queryForPage(wrapper, PageRequest.of(0, 10));
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `select(String...)` | 追加 select 列或表达式，原样使用 |
+| `groupBy(String...)` | 追加分组列，简单列名自动补全别名 |
+| `having(String fragment)` | 追加分组过滤片段，原样拼接，仅接受静态字符串 |
+
+包含分组和 `having` 时，`getCountSql()` 会把整条查询包装为子查询统计，因此分页总数与分组结果一致。
+
+## union 合并
+
+`union` 与 `unionAll` 用于合并结构一致的多张表，例如业务表与归档表：
+
+```java
+SqlWrapper archived = SqlWrapper.create("t_order_archive", "a")
+        .select("a.id", "a.order_no", "a.status")
+        .eq("a.status", "CLOSED");
+
+SqlWrapper wrapper = SqlWrapper.create("t_order", "o")
+        .select("o.id", "o.order_no", "o.status")
+        .eq("status", "PAID")
+        .union(archived)
+        .orderByDesc("id");
+
+Page<Object[]> page = sqlExecutor.queryForPage(wrapper, PageRequest.of(0, 10));
+```
+
+生成：
+
+```sql
+select o.id, o.order_no, o.status from t_order o where o.status = :p1
+union
+select a.id, a.order_no, a.status from t_order_archive a where a.status = :p2
+order by id desc
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `union(SqlWrapper...)` | 合并并去重 |
+| `unionAll(SqlWrapper...)` | 合并并保留重复行 |
+| `hasUnion()` | 是否包含 union 子查询 |
+| `getSortAlias()` | union 查询返回 `null`，表示排序不带表别名 |
+
+规则：
+
+- 各段 `select` 的列数量和顺序必须一致。
+- 子查询自身不能包含 `order by`，会直接抛出 `IllegalArgumentException`；排序统一写在最外层构造器上，作用整个结果集。
+- 不支持嵌套 union，需要对子查询再 union 时请拆成多段一次传入。
+- 参数在合并时统一重新编号，不会出现命名冲突。
+- 分页统计会把整个 union 结果包装为子查询，总数正确。
+
+`queryForPage(wrapper, pageable)` 传入 `Pageable` 排序时会按输出列名追加，不会补全表别名。
 
 注解条件需要把参数名映射到列名时使用 `alias`。字段名先按映射替换，再执行驼峰转下划线：
 
@@ -157,7 +237,7 @@ Page<Object[]> page = sqlExecutor.queryForPage(wrapper, PageRequest.of(0, 10));
 
 - 页码从 0 开始
 - 总数来自 `SqlQuery.getCountSql()`
-- 包含 `group by` 或 `select distinct` 时，必须显式提供 count 语句
+- 统计语句始终按子查询包装，包含 `group by`、`having` 或聚合列时结果同样正确
 - `Pageable` 的排序优先于 `SqlWrapper` 的排序
 
 统计：

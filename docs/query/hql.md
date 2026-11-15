@@ -193,9 +193,43 @@ HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
 | --- | --- |
 | `raw(String fragment)` | `fragment` |
 | `exists(String subQuery)` | `exists (subQuery)` |
+| `exists(String subQuery, Map<String, Object> params)` | `exists (subQuery)`，绑定命名参数 |
 | `notExists(String subQuery)` | `not exists (subQuery)` |
+| `notExists(String subQuery, Map<String, Object> params)` | `not exists (subQuery)`，绑定命名参数 |
 
-这三个方法把内容原样拼入语句，不参与参数绑定，只能传入开发者编写的静态 HQL，禁止拼接用户输入。
+子查询中的 `:参数名` 会替换为框架生成的参数名并完成绑定：
+
+```java
+HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
+        .exists(
+                "select 1 from OrderItem i"
+                        + " where i.order.id = o.id and i.sku = :sku",
+                Map.of("sku", "A-1001")
+        );
+```
+
+::: warning 安全提示
+`raw`、`exists`、`notExists` 的语句结构会原样拼入 HQL，只能传入开发者编写的静态字符串，禁止拼接用户输入。查询值请通过参数 Map 传入。
+:::
+
+### 分组与聚合
+
+```java
+List<Tuple> rows = hqlExecutor.queryForList(
+        HqlWrapper.create(Order.class)
+                .select("status", "count(id)")
+                .groupBy("status")
+                .having("count(o.id) > 10")
+);
+```
+
+| 方法 | 说明 |
+| --- | --- |
+| `select(String...)` | 追加 select 表达式，简单属性名自动补全别名 |
+| `groupBy(String...)` | 追加分组表达式，简单属性名自动补全别名 |
+| `having(String fragment)` | 追加分组过滤片段，原样拼接，仅接受静态字符串 |
+
+未调用 `select` 时默认查询根实体。`having` 只拼入主查询，不进入自动派生的 count 语句；结构固定的报表查询建议显式传入 count 语句，或直接用 `SqlWrapper`。
 
 ## 分页
 
@@ -298,7 +332,7 @@ int deleted = hqlExecutor.executeUpdate(
 
 ## 投影
 
-构造器固定查询根实体，需要投影时使用原生 HQL：
+默认查询根实体；也可以先用 `select` 指定列或聚合表达式，再按 `Tuple` 或 DTO 接收：
 
 ```java
 List<OrderSummary> summaries = hqlExecutor.queryForList(

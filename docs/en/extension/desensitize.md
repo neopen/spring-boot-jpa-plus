@@ -51,11 +51,26 @@ String value = Desensitizes.mask("13800001234", DesensitizeType.PHONE);
 
 ## JSON serialization desensitization
 
+### fastjson2
+
 ```java
 String json = JSON.toJSONString(userView, new DesensitizeValueFilter());
 ```
 
 The filter only processes fields annotated with `@Desensitize`; unannotated fields are output as-is. Objects of the same kind embedded in response objects, lists, or nested structures are also handled.
+
+### Jackson
+
+When `jackson-databind` is present, auto-configuration registers `DesensitizeModule`, which applies to the Spring MVC `ObjectMapper` directly:
+
+```java
+ObjectMapper mapper = new ObjectMapper();
+mapper.registerModule(new DesensitizeModule());
+
+String json = mapper.writeValueAsString(userView);
+```
+
+The output matches fastjson2 and only replaces annotated fields. Without Jackson the module is not loaded.
 
 ## Notes
 

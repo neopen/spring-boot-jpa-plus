@@ -50,8 +50,77 @@ A string key is derived into a 256-bit key through SHA-256; a byte key must be 1
 - Algorithm: `AES/GCM/NoPadding`
 - A 12-byte random IV is generated for each encryption
 - Storage format: `Base64(IV + ciphertext + authentication tag)`
+- With multiple keys the format is `keyId:Base64(IV + ciphertext + authentication tag)`; a single key with the id `default` keeps the unprefixed format
 
 The same plaintext produces a different result on each encryption; if the ciphertext is tampered with, decryption throws `JpaPlusException` because authentication fails.
+
+## Key Rotation
+
+Configure multiple keys with `keys` and pick the key for new data with `active-key-id`:
+
+```yaml
+neopen:
+  jpa:
+    encryption:
+      keys:
+        v1: old-secret
+        v2: new-secret
+      active-key-id: v2
+```
+
+- New data is encrypted with `v2` and prefixed with `v2:`.
+- Data with the `v1:` prefix is decrypted with `v1`, so reads and writes keep working without a migration.
+- Legacy ciphertext without a prefix tries the active key and then the remaining keys, staying compatible with single-key data written before 0.5.0.
+
+You can also manage keys in code:
+
+```java
+EncryptedFields.setKeys(Map.of("v1", "old-secret", "v2", "new-secret"), "v2");
+
+// Gradual switch: historical data is still readable with the old key
+EncryptedFields.setActiveKey("v1");
+```
+
+`active-key-id` is required when more than one key is configured, otherwise startup fails. Remove an old key id only after all data under it has been rewritten.
+
+## Deterministic Encryption
+
+With random IVs the same plaintext encrypts differently every time, so ciphertext cannot be compared for equality. Fields that need searching (for example phone numbers) can use deterministic encryption:
+
+```java
+@Entity
+public class Customer {
+
+    @EncryptedField(mode = EncryptedField.Mode.DETERMINISTIC)
+    @Convert(converter = DeterministicEncryptedFieldConverter.class)
+    private String phone;
+}
+```
+
+The IV is derived from the first 12 bytes of `HMAC-SHA256(key, plaintext)`, so equal plaintext yields equal ciphertext and equality search works:
+
+```java
+wrapper.eq("phone", EncryptedFields.encryptDeterministic(phone));
+```
+
+::: warning Security trade-off
+Deterministic encryption reveals whether plaintexts are equal and how often each value appears. Use it only for fields that truly need equality search and keep the default random IV mode elsewhere.
+:::
+
+## Keys per datasource
+
+Different datasources can use different keys through scope isolation:
+
+```java
+EncryptedFields.setKey("secondary", "secondary-secret");
+
+String cipher = JpaPlusScope.call(
+        "secondary",
+        () -> EncryptedFields.encrypt("110101199001011234")
+);
+```
+
+The matching properties are `neopen.jpa.scopes.<name>.encryption-key` or `encryption-keys`, see [Configuration](/en/reference/configuration). Without a bound scope the global key is used.
 
 ## Behavior
 
@@ -72,6 +141,6 @@ String plain = EncryptedFields.decrypt(stored);
 ## Notes
 
 - It applies only to string fields; convert numbers, dates, etc. to strings before storing them.
-- Ciphertext cannot be used for equality or fuzzy queries; when searching is required, create a separate irreversible digest column.
-- Key rotation requires migrating historical data yourself; the converter does not attempt to decrypt with multiple keys.
+- Ciphertext written with the random IV mode cannot be used for equality or fuzzy queries; switch to deterministic encryption when equality search is required.
+- Before removing a key id, make sure all data under it has been rewritten, otherwise reads throw an unknown key id error.
 - After disabling the encryption switch, reading existing ciphertext returns the ciphertext itself; confirm the data state before switching.

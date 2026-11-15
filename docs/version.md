@@ -42,7 +42,9 @@
 | --- | --- | --- |
 | 枚举值转换 | `@EnumValue`、`EnumValues`、`EnumValueConverter` | 枚举持久化为显式业务值，支持常量注解与无参方法两种声明 |
 | 字段加密 | `@EncryptedField`、`EncryptedFields`、`EncryptedFieldConverter` | AES/GCM 透明加解密，随机 IV，支持字符串密钥与 16/24/32 字节密钥 |
-| 数据脱敏 | `@Desensitize`、`Desensitizes`、`DesensitizeValueFilter` | 姓名、手机号、身份证、银行卡、邮箱、地址、密码脱敏，并提供 fastjson2 过滤器 |
+| 密钥轮换 | `EncryptedFields#setKeys`、`neopen.jpa.encryption.keys` | 多密钥配置，新数据带密钥编号前缀，历史密文继续可读 |
+| 确定性加密 | `EncryptedFields#encryptDeterministic`、`DeterministicEncryptedFieldConverter` | IV 由明文派生，相同明文密文一致，支持按密文等值查询 |
+| 数据脱敏 | `@Desensitize`、`Desensitizes`、`DesensitizeValueFilter` | 姓名、手机号、身份证、银行卡、邮箱、地址、密码脱敏，并提供 fastjson2 与 Jackson 两种序列化脱敏 |
 
 ### 新增：性能与可靠性
 
@@ -50,7 +52,8 @@
 | --- | --- | --- |
 | 乐观锁重试 | `@RetryOnOptimisticLock` | 捕获乐观锁异常并按次数重试，默认 3 次、间隔 50ms |
 | 慢方法日志 | `@SlowLog` | 超过阈值（默认 500ms）打印 WARN 日志 |
-| 审计字段 | `@CreatedAt`、`@UpdatedAt`、`@CreatedBy`、`@UpdatedBy`、`Audits` | 由实体监听器自动维护创建与更新信息 |
+| 慢 SQL 日志 | `neopen.jpa.slow-sql` | 基于 Hibernate 内置阈值记录超过阈值的 SQL 与执行耗时 |
+| 审计字段 | `@CreatedAt`、`@UpdatedAt`、`@CreatedBy`、`@UpdatedBy`、`Audits` | 由实体监听器自动维护创建与更新信息，支持 `AuditorProvider` 接入登录用户 |
 | 逻辑删除写侧 | `LogicDeletes` | 在 0.4.0 查询过滤基础上补齐更新与删除 |
 | 批量增强 | `BatchOperation` | 分批 flush / clear，支持批量保存、更新、删除 |
 
@@ -58,7 +61,10 @@
 
 | 能力 | 入口 | 说明 |
 | --- | --- | --- |
-| 原生片段与子查询 | `HqlWrapper#raw`、`SqlWrapper#raw`、`exists`、`notExists` | 追加静态条件片段与 `exists` 子查询 |
+| 原生片段与子查询 | `HqlWrapper#raw`、`SqlWrapper#raw`、`exists`、`notExists` | 追加静态条件片段与 `exists` 子查询，并支持命名参数绑定 |
+| 分组查询 | `HqlWrapper#select`、`groupBy`、`having`、`SqlWrapper#having` | 聚合列、分组与分组过滤，SQL 统计语句按子查询包装 |
+| union 合并 | `SqlWrapper#union`、`unionAll` | 合并结构一致的多段查询，参数统一重编号，分页统计正确 |
+| 请求分页 | `PageParams` | 校验页码、每页数量上限与排序字段后转换为 `Pageable` |
 | 字段映射 | `HqlWrapper#alias`、`SqlWrapper#alias` | 查询参数名与实体属性/列名不一致时做映射 |
 | 存在性判断 | `JpaPlusSpecExecutor#exists` | 基于计数判断是否存在，避免加载实体 |
 | DTO 投影 | `ResultMapper` | 按别名匹配 DTO 字段，兼容驼峰与下划线 |
@@ -76,6 +82,11 @@
 - 注解式限流 `@RateLimit` 与幂等能力增强。
 - 扩展切面开关：`neopen.extension.retry.enabled`、`neopen.extension.slow-log.enabled`，默认开启。
 - 加密配置：`neopen.jpa.encryption.enabled`（默认 `true`）、`neopen.jpa.encryption.key`。
+- 密钥轮换配置：`neopen.jpa.encryption.keys`（密钥编号 → 密钥）、`neopen.jpa.encryption.active-key-id`。
+- 慢 SQL 配置：`neopen.jpa.slow-sql.enabled`（默认 `false`）、`neopen.jpa.slow-sql.threshold-ms`（默认 `1000`）。
+- 扩展模块引入 Jackson 时自动注册 `DesensitizeModule`，未引入 Jackson 不受影响。
+- 审计可注册 `AuditorProvider` Bean 动态获取当前操作人，优先级高于 `neopen.jpa.audit.auditor`。
+- 多数据源隔离：`JpaPlusScope` 按作用域绑定逻辑删除、审计、加密与批次大小开关，配置入口为 `neopen.jpa.scopes.<name>`。
 
 ### 变更与迁移
 

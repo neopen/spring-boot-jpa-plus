@@ -13,9 +13,14 @@ All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Sw
 | `neopen.jpa.logic-delete.enabled` | `boolean` | `true` | Whether to append the logic delete filter automatically in queries |
 | `neopen.jpa.audit.enabled` | `boolean` | `true` | Whether to enable audit field population |
 | `neopen.jpa.audit.zone` | `ZoneId` | `UTC` | Time zone used by audit time fields |
-| `neopen.jpa.audit.auditor` | `String` | empty | Fixed operator name; nothing is written when it is empty |
+| `neopen.jpa.audit.auditor` | `String` | empty | Fixed operator name; nothing is written when it is empty. An `AuditorProvider` bean takes precedence |
 | `neopen.jpa.encryption.enabled` | `boolean` | `true` | Whether to enable field encryption; when disabled, the encryption converter reads and writes plaintext |
 | `neopen.jpa.encryption.key` | `String` | empty | Encryption key, derived through SHA-256 at startup; reading or writing encrypted fields throws an exception when it is not configured |
+| `neopen.jpa.encryption.keys` | `Map<String, String>` | empty | Multiple keys keyed by key id; takes precedence over `encryption.key` |
+| `neopen.jpa.encryption.active-key-id` | `String` | empty | Key id used for new ciphertext; required when multiple keys are configured |
+| `neopen.jpa.slow-sql.enabled` | `boolean` | `false` | Whether to log slow SQL through Hibernate's threshold |
+| `neopen.jpa.slow-sql.threshold-ms` | `long` | `1000` | Slow SQL threshold in milliseconds, must be greater than 0 |
+| `neopen.jpa.scopes.<name>` | `object` | empty | Overrides the switches above per datasource scope, see "Multi-datasource scope isolation" below |
 
 ## Extension Components
 
@@ -45,6 +50,14 @@ neopen:
     encryption:
       enabled: true
       key: change-me-in-production
+      # Use multiple keys when rotating; keys takes precedence over key
+      # keys:
+      #   v1: old-secret
+      #   v2: new-secret
+      # active-key-id: v2
+    slow-sql:
+      enabled: true
+      threshold-ms: 1000
   extension:
     idempotent:
       enabled: true
@@ -64,10 +77,68 @@ neopen:
 | `logic-delete.enabled` | `LogicDeletes.setEnabled(...)` |
 | `audit.enabled` / `audit.auditor` / `audit.zone` | `Audits.setEnabled(...)`, `Audits.setAuditorSupplier(...)`, `Audits.setClock(...)` |
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`, `EncryptedFields.setKey(...)` (written only when the key is configured) |
+| `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)` (used when multiple keys are configured) |
+| `slow-sql.enabled` / `slow-sql.threshold-ms` | Registers `SlowSqlHibernateCustomizer` with Hibernate's slow query threshold |
 
 These values are written to static switches when the application starts, so all consumers in the same JVM share them. They can also be adjusted at runtime through the setters of the corresponding utility classes.
 
 Properties that are not configured do not override values already set in code.
+
+## Multi-datasource scope isolation
+
+The logic-delete, auditing, encryption and batch-size switches apply to the whole JVM by default. A multi-datasource application can configure independent switches per scope so a read replica or archive database is not affected by the primary configuration:
+
+```yaml
+neopen:
+  jpa:
+    batch-size: 500
+    logic-delete:
+      enabled: true
+    audit:
+      enabled: true
+      auditor: system
+    encryption:
+      key: global-secret
+    scopes:
+      secondary:
+        batch-size: 200
+        logic-delete-enabled: false
+        audit-enabled: false
+        audit-auditor: batch-job
+        encryption-enabled: true
+        encryption-keys:
+          v1: secondary-secret
+```
+
+| Property | Default | Description |
+| --- | --- | --- |
+| `scopes.<name>.batch-size` | empty | Default batch size for the scope, must be greater than 0 |
+| `scopes.<name>.logic-delete-enabled` | empty | Whether the scope filters logically deleted rows |
+| `scopes.<name>.audit-enabled` | empty | Whether the scope fills audit fields |
+| `scopes.<name>.audit-auditor` | empty | Fixed auditor used by the scope |
+| `scopes.<name>.encryption-enabled` | empty | Whether field encryption is enabled for the scope |
+| `scopes.<name>.encryption-key` | empty | Single encryption key for the scope |
+| `scopes.<name>.encryption-keys` | empty | Multiple keys for the scope |
+| `scopes.<name>.encryption-active-key-id` | empty | Key id used for new ciphertext in the scope |
+
+Unconfigured items fall back to the global settings. Bind the scope when accessing that datasource:
+
+```java
+JpaPlusScope.run("secondary", () -> {
+    // Logic delete, auditing, encryption and batch size follow the secondary scope
+    secondaryRepository.findAll(spec);
+});
+
+// Use call when a value is returned
+Page<Order> page = JpaPlusScope.call(
+        "secondary",
+        () -> secondaryRepository.findAll(spec, pageable)
+);
+```
+
+- The binding affects only the current thread and restores the previous scope afterwards.
+- Bind it in a datasource routing aspect, an `@Async` task or a scheduled job entry instead of every DAO call.
+- Unknown scope names do not fail; they simply fall back to the global settings.
 
 ## Auto-Configuration Conditions
 

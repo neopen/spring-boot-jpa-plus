@@ -51,11 +51,26 @@ String value = Desensitizes.mask("13800001234", DesensitizeType.PHONE);
 
 ## JSON 序列化脱敏
 
+### fastjson2
+
 ```java
 String json = JSON.toJSONString(userView, new DesensitizeValueFilter());
 ```
 
 过滤器只处理标注 `@Desensitize` 的字段，未标注字段原样输出。嵌入到返回对象、列表或嵌套结构中的同类对象同样会生效。
+
+### Jackson
+
+引入 `jackson-databind` 后，自动配置会注册 `DesensitizeModule`，Spring MVC 的 `ObjectMapper` 直接生效：
+
+```java
+ObjectMapper mapper = new ObjectMapper();
+mapper.registerModule(new DesensitizeModule());
+
+String json = mapper.writeValueAsString(userView);
+```
+
+输出结果与 fastjson2 一致，只替换标注字段。未引入 Jackson 时该模块不会被加载。
 
 ## 注意事项
 

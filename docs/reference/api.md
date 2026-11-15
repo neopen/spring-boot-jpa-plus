@@ -19,11 +19,14 @@
 | `io.github.neopen.core.persistence.spec.JpaPlusSpecExecutor` | `Specification` 执行器（分页、切片、计数、删除） |
 | `io.github.neopen.core.persistence.spec.FetchJoinPaging` | fetch join 三段式分页 |
 | `io.github.neopen.core.persistence.sort.Sorts` | 安全排序解析器 |
+| `io.github.neopen.core.persistence.page.PageParams` | 请求分页参数，校验页码、每页数量与排序 |
+| `io.github.neopen.core.scope.JpaPlusScope` | 数据源作用域上下文，隔离逻辑删除、审计、加密与批量开关 |
 | `io.github.neopen.core.persistence.logicdelete.LogicDelete` | 逻辑删除字段注解 |
 | `io.github.neopen.core.persistence.logicdelete.LogicDeletes` | 逻辑删除过滤与删除操作 |
 | `io.github.neopen.core.persistence.audit.CreatedAt` / `UpdatedAt` / `CreatedBy` / `UpdatedBy` | 审计字段注解 |
 | `io.github.neopen.core.persistence.audit.AuditListener` | 审计字段实体监听器 |
 | `io.github.neopen.core.persistence.audit.Audits` | 审计运行时开关与配置 |
+| `io.github.neopen.core.persistence.audit.AuditorProvider` | 当前操作人提供者 SPI |
 | `io.github.neopen.core.persistence.mapping.ResultMapper` | 结果到 DTO 的映射器 |
 | `io.github.neopen.core.persistence.hql.HqlWrapper` | HQL 链式构建器 |
 | `io.github.neopen.core.persistence.hql.HqlOperator` / `StandardHqlOperator` | HQL 自定义运算符接口与内置实现 |
@@ -39,6 +42,7 @@
 | `io.github.neopen.core.persistence.encrypt.EncryptedField` | 加密字段标记注解 |
 | `io.github.neopen.core.persistence.encrypt.EncryptedFields` | AES-GCM 加解密工具 |
 | `io.github.neopen.core.persistence.encrypt.EncryptedFieldConverter` | 加密字段 JPA 转换器 |
+| `io.github.neopen.core.persistence.encrypt.DeterministicEncryptedFieldConverter` | 确定性加密字段 JPA 转换器，支持等值查询 |
 | `io.github.neopen.core.util.TreeUtils` | 平铺列表构建树 |
 | `io.github.neopen.core.id.SnowflakeIdGenerator` | 雪花 ID 生成器 |
 
@@ -74,6 +78,7 @@
 | `io.github.neopen.extension.annotation.SlowLog` | 慢方法日志 |
 | `io.github.neopen.extension.desensitize.DesensitizeType` / `Desensitizes` | 脱敏类型与工具 |
 | `io.github.neopen.extension.desensitize.DesensitizeValueFilter` | fastjson2 脱敏过滤器 |
+| `io.github.neopen.extension.desensitize.DesensitizeModule` / `DesensitizeJsonSerializer` | Jackson 脱敏模块与序列化器 |
 | `io.github.neopen.extension.response.Json` | 统一响应结构 |
 | `io.github.neopen.extension.response.JsonPageConverter` | 分页响应转换 |
 | `io.github.neopen.extension.response.JsonPageResponseFactory` | 分页响应结构扩展点 |

@@ -71,6 +71,19 @@ neopen:
 - The current state can also be read with `LogicDeletes.isEnabled()`.
 - `LogicDeletes.isLogicDeleted(Order.class)` can be used to check whether an entity declares a logical deletion field.
 
+In a multi-datasource setup, filtering can be disabled per scope without affecting the primary database:
+
+```java
+LogicDeletes.setEnabled("secondary", false);
+
+JpaPlusScope.run("secondary", () -> {
+    // Queries here do not filter logically deleted rows
+    secondaryRepository.findAll(spec);
+});
+```
+
+The matching property is `neopen.jpa.scopes.<name>.logic-delete-enabled`, see [Configuration](/en/reference/configuration).
+
 ## Applicable Boundaries
 
 - Filtering only takes effect for JPA Criteria queries, including `SpecWrapper` and `JpaPlusSpecExecutor`.

@@ -19,11 +19,14 @@ User-facing entry classes are listed by module. For complete signatures and para
 | `io.github.neopen.core.persistence.spec.JpaPlusSpecExecutor` | `Specification` executor (pagination, slices, counting, deletion) |
 | `io.github.neopen.core.persistence.spec.FetchJoinPaging` | Three-stage fetch join pagination |
 | `io.github.neopen.core.persistence.sort.Sorts` | Safe sort resolver |
+| `io.github.neopen.core.persistence.page.PageParams` | Request paging parameters with page, size and sort validation |
+| `io.github.neopen.core.scope.JpaPlusScope` | Datasource scope context isolating logic-delete, audit, encryption and batch switches |
 | `io.github.neopen.core.persistence.logicdelete.LogicDelete` | Logic delete field annotation |
 | `io.github.neopen.core.persistence.logicdelete.LogicDeletes` | Logic delete filtering and delete operations |
 | `io.github.neopen.core.persistence.audit.CreatedAt` / `UpdatedAt` / `CreatedBy` / `UpdatedBy` | Audit field annotations |
 | `io.github.neopen.core.persistence.audit.AuditListener` | Audit field entity listener |
 | `io.github.neopen.core.persistence.audit.Audits` | Audit runtime switches and configuration |
+| `io.github.neopen.core.persistence.audit.AuditorProvider` | SPI that supplies the current auditor |
 | `io.github.neopen.core.persistence.mapping.ResultMapper` | Mapper from results to DTOs |
 | `io.github.neopen.core.persistence.hql.HqlWrapper` | Chained HQL builder |
 | `io.github.neopen.core.persistence.hql.HqlOperator` / `StandardHqlOperator` | HQL custom operator interface and built-in implementation |
@@ -39,6 +42,7 @@ User-facing entry classes are listed by module. For complete signatures and para
 | `io.github.neopen.core.persistence.encrypt.EncryptedField` | Encrypted field marker annotation |
 | `io.github.neopen.core.persistence.encrypt.EncryptedFields` | AES-GCM encryption and decryption utility |
 | `io.github.neopen.core.persistence.encrypt.EncryptedFieldConverter` | Encrypted field JPA converter |
+| `io.github.neopen.core.persistence.encrypt.DeterministicEncryptedFieldConverter` | Deterministic encrypted field JPA converter with equality search support |
 | `io.github.neopen.core.util.TreeUtils` | Builds a tree from a flat list |
 | `io.github.neopen.core.id.SnowflakeIdGenerator` | Snowflake ID generator |
 
@@ -74,6 +78,7 @@ User-facing entry classes are listed by module. For complete signatures and para
 | `io.github.neopen.extension.annotation.SlowLog` | Slow method log |
 | `io.github.neopen.extension.desensitize.DesensitizeType` / `Desensitizes` | Masking types and utilities |
 | `io.github.neopen.extension.desensitize.DesensitizeValueFilter` | fastjson2 masking filter |
+| `io.github.neopen.extension.desensitize.DesensitizeModule` / `DesensitizeJsonSerializer` | Jackson masking module and serializer |
 | `io.github.neopen.extension.response.Json` | Unified response structure |
 | `io.github.neopen.extension.response.JsonPageConverter` | Paginated response conversion |
 | `io.github.neopen.extension.response.JsonPageResponseFactory` | Paginated response structure extension point |

@@ -193,9 +193,43 @@ HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
 | --- | --- |
 | `raw(String fragment)` | `fragment` |
 | `exists(String subQuery)` | `exists (subQuery)` |
+| `exists(String subQuery, Map<String, Object> params)` | `exists (subQuery)` with bound named parameters |
 | `notExists(String subQuery)` | `not exists (subQuery)` |
+| `notExists(String subQuery, Map<String, Object> params)` | `not exists (subQuery)` with bound named parameters |
 
-These three methods splice the content into the statement as is and do not take part in parameter binding; only static HQL written by developers may be passed in, and concatenating user input is forbidden.
+Named parameters in the subquery are replaced with framework-generated names and bound:
+
+```java
+HqlWrapper<Order> wrapper = HqlWrapper.create(Order.class)
+        .exists(
+                "select 1 from OrderItem i"
+                        + " where i.order.id = o.id and i.sku = :sku",
+                Map.of("sku", "A-1001")
+        );
+```
+
+::: warning Security note
+The statement structure passed to `raw`, `exists` and `notExists` is spliced into the HQL as is; only static strings written by developers may be passed in. Pass search values through the parameter map.
+:::
+
+### Grouping and Aggregation
+
+```java
+List<Tuple> rows = hqlExecutor.queryForList(
+        HqlWrapper.create(Order.class)
+                .select("status", "count(id)")
+                .groupBy("status")
+                .having("count(o.id) > 10")
+);
+```
+
+| Method | Description |
+| --- | --- |
+| `select(String...)` | Appends select expressions; simple property names get the root alias |
+| `groupBy(String...)` | Appends grouping expressions; simple property names get the root alias |
+| `having(String fragment)` | Appends a group filter fragment as is; static strings only |
+
+Without `select` the root entity is selected. `having` only goes into the main query, not the derived count statement; for fixed reporting queries pass an explicit count statement or use `SqlWrapper`.
 
 ## Pagination
 
@@ -298,7 +332,7 @@ int deleted = hqlExecutor.executeUpdate(
 
 ## Projection
 
-The builder always queries the root entity; when a projection is needed, use native HQL:
+The builder queries the root entity by default; you can also use `select` to pick columns or aggregate expressions and map them to `Tuple` or a DTO:
 
 ```java
 List<OrderSummary> summaries = hqlExecutor.queryForList(

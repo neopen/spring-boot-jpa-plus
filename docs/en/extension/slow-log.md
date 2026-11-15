@@ -40,6 +40,31 @@ neopen:
 
 Enabled by default. When disabled, the aspect is no longer registered.
 
+## Database slow SQL
+
+Slow method logging only points to a method, not to a specific statement. With the built-in slow SQL logging enabled, Hibernate writes statements that exceed the threshold to the `org.hibernate.SQL_SLOW` logger:
+
+```yaml
+neopen:
+  jpa:
+    slow-sql:
+      enabled: true
+      threshold-ms: 1000
+```
+
+| Property | Default | Description |
+| --- | --- | --- |
+| `neopen.jpa.slow-sql.enabled` | `false` | Whether slow SQL logging is enabled |
+| `neopen.jpa.slow-sql.threshold-ms` | `1000` | Threshold in milliseconds, must be greater than 0 |
+
+Set the logger level to `WARN` to see slow queries; combine it with `hibernate.show_sql` or the SQL logger when bound parameters are needed.
+
+```yaml
+logging:
+  level:
+    org.hibernate.SQL_SLOW: warn
+```
+
 ## Notes
 
 - The threshold is configured per method; it is recommended to set different thresholds for queries, writes, and batch processing.

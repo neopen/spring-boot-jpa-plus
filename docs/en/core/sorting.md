@@ -61,3 +61,52 @@ SqlWrapper.create("t_order", "o")
 ```
 
 Do not pass `Sort.by(request.getParameter("sort"))` to a query directly: `Sort` performs no field validation and cannot restrict external input.
+
+## Request Paging Parameters
+
+`PageParams` wraps page number, page size and sort validation on top of `Sorts`, so it can be bound directly to request parameters:
+
+```java
+@GetMapping("/orders")
+public Page<Order> page(
+        @RequestParam(defaultValue = "1") int page,
+        @RequestParam(defaultValue = "10") int size,
+        @RequestParam(required = false) String sort
+) {
+    Pageable pageable = PageParams.builder()
+            .page(page)
+            .size(size)
+            .sort(sort)
+            .entityType(Order.class)
+            .build()
+            .toPageable();
+
+    return orderRepository.findAll(spec, pageable);
+}
+```
+
+| Method | Description |
+| --- | --- |
+| `static PageParams of(int page)` | Page number, 10 records per page by default |
+| `static PageParams of(int page, int size)` | Page number and page size |
+| `static PageParams of(int page, int size, String sort)` | Adds a sort expression |
+| `builder()` | Full configuration with size limit, entity type, aliases and whitelist |
+| `toPageable()` | Converts to Spring Data `Pageable` |
+| `getOffset()` | Computes the offset |
+
+Rules:
+
+- Page numbers start at 1 and are shifted by one when converted to `Pageable`.
+- Page size is capped at `500` by default; larger values throw `IllegalArgumentException`. Adjust it with `maxSize`.
+- Sorting only accepts fields that `entityType` or `allowedFields` can validate; without either, sorting is ignored so unvalidated fields never reach SQL.
+
+```java
+PageParams.builder()
+        .page(1)
+        .size(20)
+        .maxSize(100)
+        .sort("name,desc")
+        .entityType(Order.class)
+        .aliases(Map.of("name", "customer.name"))
+        .build();
+```

@@ -44,11 +44,33 @@ public class Order {
 
 Unsupported types fail immediately during the first entity scan instead of being skipped silently.
 
+## Auditor Source
+
+In a Spring Boot application, register an `AuditorProvider` bean backed by the login context:
+
+```java
+@Configuration
+public class AuditConfiguration {
+
+    @Bean
+    public AuditorProvider auditorProvider() {
+        return () -> SecurityContextHolder.currentUsername();
+    }
+}
+```
+
+`AuditorProvider` takes precedence over `neopen.jpa.audit.auditor`: when the bean exists, it is called on every fill, which fits multi-user scenarios. Without the bean, the fixed configured value is used.
+
+Returning `null` or a blank string leaves the auditor field untouched.
+
 ## Runtime Configuration
 
 ```java
 Audits.setClock(Clock.systemDefaultZone());
 Audits.setAuditorSupplier(() -> currentUserId());
+
+// Or use the SPI directly
+Audits.setAuditorProvider(() -> currentUserId());
 ```
 
 | Method | Description |
@@ -56,6 +78,7 @@ Audits.setAuditorSupplier(() -> currentUserId());
 | `Audits.setEnabled(boolean)` / `isEnabled()` | Enable or disable auditing population |
 | `Audits.setClock(Clock)` | Set the clock, which affects the values of time fields |
 | `Audits.setAuditorSupplier(Supplier<String>)` | Set the source of the auditor |
+| `Audits.setAuditorProvider(AuditorProvider)` | Set the auditor source through the SPI |
 | `Audits.isAudited(Class<?>)` | Determine whether an entity contains auditing fields |
 
 Conventions:
@@ -78,7 +101,7 @@ neopen:
 | --- | --- | --- |
 | `neopen.jpa.audit.enabled` | `true` | Whether auditing population is enabled |
 | `neopen.jpa.audit.zone` | `UTC` | Time zone used when writing fields such as `LocalDateTime` and `ZonedDateTime` |
-| `neopen.jpa.audit.auditor` | Empty | Fixed auditor name; when empty, nothing is written |
+| `neopen.jpa.audit.auditor` | Empty | Fixed auditor name; when empty, nothing is written. An `AuditorProvider` bean takes precedence |
 
 Properties that are not configured do not override values set through `Audits` in code.
 

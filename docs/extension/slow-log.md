@@ -40,6 +40,31 @@ neopen:
 
 默认启用。关闭后切面不再注册。
 
+## 数据库慢 SQL
+
+慢方法日志只能定位到方法，无法指出具体语句。开启内置的慢 SQL 日志后，Hibernate 会把执行时间超过阈值的 SQL 输出到 `org.hibernate.SQL_SLOW` 日志器：
+
+```yaml
+neopen:
+  jpa:
+    slow-sql:
+      enabled: true
+      threshold-ms: 1000
+```
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `neopen.jpa.slow-sql.enabled` | `false` | 是否开启慢 SQL 日志 |
+| `neopen.jpa.slow-sql.threshold-ms` | `1000` | 触发阈值，单位毫秒，必须大于 0 |
+
+日志级别设为 `WARN` 即可看到慢查询；需要同时输出绑定参数时，配合 `hibernate.show_sql` 或 SQL 日志器使用。
+
+```yaml
+logging:
+  level:
+    org.hibernate.SQL_SLOW: warn
+```
+
 ## 注意事项
 
 - 阈值按方法单独配置，建议区分查询、写入与批处理设置不同阈值。

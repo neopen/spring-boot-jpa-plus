@@ -44,11 +44,33 @@ public class Order {
 
 不支持的类型会在首次扫描实体时直接失败，不会静默跳过。
 
+## 操作人来源
+
+Spring Boot 环境推荐注册 `AuditorProvider` Bean，由容器注入登录上下文：
+
+```java
+@Configuration
+public class AuditConfiguration {
+
+    @Bean
+    public AuditorProvider auditorProvider() {
+        return () -> SecurityContextHolder.currentUsername();
+    }
+}
+```
+
+`AuditorProvider` 的优先级高于 `neopen.jpa.audit.auditor`：容器存在该 Bean 时，每次填充都会调用它获取当前操作人，适合多用户场景。未注册 Bean 时回退到固定配置值。
+
+返回 `null` 或空白字符串时不写入操作人字段。
+
 ## 运行时配置
 
 ```java
 Audits.setClock(Clock.systemDefaultZone());
 Audits.setAuditorSupplier(() -> currentUserId());
+
+// 或直接使用 SPI
+Audits.setAuditorProvider(() -> currentUserId());
 ```
 
 | 方法 | 说明 |
@@ -56,6 +78,7 @@ Audits.setAuditorSupplier(() -> currentUserId());
 | `Audits.setEnabled(boolean)` / `isEnabled()` | 启用或停用审计填充 |
 | `Audits.setClock(Clock)` | 设置时钟，影响时间字段取值 |
 | `Audits.setAuditorSupplier(Supplier<String>)` | 设置操作人来源 |
+| `Audits.setAuditorProvider(AuditorProvider)` | 通过 SPI 设置操作人来源 |
 | `Audits.isAudited(Class<?>)` | 判断实体是否包含审计字段 |
 
 约定：
@@ -78,7 +101,7 @@ neopen:
 | --- | --- | --- |
 | `neopen.jpa.audit.enabled` | `true` | 是否启用审计填充 |
 | `neopen.jpa.audit.zone` | `UTC` | 写入 `LocalDateTime`、`ZonedDateTime` 等字段时使用的时区 |
-| `neopen.jpa.audit.auditor` | 空 | 固定的操作人名称，为空时不写入 |
+| `neopen.jpa.audit.auditor` | 空 | 固定的操作人名称，为空时不写入；存在 `AuditorProvider` Bean 时以该 Bean 为准 |
 
 未配置的属性不会覆盖代码中通过 `Audits` 设置的值。
 

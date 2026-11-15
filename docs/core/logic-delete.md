@@ -71,6 +71,19 @@ neopen:
 - 也可以通过 `LogicDeletes.isEnabled()` 读取当前状态。
 - 可用 `LogicDeletes.isLogicDeleted(Order.class)` 判断实体是否声明了逻辑删除字段。
 
+多数据源场景可以按作用域单独关闭过滤，不影响主库：
+
+```java
+LogicDeletes.setEnabled("secondary", false);
+
+JpaPlusScope.run("secondary", () -> {
+    // 这里查询不过滤已删除数据
+    secondaryRepository.findAll(spec);
+});
+```
+
+对应的配置项为 `neopen.jpa.scopes.<name>.logic-delete-enabled`，详见[配置项](/reference/configuration)。
+
 ## 适用边界
 
 - 过滤只对 JPA Criteria 查询生效，包括 `SpecWrapper`、`JpaPlusSpecExecutor`。

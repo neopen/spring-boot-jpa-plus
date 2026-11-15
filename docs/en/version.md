@@ -42,7 +42,9 @@
 | --- | --- | --- |
 | Enum value conversion | `@EnumValue`, `EnumValues`, `EnumValueConverter` | Persists enums as explicit business values, declared either on constants or on a no-arg method |
 | Field encryption | `@EncryptedField`, `EncryptedFields`, `EncryptedFieldConverter` | Transparent AES/GCM encryption with random IV; accepts a string secret or a 16/24/32-byte key |
-| Data desensitization | `@Desensitize`, `Desensitizes`, `DesensitizeValueFilter` | Masks names, phones, ID cards, bank cards, emails, addresses and passwords, plus a fastjson2 value filter |
+| Key rotation | `EncryptedFields#setKeys`, `neopen.jpa.encryption.keys` | Multiple keys with a key-id prefix on new ciphertext; historical data stays readable |
+| Deterministic encryption | `EncryptedFields#encryptDeterministic`, `DeterministicEncryptedFieldConverter` | IV derived from the plaintext so equal values produce equal ciphertext and support equality search |
+| Data desensitization | `@Desensitize`, `Desensitizes`, `DesensitizeValueFilter` | Masks names, phones, ID cards, bank cards, emails, addresses and passwords, with fastjson2 and Jackson integration |
 
 ### New: performance and reliability
 
@@ -50,7 +52,8 @@
 | --- | --- | --- |
 | Optimistic-lock retry | `@RetryOnOptimisticLock` | Retries on optimistic-lock failures, default 3 attempts with a 50ms delay |
 | Slow method logging | `@SlowLog` | Logs a WARN when a method exceeds the threshold (default 500ms) |
-| Auditing | `@CreatedAt`, `@UpdatedAt`, `@CreatedBy`, `@UpdatedBy`, `Audits` | Maintains creation and update metadata through an entity listener |
+| Slow SQL logging | `neopen.jpa.slow-sql` | Uses Hibernate's slow-query threshold to log SQL and execution time above the limit |
+| Auditing | `@CreatedAt`, `@UpdatedAt`, `@CreatedBy`, `@UpdatedBy`, `Audits` | Maintains creation and update metadata through an entity listener; plug in `AuditorProvider` for the current user |
 | Logical deletion write side | `LogicDeletes` | Completes update and delete handling on top of the 0.4.0 query filter |
 | Batch enhancements | `BatchOperation` | Flushes / clears per batch and supports batch save, update and delete |
 
@@ -58,7 +61,10 @@
 
 | Capability | Entry point | Description |
 | --- | --- | --- |
-| Raw fragments and subqueries | `HqlWrapper#raw`, `SqlWrapper#raw`, `exists`, `notExists` | Appends static condition fragments and `exists` subqueries |
+| Raw fragments and subqueries | `HqlWrapper#raw`, `SqlWrapper#raw`, `exists`, `notExists` | Appends static condition fragments and `exists` subqueries with named parameter binding |
+| Grouped queries | `HqlWrapper#select`, `groupBy`, `having`, `SqlWrapper#having` | Aggregate columns, grouping and group filters; the SQL count is wrapped as a subquery |
+| union | `SqlWrapper#union`, `unionAll` | Merges query parts with the same shape; parameters are renumbered and pagination counts correctly |
+| Request paging | `PageParams` | Validates page number, size limit and sort fields before converting to `Pageable` |
 | Field mapping | `HqlWrapper#alias`, `SqlWrapper#alias` | Maps query parameter names to entity properties or column names |
 | Existence check | `JpaPlusSpecExecutor#exists` | Count-based existence check without loading entities |
 | DTO projection | `ResultMapper` | Matches DTO fields by alias, accepting camelCase and snake_case |
@@ -76,6 +82,11 @@
 - Annotation-driven rate limiting via `@RateLimit` and idempotency enhancements.
 - Aspect switches: `neopen.extension.retry.enabled` and `neopen.extension.slow-log.enabled`, enabled by default.
 - Encryption settings: `neopen.jpa.encryption.enabled` (default `true`) and `neopen.jpa.encryption.key`.
+- Key rotation settings: `neopen.jpa.encryption.keys` (key id to secret) and `neopen.jpa.encryption.active-key-id`.
+- Slow SQL settings: `neopen.jpa.slow-sql.enabled` (default `false`) and `neopen.jpa.slow-sql.threshold-ms` (default `1000`).
+- When Jackson is present, the extension module registers `DesensitizeModule` automatically; without Jackson nothing changes.
+- Register an `AuditorProvider` bean to resolve the current user dynamically; it takes precedence over `neopen.jpa.audit.auditor`.
+- Multi-datasource isolation: `JpaPlusScope` binds logic-delete, auditing, encryption and batch-size switches per scope, configured through `neopen.jpa.scopes.<name>`.
 
 ### Changes and migration
 
