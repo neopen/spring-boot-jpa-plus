@@ -1,10 +1,13 @@
 package io.github.neopen.core.persistence.batch;
 
+import io.github.neopen.core.scope.JpaPlusScope;
 import jakarta.persistence.EntityManager;
 
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -21,6 +24,10 @@ public final class BatchOperation {
 
     /** 默认每批处理的实体数量。 */
     private static volatile int defaultBatchSize = 500;
+
+    /** 按数据源作用域配置的批次大小。 */
+    private static final Map<String, Integer> scopeBatchSizes =
+            new ConcurrentHashMap<>();
 
     /** 工具类不允许实例化。 */
     private BatchOperation() {
@@ -46,12 +53,57 @@ public final class BatchOperation {
     }
 
     /**
-     * 获取默认批次大小。
+     * 为指定数据源作用域设置默认批次大小。
+     *
+     * @param scope     作用域名称，等于默认作用域时等同于全局设置
+     * @param batchSize 每批处理的实体数量，必须大于 0
+     * @throws IllegalArgumentException 作用域名称为空或批次大小不大于 0
+     */
+    public static void setDefaultBatchSize(String scope, int batchSize) {
+        if (JpaPlusScope.isDefault(scope)) {
+            setDefaultBatchSize(batchSize);
+            return;
+        }
+
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException(
+                    "Default batchSize must be greater than zero"
+            );
+        }
+
+        scopeBatchSizes.put(
+                JpaPlusScope.requireName(scope),
+                batchSize
+        );
+    }
+
+    /**
+     * 获取全局默认批次大小。
      *
      * @return 每批处理的实体数量
      */
     public static int getDefaultBatchSize() {
         return defaultBatchSize;
+    }
+
+    /**
+     * 获取指定作用域生效的批次大小。
+     *
+     * @param scope 作用域名称，允许为 {@code null}
+     * @return 每批处理的实体数量
+     */
+    public static int getDefaultBatchSize(String scope) {
+        return activeBatchSize(scope);
+    }
+
+    /**
+     * 清除指定作用域的批次大小配置。
+     *
+     * @param scope 作用域名称
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void clearScope(String scope) {
+        scopeBatchSizes.remove(JpaPlusScope.requireName(scope));
     }
 
     /**
@@ -125,7 +177,7 @@ public final class BatchOperation {
         return mergeAll(
                 entityManager,
                 entities,
-                defaultBatchSize
+                activeBatchSize()
         );
     }
 
@@ -243,7 +295,7 @@ public final class BatchOperation {
         removeAll(
                 entityManager,
                 entities,
-                defaultBatchSize
+                activeBatchSize()
         );
     }
 
@@ -294,5 +346,30 @@ public final class BatchOperation {
         if (!batch.isEmpty()) {
             consumer.accept(batch);
         }
+    }
+
+    /**
+     * 获取当前作用域生效的批次大小。
+     *
+     * @return 每批处理的实体数量
+     */
+    private static int activeBatchSize() {
+        return activeBatchSize(JpaPlusScope.currentScopeName());
+    }
+
+    /**
+     * 解析指定作用域生效的批次大小。
+     *
+     * @param scope 作用域名称，允许为 {@code null}
+     * @return 每批处理的实体数量
+     */
+    private static int activeBatchSize(String scope) {
+        if (scope == null) {
+            return defaultBatchSize;
+        }
+
+        Integer scoped = scopeBatchSizes.get(scope);
+
+        return scoped == null ? defaultBatchSize : scoped;
     }
 }

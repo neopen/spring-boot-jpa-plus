@@ -1,6 +1,7 @@
 package io.github.neopen.core.persistence.logicdelete;
 
 import io.github.neopen.core.exception.JpaPlusException;
+import io.github.neopen.core.scope.JpaPlusScope;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.metamodel.EntityType;
@@ -9,6 +10,8 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 逻辑删除过滤工具。
@@ -35,6 +38,10 @@ public final class LogicDeletes {
     /** 是否启用逻辑删除过滤，默认启用。 */
     private static volatile boolean enabled = true;
 
+    /** 按数据源作用域配置的过滤开关。 */
+    private static final Map<String, Boolean> scopeEnabled =
+            new ConcurrentHashMap<>();
+
     /** 工具类不允许实例化。 */
     private LogicDeletes() {
     }
@@ -53,12 +60,51 @@ public final class LogicDeletes {
     }
 
     /**
-     * 判断逻辑删除过滤是否启用。
+     * 为指定数据源作用域设置逻辑删除过滤开关。
+     *
+     * <p>在 {@link JpaPlusScope} 绑定的作用域内，该值优先于全局开关：
+     * 多数据源应用中可以让主库过滤已删除数据、从库或归档库不过滤。</p>
+     *
+     * @param scope   作用域名称，等于默认作用域时等同于全局设置
+     * @param enabled 是否启用过滤
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void setEnabled(String scope, boolean enabled) {
+        if (JpaPlusScope.isDefault(scope)) {
+            setEnabled(enabled);
+            return;
+        }
+
+        scopeEnabled.put(JpaPlusScope.requireName(scope), enabled);
+    }
+
+    /**
+     * 清除指定作用域的逻辑删除过滤开关。
+     *
+     * @param scope 作用域名称
+     * @throws IllegalArgumentException 作用域名称为空时抛出
+     */
+    public static void clearScope(String scope) {
+        scopeEnabled.remove(JpaPlusScope.requireName(scope));
+    }
+
+    /**
+     * 判断全局逻辑删除过滤是否启用。
      *
      * @return 启用时返回 {@code true}
      */
     public static boolean isEnabled() {
         return enabled;
+    }
+
+    /**
+     * 判断指定作用域的逻辑删除过滤是否启用。
+     *
+     * @param scope 作用域名称，允许为 {@code null}
+     * @return 启用时返回 {@code true}
+     */
+    public static boolean isEnabled(String scope) {
+        return activeEnabled(scope);
     }
 
     /**
@@ -86,7 +132,7 @@ public final class LogicDeletes {
     public static <T> Specification<T> filter(Class<T> entityType) {
         requireType(entityType);
 
-        if (!enabled) {
+        if (!activeEnabled(JpaPlusScope.currentScopeName())) {
             return (root, query, cb) -> cb.conjunction();
         }
 
@@ -113,7 +159,8 @@ public final class LogicDeletes {
     ) {
         requireType(entityType);
 
-        if (!enabled || !isLogicDeleted(entityType)) {
+        if (!activeEnabled(JpaPlusScope.currentScopeName())
+                || !isLogicDeleted(entityType)) {
             return specification;
         }
 
@@ -249,6 +296,22 @@ public final class LogicDeletes {
         }
 
         return entityType;
+    }
+
+    /**
+     * 解析指定作用域生效的过滤开关。
+     *
+     * @param scope 作用域名称，允许为 {@code null}
+     * @return 启用时返回 {@code true}
+     */
+    private static boolean activeEnabled(String scope) {
+        if (scope == null) {
+            return enabled;
+        }
+
+        Boolean scoped = scopeEnabled.get(scope);
+
+        return scoped == null ? enabled : scoped;
     }
 
     /**

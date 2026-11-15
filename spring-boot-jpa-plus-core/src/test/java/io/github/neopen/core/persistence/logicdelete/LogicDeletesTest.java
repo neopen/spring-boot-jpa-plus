@@ -1,6 +1,7 @@
 package io.github.neopen.core.persistence.logicdelete;
 
 import io.github.neopen.core.persistence.spec.SpecWrapper;
+import io.github.neopen.core.scope.JpaPlusScope;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.Query;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -20,6 +21,7 @@ import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -38,6 +40,8 @@ class LogicDeletesTest {
     @AfterEach
     void reset() {
         LogicDeletes.setEnabled(true);
+        LogicDeletes.clearScope("secondary");
+        JpaPlusScope.clear();
     }
 
     /**
@@ -88,6 +92,33 @@ class LogicDeletesTest {
 
         assertThat(predicate).isSameAs(expected);
         verify(cb).equal(deletedPath, false);
+    }
+
+    /**
+     * 验证按数据源作用域关闭过滤时不影响全局开关。
+     */
+    @Test
+    void shouldUseScopedSwitch() {
+        LogicDeletes.setEnabled("secondary", false);
+
+        Root<Order> root = mock(Root.class);
+        CriteriaQuery<?> query = mock(CriteriaQuery.class);
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        Predicate conjunction = mock(Predicate.class);
+
+        when(cb.conjunction()).thenReturn(conjunction);
+
+        Predicate scoped = JpaPlusScope.call(
+                "secondary",
+                () -> LogicDeletes.filter(Order.class)
+                        .toPredicate(root, query, cb)
+        );
+
+        assertThat(scoped).isSameAs(conjunction);
+        assertThat(LogicDeletes.isEnabled()).isTrue();
+        assertThat(LogicDeletes.isEnabled("secondary")).isFalse();
+        assertThat(LogicDeletes.isEnabled("unknown")).isTrue();
+        verify(cb, never()).equal(any(Path.class), any(Object.class));
     }
 
     /**

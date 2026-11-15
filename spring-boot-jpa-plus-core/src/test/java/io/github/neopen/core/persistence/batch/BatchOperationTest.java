@@ -1,5 +1,6 @@
 package io.github.neopen.core.persistence.batch;
 
+import io.github.neopen.core.scope.JpaPlusScope;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -24,6 +25,37 @@ class BatchOperationTest {
     @AfterEach
     void reset() {
         BatchOperation.setDefaultBatchSize(500);
+        BatchOperation.clearScope("secondary");
+        JpaPlusScope.clear();
+    }
+
+    /**
+     * 验证按数据源作用域隔离批次大小。
+     */
+    @Test
+    void shouldUseScopedBatchSize() {
+        BatchOperation.setDefaultBatchSize("secondary", 2);
+        BatchOperation.setDefaultBatchSize(3);
+
+        assertThat(BatchOperation.getDefaultBatchSize()).isEqualTo(3);
+        assertThat(BatchOperation.getDefaultBatchSize("secondary"))
+                .isEqualTo(2);
+        assertThat(BatchOperation.getDefaultBatchSize("unknown"))
+                .isEqualTo(3);
+
+        EntityManager entityManager = mock(EntityManager.class);
+        List<String> entities = List.of("a", "b", "c");
+
+        JpaPlusScope.run(
+                "secondary",
+                () -> BatchOperation.mergeAll(entityManager, entities)
+        );
+
+        verify(entityManager, times(3)).merge(
+                org.mockito.ArgumentMatchers.any()
+        );
+        verify(entityManager, times(2)).flush();
+        verify(entityManager, times(2)).clear();
     }
 
     /**
