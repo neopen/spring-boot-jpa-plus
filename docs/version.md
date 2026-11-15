@@ -1,51 +1,139 @@
 # 版本发布
 
 ::: warning 特别说明
-- 当前正式发布版本为 **0.4.x**，可以直接通过 Maven 依赖引入。
-- 代码仓库 `main` 分支对应 **0.5 版本**，尚未发布，将在后续正式发布。
-- 本站文档按 **0.5 版本**编写，描述的是 `main` 分支的最新行为。
-- 因此，通过 Maven 引入的 **0.4 版本不支持**本文档中的 0.5 新功能。
+- 当前正式发布版本为 **0.4.0**，可以直接通过 Maven 依赖引入。
+- 代码仓库 `main` 分支对应 **0.5.0**，尚未发布，将在后续正式发布。
+- 本站文档按 **0.5.0** 编写，描述的是 `main` 分支的最新行为。
+- 因此，通过 Maven 引入的 **0.4.0 不支持**本文档中的 0.5 新功能。
 :::
 
-## 版本对应关系
+## 版本总览
 
-| 项 | 版本 | 说明 |
+| 版本 | 状态 | 日期 | 说明 |
+| --- | --- | --- | --- |
+| `0.5.0` | 开发中 | — | 新增枚举转换、字段加密、脱敏、重试、慢日志、树与雪花 ID 等能力 |
+| `0.4.0` | 已发布 | 2026-11-13 | 逻辑删除、条件分组、Specification 执行器，当前稳定版本 |
+| `0.3.0` | 已发布 | 2026-11-13 | 注解式查询条件、安全排序、fetch join 分页 |
+| `0.2.1` | 已发布 | 2026-11-12 | 示例与稳定性调整，无 API 变更 |
+| `0.2.0` | 已发布 | 2026-11-12 | Specification 链式构建器 `SpecWrapper` |
+| `0.1.2` | 已发布 | 2026-11-12 | 原生 SQL 链式封装与连表示例 |
+| `0.1.1` | 已发布 | 2026-11-11 | HQL 链式查询与示例双实现 |
+| `0.1.0` | 已发布 | 2026-11-05 | 首个版本：模块骨架、DAO、查询执行器、转换与扩展 |
+
+## 兼容性基线
+
+| 项 | 0.4.0 | 0.5.0 |
 | --- | --- | --- |
-| Maven 正式发布 | `0.4.x` | 可直接依赖，仅包含 0.4 已有能力 |
-| 源码 `main` 分支 | `0.5.0`（未发布） | 包含全部 0.5 新增能力 |
-| 本站文档 | `0.5` | 按 0.5 行为编写 |
+| JDK | 17+ | 17+ |
+| Spring Boot | 3.x | 3.x |
+| Hibernate | 6.x | 6.x |
+| 持久化 API | `jakarta.persistence` | `jakarta.persistence` |
+| Maven | 3.x | 3.x |
+| 模块结构 | core / convert / autoconfigure / starter / extension | 与 0.4.0 相同 |
+| 坐标 | `io.github.neopen:*` | 与 0.4.0 相同 |
 
-## 0.5 新增能力
+`starter` 只传递 `core`、`convert`、`autoconfigure`；`extension` 需要单独引入，两个版本保持一致。
 
-以下能力随 0.5 版本发布，0.4 版本不包含：
+## 0.5.0（开发中）
 
-| 能力 | 入口类 / 注解 | 文档 |
+### 新增：字段转换与数据安全
+
+| 能力 | 入口 | 说明 |
 | --- | --- | --- |
-| 枚举值转换 | `@EnumValue`、`EnumValues`、`EnumValueConverter` | [枚举值转换](/core/enum-convert) |
-| 字段加密 | `@EncryptedField`、`EncryptedFields` | [字段加密](/core/encryption) |
-| 树形结构构建 | `TreeUtils` | [树形结构](/core/tree) |
-| 雪花 ID | `SnowflakeIdGenerator` | [雪花 ID](/core/id-generator) |
-| 查询构造器增强 | `raw`、`exists`、`notExists`、`alias` | [HQL 查询](/query/hql)、[原生 SQL 查询](/query/sql) |
-| 存在性判断 | `JpaPlusSpecExecutor#exists` | [Specification 执行器](/core/executor) |
-| 数据脱敏 | `@Desensitize`、`Desensitizes` | [数据脱敏](/extension/desensitize) |
-| 乐观锁重试 | `@RetryOnOptimisticLock` | [乐观锁重试](/extension/retry) |
-| 慢方法日志 | `@SlowLog` | [慢方法日志](/extension/slow-log) |
+| 枚举值转换 | `@EnumValue`、`EnumValues`、`EnumValueConverter` | 枚举持久化为显式业务值，支持常量注解与无参方法两种声明 |
+| 字段加密 | `@EncryptedField`、`EncryptedFields`、`EncryptedFieldConverter` | AES/GCM 透明加解密，随机 IV，支持字符串密钥与 16/24/32 字节密钥 |
+| 数据脱敏 | `@Desensitize`、`Desensitizes`、`DesensitizeValueFilter` | 姓名、手机号、身份证、银行卡、邮箱、地址、密码脱敏，并提供 fastjson2 过滤器 |
 
-## 0.4 能力范围
+### 新增：性能与可靠性
 
-0.4 版本已经包含模块骨架、通用 DAO、动态条件查询、Specification 构建器与执行器、
-HQL / 原生 SQL 构建器、逻辑删除、审计字段、批量操作、DTO 投影、安全排序、
-Entity → VO 转换、Param → Entity 映射，以及幂等、限流、操作日志、统一分页响应等扩展组件。
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 乐观锁重试 | `@RetryOnOptimisticLock` | 捕获乐观锁异常并按次数重试，默认 3 次、间隔 50ms |
+| 慢方法日志 | `@SlowLog` | 超过阈值（默认 500ms）打印 WARN 日志 |
+| 审计字段 | `@CreatedAt`、`@UpdatedAt`、`@CreatedBy`、`@UpdatedBy`、`Audits` | 由实体监听器自动维护创建与更新信息 |
+| 逻辑删除写侧 | `LogicDeletes` | 在 0.4.0 查询过滤基础上补齐更新与删除 |
+| 批量增强 | `BatchOperation` | 分批 flush / clear，支持批量保存、更新、删除 |
+
+### 新增：查询能力补强
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 原生片段与子查询 | `HqlWrapper#raw`、`SqlWrapper#raw`、`exists`、`notExists` | 追加静态条件片段与 `exists` 子查询 |
+| 字段映射 | `HqlWrapper#alias`、`SqlWrapper#alias` | 查询参数名与实体属性/列名不一致时做映射 |
+| 存在性判断 | `JpaPlusSpecExecutor#exists` | 基于计数判断是否存在，避免加载实体 |
+| DTO 投影 | `ResultMapper` | 按别名匹配 DTO 字段，兼容驼峰与下划线 |
+| 参数转实体 | `ParamMapper`、`@ParamField`、`@ParamIgnore` | 参数对象映射到实体，仅覆盖非空字段 |
+
+### 新增：基础组件
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 树构建 | `TreeUtils` | 扁平列表按 id / parentId 组装为树，检测重复、自引用与环 |
+| 雪花 ID | `SnowflakeIdGenerator` | 41 位时间戳 + 5 位数据中心 + 5 位机器 + 12 位序列，时钟回拨抛错 |
+
+### 新增：扩展与配置
+
+- 注解式限流 `@RateLimit` 与幂等能力增强。
+- 扩展切面开关：`neopen.extension.retry.enabled`、`neopen.extension.slow-log.enabled`，默认开启。
+- 加密配置：`neopen.jpa.encryption.enabled`（默认 `true`）、`neopen.jpa.encryption.key`。
+
+### 变更与迁移
+
+- 移除 `BaseVo` 基类约束，视图对象可以是任意 POJO；0.4.0 中继承 `BaseVo` 的 VO 需要去掉该父类。
+- 未配置 `neopen.jpa.encryption.key` 时，`@EncryptedField` 字段读写会抛出 `JpaPlusException`，避免明文入库。
+- 新增的切面默认启用，不需要时通过上述开关关闭。
+
+## 0.4.0（当前发布版本）
+
+### 功能范围
+
+- **核心持久化**：`JpaPlusDao`、`AbstractJpaPlusDao` 提供 CRUD、分页与批量能力；`QueryWrapper` 提供链式动态条件。
+- **查询构建**：`HqlWrapper`、`SqlWrapper` 链式构造 HQL 与原生 SQL，`JpaPlusHqlExecutor`、`JpaPlusSqlExecutor` 负责分页与计数。
+- **Specification**：`SpecWrapper` 构造 `Specification`，`JpaPlusSpecExecutor` 处理计数、分页与 `countDistinct`，`FetchJoinPaging` 通过 count → 主键分页 → 主键加载避免连表重复行。
+- **注解式条件**：`@QueryCondition` 支持操作符、字段别名、区间结束字段与 `group` 分组（组内 OR、组间 AND）。
+- **安全排序**：`Sorts` 按实体字段或白名单校验排序表达式。
+- **逻辑删除**：`@LogicDelete` + `LogicDeletes` 在 Criteria 查询中自动追加过滤条件。
+- **转换**：`BaseVoService`、`AbstractBaseService`、`BaseVoCommom`、`BaseServiceFactory` 完成 Entity → VO 转换；`@DateStrFormat`、`@DateStrValid` 处理日期字符串。
+- **扩展**：`@Idempotent` 幂等控制、`@SysControllerLog` / `@SysServiceLog` 操作日志、`JsonPageConverter` 统一分页响应、`RateLimiterUtil` 本地限流工具类。
+
+### 限制
+
+- 审计字段、DTO 投影、参数转实体映射、`@RateLimit` 注解尚未提供，这些能力从 0.5.0 开始提供。
+- 逻辑删除只作用于查询；更新与删除的写侧处理在 0.5.0 补齐。
+- 限流仅为工具类，需要业务自行调用。
+
+## 0.3.0
+
+- 新增 `@QueryCondition` 注解式查询条件映射。
+- 新增 `Sorts` 安全排序。
+- 新增 `FetchJoinPaging` fetch join 分页。
+
+## 0.2.1
+
+- 示例工程与稳定性调整，未新增或变更公共 API。
+
+## 0.2.0
+
+- 新增 `SpecWrapper`，用链式风格构造 JPA `Specification`。
+
+## 0.1.2
+
+- 新增 `SqlWrapper`、`JpaPlusSqlExecutor` 原生 SQL 链式查询与执行。
+- 补充 JPA 连表查询示例。
+
+## 0.1.1
+
+- 新增 `HqlWrapper`、`JpaPlusHqlExecutor` HQL 链式查询。
+- 示例项目提供 JPA 与 HQL 两套实现。
+
+## 0.1.0
+
+- 首个发布版本：`core`、`convert`、`autoconfigure`、`starter`、`extension` 模块骨架。
+- 提供 `JpaPlusDao` / `AbstractJpaPlusDao`、`QueryWrapper`、HQL 与 SQL 执行器、`BatchOperation`。
+- 提供 Entity → VO 转换服务，以及幂等、操作日志、统一分页响应扩展。
 
 ## 选择依赖版本
 
-- **稳定使用**：依赖 0.4.x 发布版本，并按 0.4 的行为使用 API。
+- **稳定使用**：依赖 0.4.0，并按 0.4.0 的 API 使用文档中已发布的能力。
 - **提前体验 0.5**：克隆源码后执行 `mvn install -DskipTests` 安装到本地仓库，再将依赖版本改为本地构建版本。
-- **等待正式发布**：0.5 正式发布后，本站文档与 Maven 依赖将保持一致。
-
-## 发布记录
-
-| 版本 | 状态 | 说明 |
-| --- | --- | --- |
-| `0.5.0` | 开发中 | 新增枚举转换、字段加密、树工具、雪花 ID、脱敏、重试与慢日志等能力 |
-| `0.4.x` | 已发布 | 基础能力与扩展组件 |
+- **等待正式发布**：0.5.0 发布后，本站文档与 Maven 依赖将保持一致。
