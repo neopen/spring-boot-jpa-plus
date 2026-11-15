@@ -10,6 +10,10 @@ import java.util.Collection;
 
 /**
  * 内置 JPA Criteria 运算符。
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 public enum StandardSpecOperator implements SpecOperator {

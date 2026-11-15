@@ -4,6 +4,10 @@ package io.github.neopen.core.persistence.condition;
  * 条件应用回调。
  *
  * <p>由查询构造器实现，把参数注解解析出的条件写入具体查询。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @FunctionalInterface
 public interface ConditionApplier {

@@ -9,6 +9,10 @@ import jakarta.persistence.criteria.Predicate;
  *
  * <p>实现类负责把一个字段路径和参数转换为 Criteria 谓词，
  * 便于扩展自定义运算符。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public interface SpecOperator {
 

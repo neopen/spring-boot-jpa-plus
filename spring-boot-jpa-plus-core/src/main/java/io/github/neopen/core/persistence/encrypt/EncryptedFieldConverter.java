@@ -17,6 +17,10 @@ import jakarta.persistence.AttributeConverter;
  * }</pre>
  *
  * <p>只会加密字符串字段，数值、日期等类型请先转换为字符串再存储。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class EncryptedFieldConverter
         implements AttributeConverter<String, String> {

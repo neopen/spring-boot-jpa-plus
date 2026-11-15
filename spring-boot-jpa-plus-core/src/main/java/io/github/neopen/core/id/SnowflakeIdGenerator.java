@@ -14,6 +14,10 @@ package io.github.neopen.core.id;
  *
  * <p>同一 JVM 内应使用单例；多实例部署时需保证机器 ID 与数据中心 ID
  * 组合唯一。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class SnowflakeIdGenerator {
 

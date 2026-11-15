@@ -14,6 +14,10 @@ import java.lang.annotation.Target;
  * {@code SpecWrapper#filterDeleted()} 可以统一追加过滤条件。</p>
  *
  * <p>该注解只对 JPA Criteria 查询生效，原生 SQL 查询需要自行处理。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

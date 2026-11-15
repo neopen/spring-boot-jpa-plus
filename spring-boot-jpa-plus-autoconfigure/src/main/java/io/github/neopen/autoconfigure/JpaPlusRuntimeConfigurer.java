@@ -18,6 +18,10 @@ import java.time.ZoneId;
  *
  * <p>业务代码仍可在运行期调用 {@link LogicDeletes#setEnabled}、
  * {@link Audits#setEnabled} 等方法动态调整。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JpaPlusRuntimeConfigurer {
 

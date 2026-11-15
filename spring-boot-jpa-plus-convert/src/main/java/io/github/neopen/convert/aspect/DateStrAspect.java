@@ -22,6 +22,10 @@ import java.util.regex.Pattern;
  *
  * <p>在带有日期校验注解的方法执行前，检查参数对象字段上的
  * {@link DateStrFormat} 配置。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Aspect
 @Component

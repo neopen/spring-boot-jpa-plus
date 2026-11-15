@@ -11,6 +11,10 @@ import java.util.List;
  * <p>通过链式调用累积查询条件，所有条件最终以逻辑与组合。</p>
  *
  * @param <T> 实体类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class QueryWrapper<T> {
 

@@ -40,6 +40,10 @@ import java.util.function.UnaryOperator;
  *
  * <p>空表达式返回 {@link Sort#unsorted()}，非法字段、非法路径或
  * 非法方向抛出 {@link IllegalArgumentException}。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class Sorts {
 

@@ -47,6 +47,10 @@ import org.springframework.orm.jpa.SharedEntityManagerCreator;
  * 默认 Bean 使用 ConditionalOnMissingBean 或名称条件，
  * 用户可以自行提供实现来覆盖默认组件。
  * </p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @AutoConfiguration(after = HibernateJpaAutoConfiguration.class)
 @ConditionalOnClass({

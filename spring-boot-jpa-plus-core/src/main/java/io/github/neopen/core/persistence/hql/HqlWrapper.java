@@ -25,6 +25,10 @@ import java.util.function.Consumer;
  * 这类嵌套路径，也兼容直接传入带别名的完整路径。</p>
  *
  * @param <T> 实体类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class HqlWrapper<T> {
 

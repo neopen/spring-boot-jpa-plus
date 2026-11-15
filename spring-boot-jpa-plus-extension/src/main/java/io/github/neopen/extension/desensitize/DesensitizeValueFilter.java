@@ -16,6 +16,10 @@ import io.github.neopen.extension.annotation.Desensitize;
  * }</pre>
  *
  * <p>过滤器只处理字符串字段，未标注注解的字段原样输出。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class DesensitizeValueFilter implements ValueFilter {
 

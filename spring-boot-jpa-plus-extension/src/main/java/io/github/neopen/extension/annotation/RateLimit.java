@@ -26,6 +26,10 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>限流器按解析后的 key 缓存，key 为空时使用
  * {@code 类名#方法名} 作为默认维度。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

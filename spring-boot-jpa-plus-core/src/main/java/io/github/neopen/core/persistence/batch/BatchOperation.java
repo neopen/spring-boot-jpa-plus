@@ -12,6 +12,10 @@ import java.util.function.Consumer;
  *
  * <p>按指定批次大小刷新并清理持久化上下文，避免批量处理时
  * 持久化上下文持续增长。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class BatchOperation {
 

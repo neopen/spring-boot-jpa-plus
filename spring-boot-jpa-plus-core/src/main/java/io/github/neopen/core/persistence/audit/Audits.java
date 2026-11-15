@@ -40,6 +40,10 @@ import java.util.function.Supplier;
  *
  * <p>默认使用 UTC 系统时钟；可通过 {@link #setClock(Clock)} 指定
  * 时区，通过 {@link #setAuditorSupplier(Supplier)} 提供当前操作人。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class Audits {
 

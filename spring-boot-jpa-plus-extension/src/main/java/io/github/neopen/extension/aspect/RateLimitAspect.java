@@ -28,6 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * {@link RateLimitException}。</p>
  *
  * <p>切面由自动配置注册，无需在业务项目中声明为组件。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Aspect
 public class RateLimitAspect {

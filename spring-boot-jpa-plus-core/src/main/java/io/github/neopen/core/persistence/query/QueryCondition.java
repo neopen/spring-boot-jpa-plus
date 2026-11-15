@@ -7,6 +7,10 @@ import java.util.Objects;
  *
  * <p>记录实体字段、操作符以及操作数，由查询构建器转换为
  * JPA Criteria 谓词。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class QueryCondition {
 

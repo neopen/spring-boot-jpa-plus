@@ -17,6 +17,10 @@ import java.util.List;
  * <p>将 {@link QueryWrapper} 中的条件转换为使用逻辑与组合的谓词。</p>
  *
  * @param <T> 实体类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JpaPlusQueryBuilder<T> {
 

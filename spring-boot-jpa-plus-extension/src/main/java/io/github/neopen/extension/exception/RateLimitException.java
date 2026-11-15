@@ -4,6 +4,10 @@ package io.github.neopen.extension.exception;
  * 触发限流时抛出的异常。
  *
  * <p>业务代码可以统一捕获该异常并转换为接口响应。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class RateLimitException extends RuntimeException {
 

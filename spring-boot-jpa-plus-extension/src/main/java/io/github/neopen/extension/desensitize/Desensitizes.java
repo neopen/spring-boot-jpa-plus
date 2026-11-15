@@ -26,6 +26,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>{@link #apply(Object)} 会扫描对象及其父类中标注
  * {@link Desensitize} 的字符串字段并写回脱敏结果。字段元数据按类型缓存，
  * 重复调用不会重复反射。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class Desensitizes {
 

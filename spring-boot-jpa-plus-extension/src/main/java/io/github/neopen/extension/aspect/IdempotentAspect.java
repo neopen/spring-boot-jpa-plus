@@ -36,6 +36,10 @@ import java.lang.reflect.Method;
  * </ul>
  *
  * <p>切面由自动配置注册，业务项目无需再声明为组件。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Aspect
 @Slf4j

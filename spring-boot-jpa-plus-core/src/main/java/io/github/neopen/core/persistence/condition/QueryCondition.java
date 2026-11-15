@@ -29,6 +29,10 @@ import java.lang.annotation.Target;
  *
  * <p>默认忽略空值、空白字符串和空集合，因此未填写的查询参数不会
  * 参与条件拼接。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)

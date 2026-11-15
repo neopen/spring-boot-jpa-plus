@@ -25,6 +25,10 @@ import java.lang.reflect.Type;
  * 抛出 {@link JpaPlusException}，避免运行期出现难以定位的错误。</p>
  *
  * @param <E> 枚举类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public abstract class EnumValueConverter<E extends Enum<E>>
         implements AttributeConverter<E, String> {

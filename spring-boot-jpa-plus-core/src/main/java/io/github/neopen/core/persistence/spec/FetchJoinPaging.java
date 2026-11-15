@@ -48,6 +48,10 @@ import java.util.List;
  * <p>传入的 {@link Specification} 请勿再包含 fetch join，关联加载统一由
  * {@code fetchAttributes} 控制；同时 fetch 多个集合关联仍受 JPA
  * Provider 的多重集合加载限制。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class FetchJoinPaging {
 

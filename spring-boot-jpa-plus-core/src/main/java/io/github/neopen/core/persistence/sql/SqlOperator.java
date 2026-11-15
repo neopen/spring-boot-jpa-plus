@@ -7,6 +7,10 @@ import java.util.List;
  *
  * <p>运算符负责声明参数数量，并将列、参数名渲染为 SQL 条件片段。
  * 业务可以自定义实现以扩展数据库特有语法。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public interface SqlOperator {
 

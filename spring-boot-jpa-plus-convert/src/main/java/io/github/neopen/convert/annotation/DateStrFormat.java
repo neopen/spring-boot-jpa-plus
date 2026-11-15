@@ -6,6 +6,10 @@ import java.lang.annotation.*;
  * 声明日期字符串的格式及校验规则。
  *
  * <p>可标注在方法参数或字段上，由日期校验切面读取。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Target({ ElementType.PARAMETER, ElementType.FIELD })
 @Retention(RetentionPolicy.RUNTIME)

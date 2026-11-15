@@ -24,6 +24,10 @@ import java.util.function.Consumer;
  * <p>等值、比较、模糊、集合和区间等条件的列名默认自动补全表别名；
  * {@code count(*)}、函数表达式等非简单列名保持原样。select 列始终
  * 按传入内容原样使用。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class SqlWrapper {
 

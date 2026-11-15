@@ -28,6 +28,10 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * {@code BatchOperation} 的默认批次大小，
  * 未显式传入批次大小的批量方法会使用该值。
  * </p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @ConfigurationProperties(prefix = "neopen.jpa")
 public class JpaPlusProperties {

@@ -41,6 +41,10 @@ import java.util.List;
  * 委托 {@link FetchJoinPaging}，保证分页发生在数据库侧。</p>
  *
  * @param <T> 实体类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JpaPlusSpecExecutor<T> {
 

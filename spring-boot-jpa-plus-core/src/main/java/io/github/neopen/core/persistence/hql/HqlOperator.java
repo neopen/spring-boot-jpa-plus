@@ -8,6 +8,10 @@ import java.util.List;
  * <p>实现类负责把字段路径和参数名渲染为 HQL 片段。内置运算符见
  * {@link StandardHqlOperator}，业务也可以通过实现该接口扩展
  * 自定义运算符。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public interface HqlOperator {
 

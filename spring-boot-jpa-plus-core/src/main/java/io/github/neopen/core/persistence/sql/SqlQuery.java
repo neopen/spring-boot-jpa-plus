@@ -7,6 +7,10 @@ import java.util.Map;
  *
  * <p>由 {@link SqlWrapper#build()} 创建，统一携带数据查询、统计查询、
  * 命名参数和排序信息，便于执行器复用。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class SqlQuery {
 

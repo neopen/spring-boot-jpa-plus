@@ -7,6 +7,10 @@ import java.util.List;
  *
  * <p>负责创建统一的分页响应对象。业务项目可实现此接口，自定义
  * 成功消息、响应编码、空数据响应及统一响应对象的扩展属性。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public interface JsonPageResponseFactory {
 

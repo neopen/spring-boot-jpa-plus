@@ -22,6 +22,10 @@ import jakarta.persistence.PreUpdate;
  *     private Instant updatedAt;
  * }
  * }</pre>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class AuditListener {
 

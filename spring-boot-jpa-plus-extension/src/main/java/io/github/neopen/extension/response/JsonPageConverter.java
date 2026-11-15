@@ -13,6 +13,10 @@ import java.util.Objects;
  * 并通过 {@link JsonPageResponseFactory} 扩展响应创建规则。</p>
  *
  * <p>本类不负责实体转换、数据库查询或 HTTP 请求处理。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JsonPageConverter {
 

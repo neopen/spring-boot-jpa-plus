@@ -19,6 +19,10 @@ import java.util.Map;
  *
  * @param <T> 实体类型
  * @param <P> 查询参数类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public interface BasePredicateService<@NotNull T, @NotNull P> extends BaseServiceFactory {
 

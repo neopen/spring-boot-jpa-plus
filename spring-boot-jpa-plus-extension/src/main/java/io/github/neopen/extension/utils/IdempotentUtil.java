@@ -17,6 +17,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
  * <p>提供两种能力：按会话缓存一次性令牌（首次成功校验时移除），
  * 以及按业务键在时间窗口内去重（{@link #acquire(String, long)}）。
  * 均基于本地内存实现，多实例部署时需要替换为分布式存储。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Slf4j
 public class IdempotentUtil {

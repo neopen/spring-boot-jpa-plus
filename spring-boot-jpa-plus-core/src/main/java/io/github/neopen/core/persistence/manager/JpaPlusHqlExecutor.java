@@ -25,6 +25,10 @@ import java.util.regex.Pattern;
  * HQL 执行器。
  *
  * <p>基于 JPA 命名参数执行类型安全查询、分页查询及批量写操作。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JpaPlusHqlExecutor {
 

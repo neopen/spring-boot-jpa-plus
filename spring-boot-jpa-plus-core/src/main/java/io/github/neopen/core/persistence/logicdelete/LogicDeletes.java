@@ -25,6 +25,10 @@ import java.util.List;
  *
  * <p>注意：过滤只作用于 JPA Criteria 查询，原生 SQL 需要自行拼接
  * 逻辑删除条件。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class LogicDeletes {
 

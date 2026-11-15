@@ -32,6 +32,10 @@ import java.util.function.Function;
  *     {@link IllegalArgumentException}；</li>
  *     <li>所有节点的子集合都会被重置为空列表，再按输入顺序挂接子节点。</li>
  * </ul>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class TreeUtils {
 

@@ -44,6 +44,10 @@ import java.util.function.Consumer;
  * 仍受 JPA Provider 的“内存分页”限制，建议只在详情或列表查询中使用。</p>
  *
  * @param <T> 实体类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class SpecWrapper<T> implements Specification<T> {
 

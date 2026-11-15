@@ -11,6 +11,10 @@ import java.util.List;
  * <p>用于 {@link QueryCondition} 声明字段的查询方式，是
  * {@code SpecWrapper}、{@code HqlWrapper} 和 {@code SqlWrapper}
  * 运算符的统一抽象。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public enum ConditionOperator {
 

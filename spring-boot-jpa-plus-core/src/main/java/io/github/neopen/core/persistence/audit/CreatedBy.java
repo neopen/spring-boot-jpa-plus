@@ -13,6 +13,10 @@ import java.lang.annotation.Target;
  * 必须是 {@link String}，当前操作人由
  * {@link Audits#setAuditorSupplier(java.util.function.Supplier)} 提供；
  * 未配置时不会写入。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Documented
 @Target(ElementType.FIELD)

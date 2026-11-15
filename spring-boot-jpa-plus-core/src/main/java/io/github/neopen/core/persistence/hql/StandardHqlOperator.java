@@ -9,6 +9,10 @@ import java.util.List;
  *
  * <p>使用枚举实现运算符渲染策略，新增内置运算符只需扩展枚举；
  * 业务自定义运算符实现 {@link HqlOperator} 即可。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public enum StandardHqlOperator implements HqlOperator {
 

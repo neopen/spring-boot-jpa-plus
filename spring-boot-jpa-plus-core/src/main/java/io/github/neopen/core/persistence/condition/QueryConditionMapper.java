@@ -38,6 +38,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * </ul>
  *
  * <p>注解元数据与嵌套字段按参数类型缓存，重复调用不会重复反射扫描。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public final class QueryConditionMapper {
 

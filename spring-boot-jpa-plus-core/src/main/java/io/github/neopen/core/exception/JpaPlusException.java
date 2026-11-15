@@ -4,6 +4,10 @@ package io.github.neopen.core.exception;
  * JPA Plus 基础异常。
  *
  * <p>用于统一封装框架运行期间无法继续处理的异常。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JpaPlusException extends RuntimeException {
 

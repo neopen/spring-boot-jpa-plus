@@ -26,6 +26,10 @@ import java.lang.reflect.Method;
  * 系统操作与异常日志切面。
  *
  * <p>记录控制器操作、服务异常，并按配置执行请求限流。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Aspect
 @Component

@@ -24,6 +24,10 @@ import java.util.regex.Pattern;
  *
  * <p>基于 JPA 命名参数执行标量查询、实体映射查询、分页查询和写操作。
  * 分页查询可自动派生 count SQL，也支持显式传入 count SQL。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public class JpaPlusSqlExecutor {
 

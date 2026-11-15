@@ -19,6 +19,10 @@ import java.util.concurrent.TimeUnit;
  *
  * <p>记录方法耗时，达到阈值时输出 WARN 日志。方法异常退出时同样记录，
  * 并原样向外抛出异常。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Aspect
 public class SlowLogAspect {

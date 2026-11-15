@@ -9,6 +9,10 @@ import java.util.*;
  * 通用 JSON 响应对象。
  *
  * @param <V> 响应数据类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Data
 @NoArgsConstructor

@@ -22,6 +22,10 @@ import org.springframework.dao.OptimisticLockingFailureException;
  *
  * <p>在业务应用未提供同类 Bean 时注册默认分页响应组件，
  * 以及幂等和限流切面。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @AutoConfiguration
 public class ExtensionAutoConfiguration {

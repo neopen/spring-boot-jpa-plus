@@ -11,6 +11,10 @@ package io.github.neopen.core.persistence.condition;
  * @param operator 条件运算符
  * @param value    条件值；无参运算符为 {@code null}
  * @param second   区间结束值；仅 {@link ConditionOperator#BETWEEN} 使用
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public record QueryConditionEntry(
         String group,

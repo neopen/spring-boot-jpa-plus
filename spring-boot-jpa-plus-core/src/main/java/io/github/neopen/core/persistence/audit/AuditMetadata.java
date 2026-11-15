@@ -17,6 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>按实体类型缓存 {@link CreatedAt}、{@link UpdatedAt}、
  * {@link CreatedBy} 与 {@link UpdatedBy} 字段信息，并在首次扫描时
  * 校验字段类型。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 final class AuditMetadata {
 

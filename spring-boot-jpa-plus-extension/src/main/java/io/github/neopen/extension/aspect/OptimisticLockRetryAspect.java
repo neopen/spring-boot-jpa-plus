@@ -22,6 +22,10 @@ import java.lang.reflect.Method;
  *
  * <p>以最高优先级执行，包裹事务切面，使每次重试都开启独立事务。
  * 只有乐观锁异常或其嵌套原因会触发重试。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Aspect
 @Order(Ordered.HIGHEST_PRECEDENCE)
