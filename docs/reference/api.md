@@ -1,6 +1,6 @@
 # API 索引
 
-按模块列出面向用户的入口类。完整签名与参数说明见 [Javadoc](https://neopen.github.io/spring-boot-jpa-plus/api/)。
+按模块列出面向用户的入口类。完整签名与参数说明见 [Javadoc](https://jpa.helpenx.com/api/)。
 
 ## core
 

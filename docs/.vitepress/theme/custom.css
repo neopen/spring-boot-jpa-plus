@@ -21,3 +21,17 @@
 .vp-doc td {
     white-space: normal;
 }
+
+.feedback {
+    margin-top: 48px;
+    padding-top: 16px;
+    border-top: 1px solid var(--vp-c-divider);
+    color: var(--vp-c-text-2);
+    font-size: 14px;
+}
+
+.feedback a {
+    color: var(--vp-c-brand-1);
+    font-weight: 500;
+}
+

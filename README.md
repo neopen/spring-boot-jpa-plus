@@ -161,9 +161,9 @@ public class OrderServiceImpl
 ## Documentation
 
 Full documentation, including usage guides and API reference, is published at
-[docs site](https://neopen.github.io/spring-boot-jpa-plus/).
+[docs site](https://jpa.helpenx.com/).
 
-- [HQL Usage Guide](https://neopen.github.io/spring-boot-jpa-plus/query/hql) - Chained conditions, pagination, counting, batch queries, and custom operators.
+- [HQL Usage Guide](https://jpa.helpenx.com/query/hql.html) - Chained conditions, pagination, counting, batch queries, and custom operators.
 
 ## JPA Specification Builder
 

@@ -7,7 +7,7 @@ export default defineConfig({
     title: 'Spring Boot JPA Plus',
     description:
         'Spring Boot 的 JPA 增强工具包：动态查询、HQL/SQL 构建器、实体转换、批量操作与分页。',
-    base: '/spring-boot-jpa-plus/',
+    base: '/',
     cleanUrls: false,
 
     themeConfig: {
@@ -75,11 +75,6 @@ export default defineConfig({
         },
 
         socialLinks: [{ icon: 'github', link: repository }],
-
-        editLink: {
-            pattern: `${repository}/edit/main/docs/:path`,
-            text: '在 GitHub 上编辑此页'
-        },
 
         lastUpdated: {
             text: '最后更新',
