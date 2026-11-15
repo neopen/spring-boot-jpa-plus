@@ -1,10 +1,32 @@
-# Spring Boot JPA Plus
+ <h1 align="center">Spring Boot JPA Plus</h1>
 
 <p align="center">  <strong>A Powerful JPA Extension Toolkit for Spring Boot</strong>  <br/>  Simplify data access, eliminate boilerplate code, and boost development productivity.</p>
 
-<p align="center">  <a href="https://github.com/neopen/spring-boot-jpa-plus">    <img src="https://img.shields.io/github/stars/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Stars"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/network/members">    <img src="https://img.shields.io/github/forks/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Forks"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/issues">    <img src="https://img.shields.io/github/issues/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Issues"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE">    <img src="https://img.shields.io/github/license/neopen/spring-boot-jpa-plus?style=flat-square" alt="License"/>  </a></p>
+<p align="center">
+  <a href="https://github.com/neopen/spring-boot-jpa-plus">
+    <img src="https://img.shields.io/github/stars/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Stars"/>
+  </a>
+  <a href="https://github.com/neopen/spring-boot-jpa-plus/network/members">
+    <img src="https://img.shields.io/github/forks/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Forks"/>
+  </a>
+  <a href="https://central.sonatype.com/artifact/io.github.neopen/spring-boot-jpa-plus">
+    <img src="https://img.shields.io/maven-central/v/io.github.neopen/spring-boot-jpa-plus?style=flat-square" alt="Maven Central Version"/>
+  </a>
+  <img src="https://img.shields.io/badge/JDK-17-orange?style=flat-square" alt="JDK 17"/>
+  <a href="https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/neopen/spring-boot-jpa-plus?style=flat-square" alt="License"/>
+  </a>
+</p>
 
-[English](README.md) | [简体中文](README.zh-CN.md)
+<p align="center">
+    <a href="https://github.com/neopen/spring-boot-jpa-plus/blob/main/README.zh-CN.md" target="_blank">简体中文</a> •
+    <a href="https://jpa.helpenx.com/" target="_blank"><b>Website</b></a> •
+    <a href="https://jpa.helpenx.com/guide/getting-started.html" target="_blank">Quick Start</a> •
+    <a href="https://jpa.helpenx.com/version.html" target="_blank">Releases</a> •
+    <a href="https://github.com/neopen/spring-boot-jpa-plus/issues" target="_blank">Issues</a> 
+</p>
+
+
 
 ## Overview
 
