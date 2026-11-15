@@ -126,4 +126,185 @@ class EnumValuesTest {
     /** 未声明泛型的转换器。 */
     static class RawConverter extends EnumValueConverter {
     }
+
+    /**
+     * 验证转换器对未标注常量与大小写不敏感名称的处理。
+     */
+    @Test
+    void shouldConvertWithFallbackNameMatching() {
+        StatusConverter converter = new StatusConverter();
+
+        assertThat(converter.convertToDatabaseColumn(Status.NEW))
+                .isEqualTo("NEW");
+        assertThat(converter.convertToEntityAttribute("paid"))
+                .isEqualTo(Status.PAID);
+        assertThat(converter.convertToEntityAttribute("New"))
+                .isEqualTo(Status.NEW);
+    }
+
+    /**
+     * 验证转换器遇到未知数据库值时的异常。
+     */
+    @Test
+    void shouldRejectUnknownDatabaseValue() {
+        StatusConverter converter = new StatusConverter();
+
+        assertThatThrownBy(() ->
+                converter.convertToEntityAttribute("UNKNOWN"))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("UNKNOWN");
+    }
+
+    /**
+     * 验证方法形式的持久化值同样支持忽略大小写的名称回退。
+     */
+    @Test
+    void shouldFallbackToNameIgnoreCaseForMethodValue() {
+        assertThat(EnumValues.fromValue(Channel.class, "alipay"))
+                .isEqualTo(Channel.ALIPAY);
+        assertThat(EnumValues.fromValue(Channel.class, "WeChat"))
+                .isEqualTo(Channel.WECHAT);
+    }
+
+    /**
+     * 验证枚举类型为空时参数校验。
+     */
+    @Test
+    void shouldRejectNullEnumType() {
+        assertThatThrownBy(() -> EnumValues.<Status>fromValue(null, "PAID"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Enum type");
+    }
+
+    /**
+     * 验证重复持久化值在解析阶段被拒绝。
+     */
+    @Test
+    void shouldRejectDuplicatedValues() {
+        assertThatThrownBy(() -> EnumValues.toValue(Duplicated.FIRST))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("Duplicated enum value");
+    }
+
+    /**
+     * 验证常量注解与方法注解不能同时使用。
+     */
+    @Test
+    void shouldRejectMixedDeclarations() {
+        assertThatThrownBy(() -> EnumValues.toValue(Conflict.A))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("not both");
+    }
+
+    /**
+     * 验证空白持久化值被拒绝。
+     */
+    @Test
+    void shouldRejectBlankValue() {
+        assertThatThrownBy(() -> EnumValues.toValue(BlankValue.A))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("must not be blank");
+    }
+
+    /**
+     * 验证多个值方法被拒绝。
+     */
+    @Test
+    void shouldRejectMultipleValueMethods() {
+        assertThatThrownBy(() -> EnumValues.toValue(MultipleMethods.A))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("Only one @EnumValue method");
+    }
+
+    /**
+     * 验证值方法返回 {@code null} 被拒绝。
+     */
+    @Test
+    void shouldRejectNullMethodResult() {
+        assertThatThrownBy(() -> EnumValues.toValue(NullValueMethod.A))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("must not return null");
+    }
+
+    /** 存在重复持久化值的枚举。 */
+    enum Duplicated {
+
+        /** 与下一个常量值重复。 */
+        @EnumValue("SAME")
+        FIRST,
+
+        /** 与上一个常量值重复。 */
+        @EnumValue("SAME")
+        SECOND
+    }
+
+    /** 同时使用常量注解与方法注解的枚举。 */
+    enum Conflict {
+
+        /** 同时带有两种声明。 */
+        @EnumValue("A")
+        A;
+
+        /**
+         * 与常量注解冲突的持久化值方法。
+         *
+         * @return 持久化值
+         */
+        @EnumValue
+        public String persistedValue() {
+            return "M";
+        }
+    }
+
+    /** 持久化值为空白的枚举。 */
+    enum BlankValue {
+
+        /** 声明了空白值。 */
+        @EnumValue(" ")
+        A
+    }
+
+    /** 声明了多个值方法的枚举。 */
+    enum MultipleMethods {
+
+        /** 存在两个值方法。 */
+        A;
+
+        /**
+         * 第一个值方法。
+         *
+         * @return 持久化值
+         */
+        @EnumValue
+        public String first() {
+            return "1";
+        }
+
+        /**
+         * 第二个值方法。
+         *
+         * @return 持久化值
+         */
+        @EnumValue
+        public String second() {
+            return "2";
+        }
+    }
+
+    /** 值方法返回 {@code null} 的枚举。 */
+    enum NullValueMethod {
+
+        /** 返回空值。 */
+        A;
+
+        /**
+         * 返回 {@code null} 的持久化值方法。
+         *
+         * @return 空值
+         */
+        @EnumValue
+        public String persistedValue() {
+            return null;
+        }
+    }
 }

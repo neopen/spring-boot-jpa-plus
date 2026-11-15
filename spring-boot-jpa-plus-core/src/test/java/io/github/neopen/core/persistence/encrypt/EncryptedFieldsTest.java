@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.Base64;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -160,5 +161,109 @@ class EncryptedFieldsTest {
         assertThat(EncryptedFields.decrypt(encrypted)).isEqualTo("payload");
         assertThat(EncryptedFields.encrypt("payload")
                 .getBytes(StandardCharsets.UTF_8)).isNotEmpty();
+    }
+
+    /**
+     * 验证更换密钥后旧密文无法解密。
+     */
+    @Test
+    void shouldRejectCipherTextFromAnotherKey() {
+        String encrypted = EncryptedFields.encrypt("rotate-me");
+
+        EncryptedFields.setKey("another-secret");
+
+        assertThatThrownBy(() -> EncryptedFields.decrypt(encrypted))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("key may be wrong");
+    }
+
+    /**
+     * 验证长度不足的密文被拒绝。
+     */
+    @Test
+    void shouldRejectShortCipherText() {
+        String shortText = Base64.getEncoder()
+                .encodeToString(new byte[28]);
+
+        assertThatThrownBy(() -> EncryptedFields.decrypt(shortText))
+                .isInstanceOf(JpaPlusException.class)
+                .hasMessageContaining("Invalid encrypted value");
+    }
+
+    /**
+     * 验证密文由随机 IV、密文和认证标签组成。
+     */
+    @Test
+    void shouldUseRandomIvAndExpectedLayout() {
+        String plain = "abc";
+        byte[] first = Base64.getDecoder()
+                .decode(EncryptedFields.encrypt(plain));
+        byte[] second = Base64.getDecoder()
+                .decode(EncryptedFields.encrypt(plain));
+
+        assertThat(first)
+                .hasSize(12 + plain.getBytes(StandardCharsets.UTF_8).length
+                        + 16);
+        assertThat(Arrays.copyOf(first, 12))
+                .isNotEqualTo(Arrays.copyOf(second, 12));
+    }
+
+    /**
+     * 验证多字节字符的往返加解密。
+     */
+    @Test
+    void shouldEncryptUnicodeText() {
+        String plain = "张三丰 13800000000 🙂";
+
+        String encrypted = EncryptedFields.encrypt(plain);
+
+        assertThat(encrypted).isNotEqualTo(plain);
+        assertThat(EncryptedFields.decrypt(encrypted)).isEqualTo(plain);
+    }
+
+    /**
+     * 验证字节密钥在配置时被复制，外部修改不影响已生效密钥。
+     */
+    @Test
+    void shouldCopyKeyMaterial() {
+        byte[] material = new byte[16];
+
+        EncryptedFields.setKey(material);
+
+        String encrypted = EncryptedFields.encrypt("stable");
+
+        Arrays.fill(material, (byte) 1);
+
+        assertThat(EncryptedFields.decrypt(encrypted)).isEqualTo("stable");
+    }
+
+    /**
+     * 验证关闭加密后转换器同样原样返回。
+     */
+    @Test
+    void shouldPassThroughConverterWhenDisabled() {
+        EncryptedFields.setEnabled(false);
+        EncryptedFieldConverter converter = new EncryptedFieldConverter();
+
+        assertThat(converter.convertToDatabaseColumn("plain"))
+                .isEqualTo("plain");
+        assertThat(converter.convertToEntityAttribute("cipher"))
+                .isEqualTo("cipher");
+    }
+
+    /**
+     * 验证密钥为 {@code null} 与加密开关状态的读写。
+     */
+    @Test
+    void shouldValidateNullKeyAndReportState() {
+        assertThatThrownBy(() -> EncryptedFields.setKey((String) null))
+                .isInstanceOf(IllegalArgumentException.class);
+        assertThatThrownBy(() -> EncryptedFields.setKey((byte[]) null))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        EncryptedFields.clearKey();
+
+        assertThat(EncryptedFields.hasKey()).isFalse();
+        assertThat(EncryptedFields.isEnabled()).isTrue();
     }
 }
