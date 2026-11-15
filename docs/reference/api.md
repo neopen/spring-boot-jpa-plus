@@ -33,6 +33,14 @@
 | `io.github.neopen.core.persistence.sql.SqlOperator` / `StandardSqlOperator` | SQL 自定义运算符接口与内置实现 |
 | `io.github.neopen.core.persistence.sql.SqlQuery` | 构建产物：语句、count 语句、参数、排序 |
 | `io.github.neopen.core.persistence.manager.JpaPlusSqlExecutor` | 原生 SQL 执行器 |
+| `io.github.neopen.core.persistence.convert.EnumValue` | 枚举持久化值注解 |
+| `io.github.neopen.core.persistence.convert.EnumValues` | 枚举值与常量互转 |
+| `io.github.neopen.core.persistence.convert.EnumValueConverter` | 枚举 JPA 转换器基类 |
+| `io.github.neopen.core.persistence.encrypt.EncryptedField` | 加密字段标记注解 |
+| `io.github.neopen.core.persistence.encrypt.EncryptedFields` | AES-GCM 加解密工具 |
+| `io.github.neopen.core.persistence.encrypt.EncryptedFieldConverter` | 加密字段 JPA 转换器 |
+| `io.github.neopen.core.util.TreeUtils` | 平铺列表构建树 |
+| `io.github.neopen.core.id.SnowflakeIdGenerator` | 雪花 ID 生成器 |
 
 ## convert
 
@@ -52,7 +60,7 @@
 | --- | --- |
 | `io.github.neopen.autoconfigure.JpaPlusProperties` | `neopen.jpa.*` 配置绑定 |
 | `io.github.neopen.autoconfigure.JpaPlusAutoConfiguration` | 执行器注册与运行时配置应用 |
-| `io.github.neopen.autoconfigure.JpaPlusRuntimeConfigurer` | 把配置写入静态开关（批量大小、逻辑删除、审计） |
+| `io.github.neopen.autoconfigure.JpaPlusRuntimeConfigurer` | 把配置写入静态开关（批量大小、逻辑删除、审计、加密） |
 
 ## extension
 
@@ -61,6 +69,11 @@
 | `io.github.neopen.extension.annotation.Idempotent` | 幂等控制 |
 | `io.github.neopen.extension.annotation.RateLimit` | 接口限流 |
 | `io.github.neopen.extension.annotation.SysControllerLog` / `SysServiceLog` | 操作与异常日志描述 |
+| `io.github.neopen.extension.annotation.Desensitize` | 数据脱敏标记 |
+| `io.github.neopen.extension.annotation.RetryOnOptimisticLock` | 乐观锁冲突重试 |
+| `io.github.neopen.extension.annotation.SlowLog` | 慢方法日志 |
+| `io.github.neopen.extension.desensitize.DesensitizeType` / `Desensitizes` | 脱敏类型与工具 |
+| `io.github.neopen.extension.desensitize.DesensitizeValueFilter` | fastjson2 脱敏过滤器 |
 | `io.github.neopen.extension.response.Json` | 统一响应结构 |
 | `io.github.neopen.extension.response.JsonPageConverter` | 分页响应转换 |
 | `io.github.neopen.extension.response.JsonPageResponseFactory` | 分页响应结构扩展点 |

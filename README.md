@@ -19,6 +19,11 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
 - **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, a specification executor, and DTO projection.
 - **Auditing** - `@CreatedAt` / `@UpdatedAt` / `@CreatedBy` / `@UpdatedBy` fields maintained automatically.
+- **Enum Conversion** - Persist enums as explicit database values instead of constant names.
+- **Field Encryption** - Transparent AES-GCM encryption for annotated string fields.
+- **Tree & IDs** - Build trees from flat lists and generate snowflake identifiers.
+- **Data Desensitization** - Mask names, phones, ID cards, bank cards, emails, and addresses.
+- **Reliability Aspects** - Optimistic-lock retry and slow-method logging.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
 - **Pagination** - Simplified paginated queries and response handling.
 - **HQL & SQL** - Chained query builders, pagination with automatic count, batch updates, and native SQL access.
@@ -460,6 +465,71 @@ Audits.setClock(Clock.systemDefaultZone());
 
 The starter can configure the same values: `neopen.jpa.audit.enabled` toggles filling, `neopen.jpa.audit.zone` selects the clock zone (default `UTC`), and `neopen.jpa.audit.auditor` provides a fixed operator name. Programmatic settings remain in effect when a property is not configured.
 
+## Enum Conversion
+
+`@EnumValue` declares the database value of an enum constant. A converter subclass resolves the enum type from its generic parameter:
+
+```java
+public enum OrderStatus {
+
+    @EnumValue("PAID")
+    PAID,
+
+    @EnumValue("CANCELLED")
+    CANCELLED;
+}
+
+public class OrderStatusConverter extends EnumValueConverter<OrderStatus> {
+}
+
+@Convert(converter = OrderStatusConverter.class)
+private OrderStatus status;
+```
+
+Constants without the annotation fall back to `name()`. `EnumValues.fromValue` matches declared values first, then names ignoring case. Duplicate values, conflicting declarations, and unknown values fail with `JpaPlusException`.
+
+## Field Encryption
+
+Annotate string fields and let `EncryptedFieldConverter` encrypt with AES/GCM/NoPadding:
+
+```java
+@EncryptedField
+@Convert(converter = EncryptedFieldConverter.class)
+private String idCard;
+```
+
+Configure the key once:
+
+```java
+EncryptedFields.setKey("change-me-in-production");   // SHA-256 derived
+```
+
+Or through properties: `neopen.jpa.encryption.key` and `neopen.jpa.encryption.enabled`. Each encryption uses a random 12-byte IV and stores `Base64(IV + ciphertext + tag)`; tampered data fails authentication. `null` and empty strings pass through, and a missing key raises `JpaPlusException` instead of silently writing plaintext.
+
+## Tree Building
+
+`TreeUtils.build` converts a flat list into a tree while preserving input order:
+
+```java
+List<Category> tree = TreeUtils.build(
+        categories,
+        Category::getId,
+        Category::getParentId,
+        Category::setChildren
+);
+```
+
+Missing parents become roots. Null or duplicated IDs, self-references, and cycles are rejected with `IllegalArgumentException`. Existing children collections are reset before attaching.
+
+## Snowflake IDs
+
+```java
+SnowflakeIdGenerator generator = new SnowflakeIdGenerator(1, 1);
+long id = generator.nextId();
+```
+
+IDs use 41 timestamp bits, 5 data-center bits, 5 worker bits, and 12 sequence bits, with a default epoch of `2020-01-01T00:00:00Z`. `nextId()` is synchronized, waits for the next millisecond when the sequence overflows, and throws `IllegalStateException` when the clock moves backwards.
+
 ## Parameter Mapping
 
 `ParamMapper` copies request parameters onto entities. Only non-null parameter fields are written, so one mapper serves both creates and partial updates. Names are matched after ignoring case and underscores, and setters take precedence over direct field access.
@@ -514,6 +584,67 @@ public void send(String userId) { }
 ```
 
 The `key` expression uses SpEL and falls back to `Class#method` when empty. Rejected calls throw `RateLimitException` with the configured message. Rate limiters are local to a single JVM, so multi-instance deployments should use a distributed limiter. Disable the aspect with `neopen.extension.rate-limit.enabled=false`.
+
+## Data Desensitization
+
+`@Desensitize` masks sensitive string fields either in place or during JSON serialization:
+
+```java
+public class UserView {
+
+    @Desensitize(type = DesensitizeType.NAME)
+    private String name;
+
+    @Desensitize(type = DesensitizeType.PHONE)
+    private String phone;
+}
+
+UserView masked = Desensitizes.apply(userView);
+String json = JSON.toJSONString(userView, new DesensitizeValueFilter());
+```
+
+Built-in types cover `NAME`, `PHONE`, `ID_CARD`, `BANK_CARD`, `EMAIL`, `ADDRESS`, and `PASSWORD`. Inherited fields are included, and field metadata is cached per type.
+
+## Optimistic Lock Retry
+
+```java
+@RetryOnOptimisticLock(maxAttempts = 3, delay = 100)
+@Transactional
+public void updateStock(Long id, int quantity) {
+    // ...
+}
+```
+
+The aspect runs with the highest precedence so every retry starts a new transaction. Only `OptimisticLockingFailureException` and `jakarta.persistence.OptimisticLockException` (including nested causes) are retried; other exceptions propagate immediately. Disable it with `neopen.extension.retry.enabled=false`.
+
+## Slow Method Logging
+
+```java
+@SlowLog(threshold = 200)
+public List<Order> loadOrders(Long userId) {
+    // ...
+}
+```
+
+Methods exceeding the threshold (default 500 ms) log a warning under the `SlowLogAspect` logger. Failures are still timed and rethrown unchanged. Disable it with `neopen.extension.slow-log.enabled=false`.
+
+## Query Builder Extras
+
+Both query builders can map parameter fields and append developer-authored fragments:
+
+```java
+HqlWrapper<Order> hql = HqlWrapper.create(Order.class)
+        .alias("keyword", "customer.name")
+        .apply(param)
+        .exists("select 1 from OrderItem i where i.order.id = o.id");
+
+SqlWrapper sql = SqlWrapper.create("t_order")
+        .alias("keyword", "order_no")
+        .apply(param)
+        .notExists("select 1 from t_payment p where p.order_id = o.id");
+```
+
+`raw`, `exists`, and `notExists` splice static fragments without parameter binding, so never pass user input to them. `JpaPlusSpecExecutor` also provides `exists(spec)` for existence checks.
 
 ## Example Project
 

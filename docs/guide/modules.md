@@ -16,11 +16,11 @@ spring-boot-jpa-plus
 
 | 模块 | 主要内容 | 是否被 starter 引入 |
 | --- | --- | --- |
-| `core` | `JpaPlusDao`、`AbstractJpaPlusDao`、`QueryWrapper`、`SpecWrapper`、`JpaPlusSpecExecutor`、`FetchJoinPaging`、`HqlWrapper`、`SqlWrapper`、`JpaPlusHqlExecutor`、`JpaPlusSqlExecutor`、`LogicDeletes`、`Audits`、`BatchOperation`、`ResultMapper`、`Sorts` | 是 |
+| `core` | `JpaPlusDao`、`AbstractJpaPlusDao`、`QueryWrapper`、`SpecWrapper`、`JpaPlusSpecExecutor`、`FetchJoinPaging`、`HqlWrapper`、`SqlWrapper`、`JpaPlusHqlExecutor`、`JpaPlusSqlExecutor`、`LogicDeletes`、`Audits`、`BatchOperation`、`ResultMapper`、`Sorts`、`EnumValues`、`EncryptedFields`、`TreeUtils`、`SnowflakeIdGenerator` | 是 |
 | `convert` | `BaseVoService`、`AbstractBaseService`、`BaseVoCommom`、`ParamMapper`、`@ParamField`、`@ParamIgnore`、`@DateStrFormat`、`@DateStrValid` | 是 |
 | `autoconfigure` | `JpaPlusAutoConfiguration`、`JpaPlusProperties`、`JpaPlusRuntimeConfigurer` | 是 |
 | `starter` | 仅依赖声明，不含代码 | — |
-| `extension` | `@Idempotent`、`@RateLimit`、`@SysControllerLog`、`@SysServiceLog`、`Json`、`JsonPageConverter` | 否 |
+| `extension` | `@Idempotent`、`@RateLimit`、`@SysControllerLog`、`@SysServiceLog`、`@Desensitize`、`@RetryOnOptimisticLock`、`@SlowLog`、`Json`、`JsonPageConverter` | 否 |
 
 ## 依赖关系
 
@@ -36,7 +36,7 @@ starter
 ## 选型建议
 
 - **只用查询能力**：引入 `starter` 即可，核心能力全部可用。
-- **需要幂等 / 限流 / 统一分页响应**：额外引入 `spring-boot-jpa-plus-extension`。
+- **需要幂等 / 限流 / 脱敏 / 重试 / 统一分页响应**：额外引入 `spring-boot-jpa-plus-extension`。
 - **只想要对象转换**：单独引入 `spring-boot-jpa-plus-convert`。
 - **不希望自动配置**：引入 `core`，手动 `new JpaPlusHqlExecutor(entityManager)`，或配置 `neopen.jpa.enabled=false`。
 

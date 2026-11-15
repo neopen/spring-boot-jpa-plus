@@ -39,7 +39,11 @@ export default defineConfig({
                     { text: '逻辑删除', link: '/core/logic-delete' },
                     { text: '审计字段', link: '/core/auditing' },
                     { text: '批量操作', link: '/core/batch' },
-                    { text: 'DTO 投影', link: '/core/projection' }
+                    { text: 'DTO 投影', link: '/core/projection' },
+                    { text: '枚举值转换', link: '/core/enum-convert' },
+                    { text: '字段加密', link: '/core/encryption' },
+                    { text: '树形结构', link: '/core/tree' },
+                    { text: '雪花 ID', link: '/core/id-generator' }
                 ]
             },
             {
@@ -57,6 +61,9 @@ export default defineConfig({
                     { text: '幂等控制', link: '/extension/idempotent' },
                     { text: '接口限流', link: '/extension/rate-limit' },
                     { text: '操作日志注解', link: '/extension/logging' },
+                    { text: '数据脱敏', link: '/extension/desensitize' },
+                    { text: '乐观锁重试', link: '/extension/retry' },
+                    { text: '慢方法日志', link: '/extension/slow-log' },
                     { text: '统一分页响应', link: '/extension/response' }
                 ]
             },
