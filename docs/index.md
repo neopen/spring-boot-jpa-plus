@@ -31,6 +31,11 @@ features:
     details: "幂等、限流、统一分页响应各自独立，按配置项启用，不引入时对核心模块零侵入。"
 ---
 
+::: warning 版本提示
+本站文档对应 **0.5 版本**。当前 Maven 正式发布版本为 **0.4.x**，不支持 0.5 新增能力，
+详见 [版本发布](/version)。
+:::
+
 ## 设计边界
 
 Spring Boot JPA Plus 是构建在 Spring Data JPA 之上的增强层，不是新的 ORM：

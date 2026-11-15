@@ -10,13 +10,199 @@ export default defineConfig({
     base: '/',
     cleanUrls: false,
 
+    locales: {
+        root: {
+            label: '简体中文',
+            lang: 'zh-CN'
+        },
+        en: {
+            label: 'English',
+            lang: 'en-US',
+            link: '/en/',
+            title: 'Spring Boot JPA Plus',
+            description:
+                'A JPA enhancement toolkit for Spring Boot: dynamic queries, HQL/SQL builders, entity conversion, batch operations, and pagination.',
+            themeConfig: {
+                nav: [
+                    { text: 'Guide', link: '/en/guide/getting-started' },
+                    { text: 'Core', link: '/en/core/dao' },
+                    { text: 'Query Builders', link: '/en/query/hql' },
+                    {
+                        text: 'Convert & Extend',
+                        link: '/en/convert/entity-vo'
+                    },
+                    {
+                        text: 'Reference',
+                        link: '/en/reference/configuration'
+                    },
+                    { text: 'Releases', link: '/en/version' }
+                ],
+
+                sidebar: [
+                    {
+                        text: 'Getting Started',
+                        items: [
+                            {
+                                text: 'Quick Start',
+                                link: '/en/guide/getting-started'
+                            },
+                            {
+                                text: 'Modules & Dependencies',
+                                link: '/en/guide/modules'
+                            },
+                            {
+                                text: 'Releases',
+                                link: '/en/version'
+                            }
+                        ]
+                    },
+                    {
+                        text: 'Core',
+                        items: [
+                            { text: 'DAO & CRUD', link: '/en/core/dao' },
+                            {
+                                text: 'Dynamic Queries',
+                                link: '/en/core/query-wrapper'
+                            },
+                            {
+                                text: 'Specification Builder',
+                                link: '/en/core/specification'
+                            },
+                            {
+                                text: 'Specification Executor',
+                                link: '/en/core/executor'
+                            },
+                            {
+                                text: 'Annotation Conditions',
+                                link: '/en/core/conditions'
+                            },
+                            { text: 'Safe Sorting', link: '/en/core/sorting' },
+                            {
+                                text: 'Logical Deletion',
+                                link: '/en/core/logic-delete'
+                            },
+                            { text: 'Auditing', link: '/en/core/auditing' },
+                            { text: 'Batch Operations', link: '/en/core/batch' },
+                            { text: 'DTO Projection', link: '/en/core/projection' },
+                            {
+                                text: 'Enum Conversion',
+                                link: '/en/core/enum-convert'
+                            },
+                            {
+                                text: 'Field Encryption',
+                                link: '/en/core/encryption'
+                            },
+                            { text: 'Tree Structure', link: '/en/core/tree' },
+                            { text: 'Snowflake ID', link: '/en/core/id-generator' }
+                        ]
+                    },
+                    {
+                        text: 'Query Builders',
+                        items: [
+                            { text: 'HQL Queries', link: '/en/query/hql' },
+                            { text: 'Native SQL', link: '/en/query/sql' }
+                        ]
+                    },
+                    {
+                        text: 'Convert & Extend',
+                        items: [
+                            {
+                                text: 'Entity → VO',
+                                link: '/en/convert/entity-vo'
+                            },
+                            {
+                                text: 'Param → Entity',
+                                link: '/en/convert/param-mapper'
+                            },
+                            {
+                                text: 'Idempotency',
+                                link: '/en/extension/idempotent'
+                            },
+                            {
+                                text: 'Rate Limiting',
+                                link: '/en/extension/rate-limit'
+                            },
+                            {
+                                text: 'Operation Logging',
+                                link: '/en/extension/logging'
+                            },
+                            {
+                                text: 'Data Desensitization',
+                                link: '/en/extension/desensitize'
+                            },
+                            {
+                                text: 'Optimistic-lock Retry',
+                                link: '/en/extension/retry'
+                            },
+                            {
+                                text: 'Slow Method Logging',
+                                link: '/en/extension/slow-log'
+                            },
+                            {
+                                text: 'Paged Responses',
+                                link: '/en/extension/response'
+                            }
+                        ]
+                    },
+                    {
+                        text: 'Reference',
+                        items: [
+                            {
+                                text: 'Configuration',
+                                link: '/en/reference/configuration'
+                            },
+                            { text: 'API Index', link: '/en/reference/api' },
+                            { text: 'Examples', link: '/en/examples' }
+                        ]
+                    }
+                ],
+
+                search: {
+                    provider: 'local'
+                },
+
+                socialLinks: [{ icon: 'github', link: repository }],
+
+                lastUpdated: {
+                    text: 'Last updated',
+                    formatOptions: {
+                        dateStyle: 'short',
+                        timeStyle: 'short'
+                    }
+                },
+
+                outline: {
+                    label: 'On this page',
+                    level: [2, 3]
+                },
+
+                docFooter: {
+                    prev: 'Previous',
+                    next: 'Next'
+                },
+
+                footer: {
+                    message: 'Released under the MIT License',
+                    copyright: 'Copyright © 2026 NeoPen'
+                },
+
+                sidebarMenuLabel: 'Menu',
+                returnToTopLabel: 'Return to top',
+                darkModeSwitchLabel: 'Appearance',
+                lightModeSwitchTitle: 'Switch to light theme',
+                darkModeSwitchTitle: 'Switch to dark theme'
+            }
+        }
+    },
+
     themeConfig: {
         nav: [
             { text: '指南', link: '/guide/getting-started' },
             { text: '核心能力', link: '/core/dao' },
             { text: '查询构建器', link: '/query/hql' },
             { text: '转换与扩展', link: '/convert/entity-vo' },
-            { text: '参考', link: '/reference/configuration' }
+            { text: '参考', link: '/reference/configuration' },
+            { text: '版本发布', link: '/version' }
         ],
 
         sidebar: [
@@ -24,7 +210,8 @@ export default defineConfig({
                 text: '开始',
                 items: [
                     { text: '快速开始', link: '/guide/getting-started' },
-                    { text: '模块与依赖', link: '/guide/modules' }
+                    { text: '模块与依赖', link: '/guide/modules' },
+                    { text: '版本发布', link: '/version' }
                 ]
             },
             {

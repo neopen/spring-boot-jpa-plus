@@ -76,6 +76,12 @@ Add the starter dependency to your `pom.xml`:
 
 Replace `${version}` with the desired release version.
 
+> **Version notice**: this documentation describes version **0.5**.
+> The current Maven release is **0.4.x**, which does not include the 0.5 features
+> (enum conversion, field encryption, tree utilities, snowflake IDs, desensitization,
+> optimistic-lock retry, slow logging, and the query builder enhancements).
+> See the [release page](https://jpa.helpenx.com/version) for details.
+
 ## Quick Start
 
 ### 1. Define an Entity
