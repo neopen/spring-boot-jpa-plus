@@ -1,6 +1,5 @@
 package io.github.neopen.demo.bean.vo;
 
-import io.github.neopen.convert.converter.vo.BaseVo;
 import lombok.Data;
 
 import java.io.Serializable;
@@ -12,7 +11,10 @@ import java.util.List;
  * 订单详情视图对象。
  */
 @Data
-public class OrderVo extends BaseVo implements Serializable {
+public class OrderVo implements Serializable {
+
+    /** 订单标识。 */
+    private Long id;
 
     /**
      * 订单编号

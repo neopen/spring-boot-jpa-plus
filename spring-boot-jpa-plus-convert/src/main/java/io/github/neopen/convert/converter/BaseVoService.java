@@ -1,6 +1,5 @@
 package io.github.neopen.convert.converter;
 
-import io.github.neopen.convert.converter.vo.BaseVo;
 import org.springframework.lang.Nullable;
 
 import jakarta.validation.constraints.NotNull;
@@ -11,10 +10,12 @@ import java.util.Map;
  *
  * <p>业务类可重写默认方法，以支持基础转换及携带扩展参数的转换。</p>
  *
+ * <p>视图对象不要求继承特定基类，可以是任意 POJO。</p>
+ *
  * @param <T> 实体类型
  * @param <V> 视图对象类型
  */
-public interface BaseVoService<@NotNull T, @NotNull V extends BaseVo> extends BaseServiceFactory {
+public interface BaseVoService<@NotNull T, @NotNull V> extends BaseServiceFactory {
 
     /**
      * 创建基础视图对象转换函数。

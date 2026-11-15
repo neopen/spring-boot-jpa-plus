@@ -1,7 +1,6 @@
 
 package io.github.neopen.convert.converter;
 
-import io.github.neopen.convert.converter.vo.BaseVo;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Null;
@@ -24,7 +23,7 @@ import java.util.*;
  * @param <P> 查询参数类型，允许为 {@code null}
  */
 public abstract class AbstractBaseService<
-        @NotNull V extends BaseVo,
+        @NotNull V,
         @NotNull T,
         @Null P>
         implements BaseVoService<T, V>, BasePredicateService<T, P> {

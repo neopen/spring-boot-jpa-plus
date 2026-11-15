@@ -1,6 +1,5 @@
 package io.github.neopen.convert.converter;
 
-import io.github.neopen.convert.converter.vo.BaseVo;
 import org.springframework.lang.Nullable;
 
 /**
@@ -10,7 +9,7 @@ import org.springframework.lang.Nullable;
  * @param <V> 视图对象类型
  */
 @FunctionalInterface
-public interface BaseVoCommom<T, V extends BaseVo> {
+public interface BaseVoCommom<T, V> {
 
     /**
      * 将实体转换为基础视图对象。

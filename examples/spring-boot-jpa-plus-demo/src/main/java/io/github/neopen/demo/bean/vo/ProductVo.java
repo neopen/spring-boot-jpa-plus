@@ -1,6 +1,5 @@
 package io.github.neopen.demo.bean.vo;
 
-import io.github.neopen.convert.converter.vo.BaseVo;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -10,7 +9,10 @@ import java.time.LocalDateTime;
  * 商品库存视图对象。
  */
 @Data
-public class ProductVo extends BaseVo {
+public class ProductVo {
+
+    /** 商品标识。 */
+    private Long id;
 
     /** 商品名称。 */
     private String productName;
