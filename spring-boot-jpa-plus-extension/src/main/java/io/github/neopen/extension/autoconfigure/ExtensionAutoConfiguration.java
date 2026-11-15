@@ -5,6 +5,7 @@ import io.github.neopen.extension.aspect.IdempotentAspect;
 import io.github.neopen.extension.aspect.OptimisticLockRetryAspect;
 import io.github.neopen.extension.aspect.RateLimitAspect;
 import io.github.neopen.extension.aspect.SlowLogAspect;
+import io.github.neopen.extension.desensitize.DesensitizeModule;
 import io.github.neopen.extension.response.DefaultJsonPageResponseFactory;
 import io.github.neopen.extension.response.JsonPageConverter;
 import io.github.neopen.extension.response.JsonPageResponseFactory;
@@ -131,6 +132,30 @@ public class ExtensionAutoConfiguration {
         @ConditionalOnMissingBean(OptimisticLockRetryAspect.class)
         public OptimisticLockRetryAspect optimisticLockRetryAspect() {
             return new OptimisticLockRetryAspect();
+        }
+    }
+
+    /**
+     * Jackson 脱敏配置。
+     *
+     * <p>仅当应用引入 Jackson 时注册脱敏模块，Spring Boot 会把
+     * {@code Module} Bean 自动注册到 {@code ObjectMapper}。</p>
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(
+            name = "com.fasterxml.jackson.databind.Module"
+    )
+    static class JacksonDesensitizeConfiguration {
+
+        /**
+         * 注册 Jackson 脱敏模块。
+         *
+         * @return 脱敏模块
+         */
+        @Bean
+        @ConditionalOnMissingBean(DesensitizeModule.class)
+        public DesensitizeModule desensitizeModule() {
+            return new DesensitizeModule();
         }
     }
 

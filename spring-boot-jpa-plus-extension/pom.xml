@@ -85,6 +85,17 @@
 			<artifactId>guava</artifactId>
 		</dependency>
 
+		<!--
+            Jackson：
+            为 @Desensitize 提供 JSON 序列化脱敏能力。
+            作为可选依赖，未引入 Jackson 的应用不会受影响。
+        -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<optional>true</optional>
+		</dependency>
+
 		<!-- 单元测试 -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
