@@ -108,6 +108,15 @@ public class JpaPlusProperties {
     private Audit audit = new Audit();
 
     /**
+     * 字段加密配置。
+     *
+     * <p>
+     * 默认值：启用，未配置密钥。
+     * </p>
+     */
+    private Encryption encryption = new Encryption();
+
+    /**
      * 获取是否启用 JPA Plus。
      *
      * @return 启用时返回 {@code true}
@@ -224,6 +233,24 @@ public class JpaPlusProperties {
     }
 
     /**
+     * 获取字段加密配置。
+     *
+     * @return 加密配置
+     */
+    public Encryption getEncryption() {
+        return encryption;
+    }
+
+    /**
+     * 设置字段加密配置。
+     *
+     * @param encryption 加密配置
+     */
+    public void setEncryption(Encryption encryption) {
+        this.encryption = encryption;
+    }
+
+    /**
      * 逻辑删除过滤配置。
      */
     public static class LogicDelete {
@@ -259,6 +286,73 @@ public class JpaPlusProperties {
          */
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
+        }
+    }
+
+    /**
+     * 字段加密配置。
+     */
+    public static class Encryption {
+
+        /**
+         * 创建默认加密配置。
+         */
+        public Encryption() {
+        }
+
+        /**
+         * 是否启用字段加密。
+         *
+         * <p>
+         * 默认值：true。关闭后标注加密转换器的字段按明文读写。
+         * </p>
+         */
+        private boolean enabled = true;
+
+        /**
+         * 加密密钥。
+         *
+         * <p>
+         * 任意字符串，启动时经 SHA-256 派生为 256 位密钥。
+         * 未配置时使用加密转换器的字段会在读写时抛出异常。
+         * </p>
+         */
+        private String key;
+
+        /**
+         * 获取是否启用字段加密。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用字段加密。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        /**
+         * 获取加密密钥。
+         *
+         * @return 加密密钥；未配置时返回 {@code null}
+         */
+        public String getKey() {
+            return key;
+        }
+
+        /**
+         * 设置加密密钥。
+         *
+         * @param key 加密密钥
+         */
+        public void setKey(String key) {
+            this.key = key;
         }
     }
 

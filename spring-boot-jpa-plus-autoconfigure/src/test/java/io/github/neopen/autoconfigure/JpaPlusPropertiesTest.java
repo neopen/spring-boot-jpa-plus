@@ -25,6 +25,8 @@ class JpaPlusPropertiesTest {
         assertThat(properties.getAudit().isEnabled()).isTrue();
         assertThat(properties.getAudit().getZone()).isEqualTo("UTC");
         assertThat(properties.getAudit().getAuditor()).isNull();
+        assertThat(properties.getEncryption().isEnabled()).isTrue();
+        assertThat(properties.getEncryption().getKey()).isNull();
     }
 
     /**

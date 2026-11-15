@@ -2,6 +2,7 @@ package io.github.neopen.autoconfigure;
 
 import io.github.neopen.core.persistence.audit.Audits;
 import io.github.neopen.core.persistence.batch.BatchOperation;
+import io.github.neopen.core.persistence.encrypt.EncryptedFields;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
 import org.springframework.util.StringUtils;
 
@@ -49,6 +50,17 @@ public class JpaPlusRuntimeConfigurer {
 
         if (logicDelete != null) {
             LogicDeletes.setEnabled(logicDelete.isEnabled());
+        }
+
+        JpaPlusProperties.Encryption encryption =
+                properties.getEncryption();
+
+        if (encryption != null) {
+            EncryptedFields.setEnabled(encryption.isEnabled());
+
+            if (StringUtils.hasText(encryption.getKey())) {
+                EncryptedFields.setKey(encryption.getKey());
+            }
         }
 
         JpaPlusProperties.Audit audit = properties.getAudit();

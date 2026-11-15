@@ -5,6 +5,7 @@ import io.github.neopen.core.persistence.audit.Audits;
 import io.github.neopen.core.persistence.audit.CreatedAt;
 import io.github.neopen.core.persistence.audit.CreatedBy;
 import io.github.neopen.core.persistence.batch.BatchOperation;
+import io.github.neopen.core.persistence.encrypt.EncryptedFields;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -29,6 +30,8 @@ class JpaPlusRuntimeConfigurerTest {
         Audits.setClock(null);
         Audits.setAuditorSupplier(null);
         BatchOperation.setDefaultBatchSize(500);
+        EncryptedFields.setEnabled(true);
+        EncryptedFields.clearKey();
     }
 
     /**
@@ -94,6 +97,49 @@ class JpaPlusRuntimeConfigurerTest {
         assertThat(Audits.isEnabled()).isFalse();
         assertThat(entity.createdAt).isNull();
         assertThat(entity.createdBy).isNull();
+    }
+
+    /**
+     * 验证加密密钥与开关写入加密工具。
+     */
+    @Test
+    void shouldApplyEncryptionConfig() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.getEncryption().setKey("demo-key");
+
+        new JpaPlusRuntimeConfigurer(properties);
+
+        assertThat(EncryptedFields.hasKey()).isTrue();
+
+        String encrypted = EncryptedFields.encrypt("value");
+
+        assertThat(EncryptedFields.decrypt(encrypted)).isEqualTo("value");
+    }
+
+    /**
+     * 验证可以关闭字段加密。
+     */
+    @Test
+    void shouldDisableEncryption() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.getEncryption().setEnabled(false);
+
+        new JpaPlusRuntimeConfigurer(properties);
+
+        assertThat(EncryptedFields.isEnabled()).isFalse();
+    }
+
+    /**
+     * 验证未配置密钥时不会覆盖已有密钥。
+     */
+    @Test
+    void shouldKeepKeyWhenNotConfigured() {
+        EncryptedFields.setKey("existing-key");
+
+        new JpaPlusRuntimeConfigurer(new JpaPlusProperties());
+
+        assertThat(EncryptedFields.decrypt(EncryptedFields.encrypt("v")))
+                .isEqualTo("v");
     }
 
     /** 审计实体。 */
