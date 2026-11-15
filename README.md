@@ -4,6 +4,8 @@
 
 <p align="center">  <a href="https://github.com/neopen/spring-boot-jpa-plus">    <img src="https://img.shields.io/github/stars/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Stars"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/network/members">    <img src="https://img.shields.io/github/forks/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Forks"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/issues">    <img src="https://img.shields.io/github/issues/neopen/spring-boot-jpa-plus?style=flat-square" alt="GitHub Issues"/>  </a>  <a href="https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE">    <img src="https://img.shields.io/github/license/neopen/spring-boot-jpa-plus?style=flat-square" alt="License"/>  </a></p>
 
+[English](README.md) | [简体中文](README.zh-CN.md)
+
 ## Overview
 
 **Spring Boot JPA Plus** is a modular enhancement toolkit built on top of Spring Data JPA.
@@ -713,6 +715,6 @@ Contributions are welcome!
 
 ## License
 
-Spring Boot JPA Plus is licensed under the [MIT License](https://chatgpt.com/c/LICENSE).
+Spring Boot JPA Plus is licensed under the [MIT License](https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE).
 
 <p align="center">  If you find this project useful, please consider giving it a ⭐</p>
