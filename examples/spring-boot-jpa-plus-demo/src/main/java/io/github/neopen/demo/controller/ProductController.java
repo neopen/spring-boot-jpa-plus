@@ -26,6 +26,10 @@ import java.util.List;
  *
  * <p>默认接口走 JPA 实现，{@code /hql} 前缀走 HQL 实现，
  * {@code /sql} 前缀走原生 SQL 实现，便于直接对比三种方式。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @RestController
 @RequestMapping("/product")

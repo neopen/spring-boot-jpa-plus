@@ -21,6 +21,10 @@ import java.util.List;
  *
  * <p>负责商品写入、字段复制、库存状态计算和视图转换；查询读取由
  * JPA、HQL 与原生 SQL 三个子类分别实现。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public abstract class AbstractProductService
         extends AbstractBaseService<ProductVo, Product, ProductQueryParam>

@@ -15,6 +15,10 @@ import java.util.List;
  *
  * @param <Q> 查询参数类型
  * @param <V> 响应视图对象类型
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public interface BaseController<Q, V> {
 

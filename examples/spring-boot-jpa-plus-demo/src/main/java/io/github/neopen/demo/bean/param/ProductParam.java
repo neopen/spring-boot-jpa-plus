@@ -6,6 +6,10 @@ import java.math.BigDecimal;
 
 /**
  * 商品新增与编辑参数。
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Data
 public class ProductParam {

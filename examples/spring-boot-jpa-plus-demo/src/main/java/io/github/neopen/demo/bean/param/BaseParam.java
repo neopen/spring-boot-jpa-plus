@@ -12,6 +12,10 @@ import java.io.Serializable;
  * 基础查询参数。
  *
  * <p>提供日期、日期时间和时间范围条件，并启用日期格式校验。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Data
 @DateStrValid

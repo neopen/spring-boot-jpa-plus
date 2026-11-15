@@ -10,6 +10,10 @@ import java.time.LocalDateTime;
  * 商品库存实体。
  *
  * <p>维护商品资料、库存数量、库存状态和上下架状态。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Data
 @NoArgsConstructor

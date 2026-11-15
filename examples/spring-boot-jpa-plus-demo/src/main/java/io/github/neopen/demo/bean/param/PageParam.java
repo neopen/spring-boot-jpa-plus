@@ -16,6 +16,10 @@ import org.springframework.util.StringUtils;
  *
  * <p>页码从 1 开始，可转换为 Spring Data 分页请求，也支持计算
  * MyBatis 查询偏移量。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @ApiModel("分页参数")
 public class PageParam extends BaseParam {

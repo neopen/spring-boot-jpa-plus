@@ -24,6 +24,10 @@ import java.util.List;
  *
  * <p>使用 {@code Specification} 动态拼接查询条件，通过仓库完成分页和列表查询。
  * 除基础字段过滤外，还演示订单项连表查询、去重和金额区间过滤。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Service("orderJpaService")
 @Primary

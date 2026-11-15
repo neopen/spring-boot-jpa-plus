@@ -23,6 +23,10 @@ import java.util.Map;
  *
  * <p>查询全部通过 {@link JpaPlusHqlExecutor} 与 {@link HqlWrapper} 完成，
  * 写入仍复用 JPA 仓库。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Service("orderHqlService")
 public class OrderHqlServiceImpl extends AbstractOrderService {

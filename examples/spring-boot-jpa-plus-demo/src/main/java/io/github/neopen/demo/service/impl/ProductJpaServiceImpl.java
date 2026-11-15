@@ -31,6 +31,10 @@ import java.util.stream.Collectors;
  * 基于 Spring Data JPA 的商品服务实现。
  *
  * <p>使用 {@code Specification} 完成动态查询，低库存与补货均基于实体操作。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Service("productJpaService")
 @Primary

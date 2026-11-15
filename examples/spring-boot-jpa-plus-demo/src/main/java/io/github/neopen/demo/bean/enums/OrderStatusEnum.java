@@ -10,6 +10,10 @@ import java.util.Random;
  * 订单状态枚举。
  *
  * <p>定义示例订单的状态编码、描述及简单流转规则。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Getter
 public enum OrderStatusEnum {

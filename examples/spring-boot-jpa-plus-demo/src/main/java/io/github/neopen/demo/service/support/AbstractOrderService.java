@@ -24,6 +24,10 @@ import java.util.Map;
  *
  * <p>负责订单保存、示例数据生成和视图转换；查询读取由 JPA、HQL
  * 与原生 SQL 三个子类分别实现。</p>
+ *
+ * @author neopen
+ * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
+ * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 public abstract class AbstractOrderService
         extends AbstractBaseService<OrderVo, Order, OrderQueryParam>
