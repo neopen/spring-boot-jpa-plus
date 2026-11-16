@@ -133,6 +133,24 @@ public class JpaPlusProperties {
     private SlowSql slowSql = new SlowSql();
 
     /**
+     * Hibernate JDBC 批量配置。
+     *
+     * <p>
+     * 默认值：关闭。开启后自动设置 Hibernate 的批量写入参数。
+     * </p>
+     */
+    private JdbcBatch jdbcBatch = new JdbcBatch();
+
+    /**
+     * Micrometer 指标配置。
+     *
+     * <p>
+     * 默认值：关闭。开启后需要容器中存在 {@code MeterRegistry}。
+     * </p>
+     */
+    private Metrics metrics = new Metrics();
+
+    /**
      * 多租户配置。
      *
      * <p>
@@ -313,6 +331,24 @@ public class JpaPlusProperties {
     }
 
     /**
+     * 获取 Hibernate JDBC 批量配置。
+     *
+     * @return JDBC 批量配置
+     */
+    public JdbcBatch getJdbcBatch() {
+        return jdbcBatch;
+    }
+
+    /**
+     * 获取 Micrometer 指标配置。
+     *
+     * @return 指标配置
+     */
+    public Metrics getMetrics() {
+        return metrics;
+    }
+
+    /**
      * 获取多租户配置。
      *
      * @return 多租户配置
@@ -391,6 +427,24 @@ public class JpaPlusProperties {
      */
     public void setSlowSql(SlowSql slowSql) {
         this.slowSql = slowSql;
+    }
+
+    /**
+     * 设置 Hibernate JDBC 批量配置。
+     *
+     * @param jdbcBatch JDBC 批量配置
+     */
+    public void setJdbcBatch(JdbcBatch jdbcBatch) {
+        this.jdbcBatch = jdbcBatch;
+    }
+
+    /**
+     * 设置 Micrometer 指标配置。
+     *
+     * @param metrics 指标配置
+     */
+    public void setMetrics(Metrics metrics) {
+        this.metrics = metrics;
     }
 
     /**
@@ -632,6 +686,220 @@ public class JpaPlusProperties {
             }
 
             this.thresholdMs = thresholdMs;
+        }
+    }
+
+    /**
+     * Hibernate JDBC 批量配置。
+     *
+     * <p>
+     * 开启后自动设置 {@code hibernate.jdbc.batch_size}、
+     * {@code hibernate.order_inserts} 与
+     * {@code hibernate.order_updates}，无需再手工维护
+     * {@code spring.jpa.properties}。
+     * </p>
+     */
+    public static class JdbcBatch {
+
+        /**
+         * 创建默认 JDBC 批量配置。
+         */
+        public JdbcBatch() {
+        }
+
+        /**
+         * 是否启用 JDBC 批量自动配置。
+         *
+         * <p>
+         * 默认值：false。关闭时不覆盖任何 Hibernate 批量参数。
+         * </p>
+         */
+        private boolean enabled = false;
+
+        /**
+         * JDBC 批量大小。
+         *
+         * <p>
+         * 默认值：50。对应 {@code hibernate.jdbc.batch_size}。
+         * </p>
+         */
+        private int batchSize = 50;
+
+        /**
+         * 是否对同类型插入语句排序。
+         *
+         * <p>
+         * 默认值：true。对应 {@code hibernate.order_inserts}。
+         * </p>
+         */
+        private boolean orderInserts = true;
+
+        /**
+         * 是否对同类型更新语句排序。
+         *
+         * <p>
+         * 默认值：true。对应 {@code hibernate.order_updates}。
+         * </p>
+         */
+        private boolean orderUpdates = true;
+
+        /**
+         * 获取是否启用 JDBC 批量自动配置。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用 JDBC 批量自动配置。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        /**
+         * 获取 JDBC 批量大小。
+         *
+         * @return 批量大小
+         */
+        public int getBatchSize() {
+            return batchSize;
+        }
+
+        /**
+         * 设置 JDBC 批量大小。
+         *
+         * @param batchSize 批量大小，必须大于 0
+         * @throws IllegalArgumentException 批量大小不大于 0 时抛出
+         */
+        public void setBatchSize(int batchSize) {
+            if (batchSize <= 0) {
+                throw new IllegalArgumentException(
+                        "neopen.jpa.jdbc-batch.batch-size must be "
+                                + "greater than zero"
+                );
+            }
+
+            this.batchSize = batchSize;
+        }
+
+        /**
+         * 获取是否排序插入语句。
+         *
+         * @return 排序时返回 {@code true}
+         */
+        public boolean isOrderInserts() {
+            return orderInserts;
+        }
+
+        /**
+         * 设置是否排序插入语句。
+         *
+         * @param orderInserts 是否排序
+         */
+        public void setOrderInserts(boolean orderInserts) {
+            this.orderInserts = orderInserts;
+        }
+
+        /**
+         * 获取是否排序更新语句。
+         *
+         * @return 排序时返回 {@code true}
+         */
+        public boolean isOrderUpdates() {
+            return orderUpdates;
+        }
+
+        /**
+         * 设置是否排序更新语句。
+         *
+         * @param orderUpdates 是否排序
+         */
+        public void setOrderUpdates(boolean orderUpdates) {
+            this.orderUpdates = orderUpdates;
+        }
+    }
+
+    /**
+     * Micrometer 指标配置。
+     *
+     * <p>
+     * 开启后需要容器中存在 {@code MeterRegistry}，并自动注册数据源
+     * 路由次数与慢 SQL 次数两个计数器。
+     * </p>
+     */
+    public static class Metrics {
+
+        /**
+         * 创建默认指标配置。
+         */
+        public Metrics() {
+        }
+
+        /**
+         * 是否启用指标采集。
+         *
+         * <p>
+         * 默认值：false。
+         * </p>
+         */
+        private boolean enabled = false;
+
+        /**
+         * SQL 超过该毫秒数时计入慢 SQL。
+         *
+         * <p>
+         * 默认值：1000。
+         * </p>
+         */
+        private long slowThresholdMs = 1000L;
+
+        /**
+         * 获取是否启用指标采集。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用指标采集。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        /**
+         * 获取慢 SQL 阈值。
+         *
+         * @return 阈值毫秒数
+         */
+        public long getSlowThresholdMs() {
+            return slowThresholdMs;
+        }
+
+        /**
+         * 设置慢 SQL 阈值。
+         *
+         * @param slowThresholdMs 阈值毫秒数，必须大于 0
+         * @throws IllegalArgumentException 阈值不大于 0 时抛出
+         */
+        public void setSlowThresholdMs(long slowThresholdMs) {
+            if (slowThresholdMs <= 0) {
+                throw new IllegalArgumentException(
+                        "neopen.jpa.metrics.slow-threshold-ms must be "
+                                + "greater than zero"
+                );
+            }
+
+            this.slowThresholdMs = slowThresholdMs;
         }
     }
 

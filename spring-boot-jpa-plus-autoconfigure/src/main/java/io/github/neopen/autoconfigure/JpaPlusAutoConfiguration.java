@@ -139,6 +139,51 @@ public class JpaPlusAutoConfiguration {
     }
 
     /**
+     * 注册 Hibernate JDBC 批量定制器。
+     *
+     * <p>
+     * 仅在 {@code neopen.jpa.jdbc-batch.enabled=true} 时生效，
+     * 自动设置批量大小与语句排序开关。
+     * </p>
+     *
+     * @param properties JPA Plus 配置属性
+     * @return Hibernate 属性定制器
+     */
+    @Bean
+    @ConditionalOnMissingBean(JdbcBatchHibernateCustomizer.class)
+    @ConditionalOnProperty(
+            prefix = "neopen.jpa.jdbc-batch",
+            name = "enabled",
+            havingValue = "true"
+    )
+    public JdbcBatchHibernateCustomizer jpaPlusJdbcBatchCustomizer(
+            JpaPlusProperties properties
+    ) {
+        JpaPlusProperties.JdbcBatch jdbcBatch =
+                properties.getJdbcBatch();
+
+        return new JdbcBatchHibernateCustomizer(
+                jdbcBatch.getBatchSize(),
+                jdbcBatch.isOrderInserts(),
+                jdbcBatch.isOrderUpdates()
+        );
+    }
+
+    /**
+     * 注册忽略过滤切面。
+     *
+     * <p>处理 {@code @IgnoreTenant} 与 {@code @IgnoreDataScope}，
+     * 支持方法级与类级标注，嵌套调用按层恢复。</p>
+     *
+     * @return 忽略过滤切面
+     */
+    @Bean
+    @ConditionalOnMissingBean(IgnoreFilterAspect.class)
+    public IgnoreFilterAspect ignoreFilterAspect() {
+        return new IgnoreFilterAspect();
+    }
+
+    /**
      * JPA Plus 执行器相关自动配置。
      *
      * <p>
