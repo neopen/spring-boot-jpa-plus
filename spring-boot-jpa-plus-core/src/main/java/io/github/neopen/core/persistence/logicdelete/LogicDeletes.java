@@ -282,6 +282,116 @@ public final class LogicDeletes {
     }
 
     /**
+     * 按主键恢复逻辑删除的数据。
+     *
+     * <p>直接执行 JPQL 更新语句，将逻辑删除字段置为 {@code false}，
+     * 不触发实体生命周期回调。</p>
+     *
+     * @param entityManager 实体管理器
+     * @param entityType    实体类型，必须标注 {@link LogicDelete}
+     * @param id            主键值
+     * @param <T>           实体类型
+     * @return 受影响的记录数
+     * @throws IllegalArgumentException 参数为空或实体未标注注解时抛出
+     */
+    public static <T> int restoreById(
+            EntityManager entityManager,
+            Class<T> entityType,
+            Object id
+    ) {
+        if (id == null) {
+            return 0;
+        }
+
+        return restoreAllById(entityManager, entityType, List.of(id));
+    }
+
+    /**
+     * 按主键批量恢复逻辑删除的数据。
+     *
+     * @param entityManager 实体管理器
+     * @param entityType    实体类型，必须标注 {@link LogicDelete}
+     * @param ids           主键集合；为空时返回 0
+     * @param <T>           实体类型
+     * @return 受影响的记录数
+     * @throws IllegalArgumentException 参数为空或实体未标注注解时抛出
+     */
+    public static <T> int restoreAllById(
+            EntityManager entityManager,
+            Class<T> entityType,
+            Collection<?> ids
+    ) {
+        LogicDeleteMetadata metadata = requireMetadata(
+                entityManager,
+                entityType
+        );
+
+        if (ids == null || ids.isEmpty()) {
+            return 0;
+        }
+
+        String jpql = "update " + entityName(entityManager, entityType)
+                + " e set e." + metadata.fieldName() + " = false"
+                + " where e." + idAttributeName(entityManager, entityType)
+                + " in :ids";
+
+        Query query = entityManager.createQuery(jpql);
+        query.setParameter("ids", ids);
+
+        return query.executeUpdate();
+    }
+
+    /**
+     * 取消实体的删除标记。
+     *
+     * <p>要求实体处于托管状态，字段变更由持久化上下文在事务提交时
+     * 自动同步。</p>
+     *
+     * @param entityManager 实体管理器
+     * @param entityType    实体类型，必须标注 {@link LogicDelete}
+     * @param entities      待恢复实体；为空时返回 0
+     * @param <T>           实体类型
+     * @return 恢复的实体数量
+     * @throws IllegalArgumentException 参数为空或实体未标注注解时抛出
+     * @throws JpaPlusException         字段写入失败时抛出
+     */
+    public static <T> int restoreAll(
+            EntityManager entityManager,
+            Class<T> entityType,
+            Collection<T> entities
+    ) {
+        LogicDeleteMetadata metadata = requireMetadata(
+                entityManager,
+                entityType
+        );
+
+        if (entities == null || entities.isEmpty()) {
+            return 0;
+        }
+
+        int count = 0;
+
+        for (T entity : entities) {
+            if (entity == null) {
+                continue;
+            }
+
+            try {
+                metadata.field().set(entity, Boolean.FALSE);
+            } catch (IllegalAccessException e) {
+                throw new JpaPlusException(
+                        "Cannot restore entity",
+                        e
+                );
+            }
+
+            count++;
+        }
+
+        return count;
+    }
+
+    /**
      * 校验实体类型。
      *
      * @param entityType 实体类型

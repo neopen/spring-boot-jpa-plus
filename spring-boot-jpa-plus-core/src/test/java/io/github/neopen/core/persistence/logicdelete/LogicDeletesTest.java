@@ -299,6 +299,66 @@ class LogicDeletesTest {
     }
 
     /**
+     * 验证按主键恢复生成取消删除标记的更新语句。
+     */
+    @Test
+    void shouldRestoreById() {
+        EntityManager entityManager = mockEntityManager();
+        Query query = mockQuery(entityManager, 1);
+
+        int affected = LogicDeletes.restoreById(
+                entityManager,
+                Order.class,
+                5L
+        );
+
+        assertThat(affected).isEqualTo(1);
+        verify(entityManager).createQuery(
+                "update Order e set e.deleted = false where e.id in :ids"
+        );
+        verify(query).setParameter("ids", List.of(5L));
+        verify(query).executeUpdate();
+    }
+
+    /**
+     * 验证批量恢复空主键集合不会执行语句。
+     */
+    @Test
+    void shouldSkipRestoreForEmptyIds() {
+        EntityManager entityManager = mockEntityManager();
+
+        assertThat(LogicDeletes.restoreAllById(
+                entityManager,
+                Order.class,
+                List.of()
+        )).isZero();
+
+        verify(entityManager, never()).createQuery(anyString());
+    }
+
+    /**
+     * 验证实体恢复后删除标记被取消。
+     */
+    @Test
+    void shouldClearDeletedFlag() {
+        EntityManager entityManager = mockEntityManager();
+        Order first = new Order();
+        Order second = new Order();
+
+        LogicDeletes.deleteAll(entityManager, Order.class, List.of(first, second));
+
+        int count = LogicDeletes.restoreAll(
+                entityManager,
+                Order.class,
+                List.of(first, second)
+        );
+
+        assertThat(count).isEqualTo(2);
+        assertThat(first.isDeleted()).isFalse();
+        assertThat(second.isDeleted()).isFalse();
+    }
+
+    /**
      * 创建带实体元数据的模拟实体管理器。
      *
      * @return 实体管理器

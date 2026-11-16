@@ -13,11 +13,140 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 /**
  * {@link BatchOperation} 单元测试。
  */
 class BatchOperationTest {
+
+    /**
+     * 验证按业务键区分新增与更新。
+     */
+    @Test
+    void shouldUpsertByBusinessKey() {
+        EntityManager entityManager = mock(EntityManager.class);
+        jakarta.persistence.metamodel.Metamodel metamodel =
+                mock(jakarta.persistence.metamodel.Metamodel.class);
+        @SuppressWarnings("unchecked")
+        jakarta.persistence.metamodel.EntityType<Order> entityType =
+                mock(jakarta.persistence.metamodel.EntityType.class);
+        @SuppressWarnings("unchecked")
+        jakarta.persistence.TypedQuery<Order> query =
+                mock(jakarta.persistence.TypedQuery.class);
+
+        Order existing = new Order("A", "old");
+        Order created = new Order("B", "created");
+
+        when(entityManager.getMetamodel()).thenReturn(metamodel);
+        when(metamodel.entity(Order.class)).thenReturn(entityType);
+        when(entityType.getName()).thenReturn("Order");
+        when(entityManager.createQuery(
+                "select e from Order e where e.code in :keys",
+                Order.class
+        )).thenReturn(query);
+        when(query.setParameter(
+                org.mockito.ArgumentMatchers.eq("keys"),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(query);
+        when(query.getResultList()).thenReturn(List.of(existing));
+
+        BatchOperation.UpsertResult result = BatchOperation.upsertAll(
+                entityManager,
+                Order.class,
+                List.of(new Order("A", "existing"), created),
+                Order::getCode,
+                "code",
+                10
+        );
+
+        assertThat(result.inserted()).isEqualTo(1);
+        assertThat(result.updated()).isEqualTo(1);
+        assertThat(result.total()).isEqualTo(2);
+        assertThat(existing.getDescription()).isEqualTo("existing");
+        verify(entityManager).persist(created);
+        verify(entityManager, times(0)).persist(existing);
+        verify(entityManager).flush();
+        verify(entityManager).clear();
+    }
+
+    /**
+     * 验证空集合不查询也不写库。
+     */
+    @Test
+    void shouldSkipUpsertForEmptyEntities() {
+        EntityManager entityManager = mock(EntityManager.class);
+
+        BatchOperation.UpsertResult result = BatchOperation.upsertAll(
+                entityManager,
+                Order.class,
+                List.of(),
+                Order::getCode,
+                "code",
+                10
+        );
+
+        assertThat(result.total()).isZero();
+        verify(entityManager, times(0)).flush();
+    }
+
+    /**
+     * 验证业务键字段名为空时被拒绝。
+     */
+    @Test
+    void shouldRejectBlankUpsertKeyProperty() {
+        EntityManager entityManager = mock(EntityManager.class);
+
+        assertThatThrownBy(() -> BatchOperation.upsertAll(
+                entityManager,
+                Order.class,
+                List.of(new Order("A", "a")),
+                Order::getCode,
+                " ",
+                10
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Key property must not be blank");
+    }
+
+    /** 测试用订单。 */
+    private static class Order {
+
+        /** 业务键。 */
+        private final String code;
+
+        /** 描述。 */
+        private String description;
+
+        /**
+         * 创建订单。
+         *
+         * @param code        业务键
+         * @param description 描述
+         */
+        private Order(String code, String description) {
+            this.code = code;
+            this.description = description;
+        }
+
+        /**
+         * 获取业务键。
+         *
+         * @return 业务键
+         */
+        String getCode() {
+            return code;
+        }
+
+        /**
+         * 获取描述。
+         *
+         * @return 描述
+         */
+        String getDescription() {
+            return description;
+        }
+    }
 
     /**
      * 恢复默认批次大小。
