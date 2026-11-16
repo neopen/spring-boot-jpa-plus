@@ -204,6 +204,15 @@ public final class Audits {
     }
 
     /**
+     * 获取当前作用域生效的操作人。
+     *
+     * @return 操作人；未配置时返回 {@code null}
+     */
+    public static String currentAuditor() {
+        return activeAuditor().get();
+    }
+
+    /**
      * 判断实体是否声明了审计字段。
      *
      * @param entityType 实体类型
