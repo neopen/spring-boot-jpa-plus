@@ -71,6 +71,49 @@ class BatchOperationTest {
     }
 
     /**
+     * 验证多个批次只查询一次业务键。
+     */
+    @Test
+    void shouldQueryExistingKeysOnce() {
+        EntityManager entityManager = mock(EntityManager.class);
+        jakarta.persistence.metamodel.Metamodel metamodel =
+                mock(jakarta.persistence.metamodel.Metamodel.class);
+        @SuppressWarnings("unchecked")
+        jakarta.persistence.metamodel.EntityType<Order> entityType =
+                mock(jakarta.persistence.metamodel.EntityType.class);
+        @SuppressWarnings("unchecked")
+        jakarta.persistence.TypedQuery<Order> query =
+                mock(jakarta.persistence.TypedQuery.class);
+        String jpql = "select e from Order e where e.code in :keys";
+
+        when(entityManager.getMetamodel()).thenReturn(metamodel);
+        when(metamodel.entity(Order.class)).thenReturn(entityType);
+        when(entityType.getName()).thenReturn("Order");
+        when(entityManager.createQuery(jpql, Order.class))
+                .thenReturn(query);
+        when(query.setParameter(
+                org.mockito.ArgumentMatchers.eq("keys"),
+                org.mockito.ArgumentMatchers.any()
+        )).thenReturn(query);
+        when(query.getResultList()).thenReturn(List.of());
+
+        org.mockito.Mockito.clearInvocations(entityManager);
+
+        BatchOperation.upsertAll(
+                entityManager,
+                Order.class,
+                List.of(new Order("A", "a"), new Order("B", "b")),
+                Order::getCode,
+                "code",
+                1
+        );
+
+        verify(entityManager, times(1)).createQuery(jpql, Order.class);
+        verify(entityManager, times(2)).flush();
+        verify(entityManager, times(1)).clear();
+    }
+
+    /**
      * 验证空集合不查询也不写库。
      */
     @Test

@@ -352,12 +352,12 @@ public final class BatchOperation {
     /**
      * 按业务唯一键批量新增或更新实体。
      *
-     * <p>按业务键分批查询已存在的实体：不存在的新增，已存在的把
-     * 可持久化字段复制到托管实体，由脏检查统一更新。调用方无需
-     * 提供主键，但需要保证业务键唯一。</p>
+     * <p>先一次性查询全部业务键对应的已存在实体，再按批次处理：
+     * 不存在的新增，已存在的把可持久化字段复制到托管实体，由脏
+     * 检查统一更新。调用方无需提供主键，但需要保证业务键唯一。</p>
      *
-     * <p>每批处理完成后会执行 {@code flush} 与 {@code clear}，
-     * 返回后传入的实体均处于游离状态。</p>
+     * <p>每批处理完成后会执行 {@code flush}，全部处理完成后统一
+     * {@code clear}，返回后传入的实体均处于游离状态。</p>
      *
      * @param <T>           实体类型
      * @param entityManager 实体管理器，不能为 {@code null}
@@ -414,17 +414,17 @@ public final class BatchOperation {
         List<T> items = new ArrayList<>(entities);
         int inserted = 0;
         int updated = 0;
+        Map<Object, T> existing = findExisting(
+                entityManager,
+                entityType,
+                items,
+                keyExtractor,
+                keyProperty
+        );
 
         for (int from = 0; from < items.size(); from += batchSize) {
             int to = Math.min(from + batchSize, items.size());
             List<T> chunk = items.subList(from, to);
-            Map<Object, T> existing = findExisting(
-                    entityManager,
-                    entityType,
-                    chunk,
-                    keyExtractor,
-                    keyProperty
-            );
 
             for (T entity : chunk) {
                 if (entity == null) {
@@ -449,8 +449,9 @@ public final class BatchOperation {
             }
 
             entityManager.flush();
-            entityManager.clear();
         }
+
+        entityManager.clear();
 
         return new UpsertResult(inserted, updated);
     }
