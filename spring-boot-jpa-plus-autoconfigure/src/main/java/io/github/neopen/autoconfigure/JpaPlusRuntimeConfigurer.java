@@ -2,9 +2,15 @@ package io.github.neopen.autoconfigure;
 
 import io.github.neopen.core.persistence.audit.Audits;
 import io.github.neopen.core.persistence.audit.AuditorProvider;
+import io.github.neopen.core.persistence.audit.trail.AuditLogPublisher;
+import io.github.neopen.core.persistence.audit.trail.AuditTrails;
 import io.github.neopen.core.persistence.batch.BatchOperation;
+import io.github.neopen.core.persistence.datascope.DataPermissionProvider;
+import io.github.neopen.core.persistence.datascope.DataScopes;
 import io.github.neopen.core.persistence.encrypt.EncryptedFields;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
+import io.github.neopen.core.persistence.tenant.TenantProvider;
+import io.github.neopen.core.persistence.tenant.Tenants;
 import org.springframework.util.StringUtils;
 
 import java.time.Clock;
@@ -51,24 +57,56 @@ public class JpaPlusRuntimeConfigurer {
             JpaPlusProperties properties,
             AuditorProvider auditorProvider
     ) {
+        this(properties, auditorProvider, null, null, null);
+    }
+
+    /**
+     * 应用配置属性并接入各项 SPI。
+     *
+     * @param properties              JPA Plus 配置属性，不能为 {@code null}
+     * @param auditorProvider         操作人提供者，允许为 {@code null}
+     * @param tenantProvider          租户提供者，允许为 {@code null}
+     * @param dataPermissionProvider  数据权限提供者，允许为 {@code null}
+     * @param auditLogPublisher       变更历史发布者，允许为 {@code null}
+     * @throws IllegalArgumentException 配置属性为空
+     */
+    public JpaPlusRuntimeConfigurer(
+            JpaPlusProperties properties,
+            AuditorProvider auditorProvider,
+            TenantProvider tenantProvider,
+            DataPermissionProvider dataPermissionProvider,
+            AuditLogPublisher auditLogPublisher
+    ) {
         if (properties == null) {
             throw new IllegalArgumentException(
                     "JpaPlusProperties must not be null"
             );
         }
 
-        apply(properties, auditorProvider);
+        apply(
+                properties,
+                auditorProvider,
+                tenantProvider,
+                dataPermissionProvider,
+                auditLogPublisher
+        );
     }
 
     /**
      * 写入全局配置。
      *
-     * @param properties      配置属性
-     * @param auditorProvider 操作人提供者，允许为 {@code null}
+     * @param properties             配置属性
+     * @param auditorProvider        操作人提供者，允许为 {@code null}
+     * @param tenantProvider         租户提供者，允许为 {@code null}
+     * @param dataPermissionProvider 数据权限提供者，允许为 {@code null}
+     * @param auditLogPublisher      变更历史发布者，允许为 {@code null}
      */
     private static void apply(
             JpaPlusProperties properties,
-            AuditorProvider auditorProvider
+            AuditorProvider auditorProvider,
+            TenantProvider tenantProvider,
+            DataPermissionProvider dataPermissionProvider,
+            AuditLogPublisher auditLogPublisher
     ) {
         BatchOperation.setDefaultBatchSize(properties.getBatchSize());
 
@@ -80,7 +118,9 @@ public class JpaPlusRuntimeConfigurer {
         }
 
         applyEncryption(properties.getEncryption());
-        applyAudit(properties.getAudit(), auditorProvider);
+        applyAudit(properties.getAudit(), auditorProvider, auditLogPublisher);
+        applyTenant(properties.getTenant(), tenantProvider);
+        applyDataScope(properties.getDataScope(), dataPermissionProvider);
         applyScopes(properties.getScopes());
     }
 
@@ -122,6 +162,18 @@ public class JpaPlusRuntimeConfigurer {
             if (StringUtils.hasText(scope.getAuditAuditor())) {
                 String auditor = scope.getAuditAuditor();
                 Audits.setAuditorSupplier(name, () -> auditor);
+            }
+
+            if (scope.getTenantEnabled() != null) {
+                Tenants.setEnabled(name, scope.getTenantEnabled());
+            }
+
+            if (StringUtils.hasText(scope.getTenant())) {
+                Tenants.setTenant(name, scope.getTenant());
+            }
+
+            if (scope.getTrailEnabled() != null) {
+                AuditTrails.setEnabled(name, scope.getTrailEnabled());
             }
 
             applyScopeEncryption(name, scope);
@@ -197,13 +249,19 @@ public class JpaPlusRuntimeConfigurer {
      */
     private static void applyAudit(
             JpaPlusProperties.Audit audit,
-            AuditorProvider auditorProvider
+            AuditorProvider auditorProvider,
+            AuditLogPublisher auditLogPublisher
     ) {
         if (audit == null) {
             return;
         }
 
         Audits.setEnabled(audit.isEnabled());
+        AuditTrails.setEnabled(audit.isTrailEnabled());
+
+        if (auditLogPublisher != null) {
+            AuditTrails.setPublisher(auditLogPublisher);
+        }
 
         if (StringUtils.hasText(audit.getZone())) {
             Audits.setClock(Clock.system(
@@ -216,6 +274,48 @@ public class JpaPlusRuntimeConfigurer {
         } else if (StringUtils.hasText(audit.getAuditor())) {
             String auditor = audit.getAuditor();
             Audits.setAuditorSupplier(() -> auditor);
+        }
+    }
+
+    /**
+     * 写入多租户配置。
+     *
+     * @param tenant         多租户配置
+     * @param tenantProvider 租户提供者，允许为 {@code null}
+     */
+    private static void applyTenant(
+            JpaPlusProperties.Tenant tenant,
+            TenantProvider tenantProvider
+    ) {
+        if (tenant == null) {
+            return;
+        }
+
+        Tenants.setEnabled(tenant.isEnabled());
+
+        if (tenantProvider != null) {
+            Tenants.setProvider(tenantProvider);
+        }
+    }
+
+    /**
+     * 写入行级数据权限配置。
+     *
+     * @param dataScope              数据权限配置
+     * @param dataPermissionProvider 数据权限提供者，允许为 {@code null}
+     */
+    private static void applyDataScope(
+            JpaPlusProperties.DataScope dataScope,
+            DataPermissionProvider dataPermissionProvider
+    ) {
+        if (dataScope == null) {
+            return;
+        }
+
+        DataScopes.setEnabled(dataScope.isEnabled());
+
+        if (dataPermissionProvider != null) {
+            DataScopes.setProvider(dataPermissionProvider);
         }
     }
 }

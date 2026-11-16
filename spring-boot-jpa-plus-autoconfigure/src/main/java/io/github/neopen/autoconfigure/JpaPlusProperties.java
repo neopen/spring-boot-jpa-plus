@@ -133,6 +133,33 @@ public class JpaPlusProperties {
     private SlowSql slowSql = new SlowSql();
 
     /**
+     * 多租户配置。
+     *
+     * <p>
+     * 默认值：启用，未配置租户提供者。
+     * </p>
+     */
+    private Tenant tenant = new Tenant();
+
+    /**
+     * 行级数据权限配置。
+     *
+     * <p>
+     * 默认值：启用，未配置权限提供者。
+     * </p>
+     */
+    private DataScope dataScope = new DataScope();
+
+    /**
+     * 动态数据源配置。
+     *
+     * <p>
+     * 默认值：关闭，使用 Spring Boot 自带的数据源。
+     * </p>
+     */
+    private Datasource datasource = new Datasource();
+
+    /**
      * 按数据源作用域配置的开关。
      *
      * <p>
@@ -283,6 +310,60 @@ public class JpaPlusProperties {
      */
     public SlowSql getSlowSql() {
         return slowSql;
+    }
+
+    /**
+     * 获取多租户配置。
+     *
+     * @return 多租户配置
+     */
+    public Tenant getTenant() {
+        return tenant;
+    }
+
+    /**
+     * 设置多租户配置。
+     *
+     * @param tenant 多租户配置
+     */
+    public void setTenant(Tenant tenant) {
+        this.tenant = tenant;
+    }
+
+    /**
+     * 获取行级数据权限配置。
+     *
+     * @return 行级数据权限配置
+     */
+    public DataScope getDataScope() {
+        return dataScope;
+    }
+
+    /**
+     * 设置行级数据权限配置。
+     *
+     * @param dataScope 行级数据权限配置
+     */
+    public void setDataScope(DataScope dataScope) {
+        this.dataScope = dataScope;
+    }
+
+    /**
+     * 获取动态数据源配置。
+     *
+     * @return 动态数据源配置
+     */
+    public Datasource getDatasource() {
+        return datasource;
+    }
+
+    /**
+     * 设置动态数据源配置。
+     *
+     * @param datasource 动态数据源配置
+     */
+    public void setDatasource(Datasource datasource) {
+        this.datasource = datasource;
     }
 
     /**
@@ -595,6 +676,16 @@ public class JpaPlusProperties {
         private String zone = "UTC";
 
         /**
+         * 是否启用变更历史。
+         *
+         * <p>
+         * 默认值：true。只有标注 {@code @Audited} 并注册
+         * {@code AuditLogPublisher} 的实体会产生记录。
+         * </p>
+         */
+        private boolean trailEnabled = true;
+
+        /**
          * 获取是否启用审计字段填充。
          *
          * @return 启用时返回 {@code true}
@@ -646,6 +737,259 @@ public class JpaPlusProperties {
          */
         public void setZone(String zone) {
             this.zone = zone;
+        }
+
+        /**
+         * 获取是否启用变更历史。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isTrailEnabled() {
+            return trailEnabled;
+        }
+
+        /**
+         * 设置是否启用变更历史。
+         *
+         * @param trailEnabled 是否启用
+         */
+        public void setTrailEnabled(boolean trailEnabled) {
+            this.trailEnabled = trailEnabled;
+        }
+    }
+
+    /**
+     * 多租户配置。
+     */
+    public static class Tenant {
+
+        /**
+         * 创建默认多租户配置。
+         */
+        public Tenant() {
+        }
+
+        /**
+         * 是否启用租户过滤。
+         *
+         * <p>
+         * 默认值：true。只有实体声明 {@code @TenantId} 字段时才会
+         * 追加租户条件。
+         * </p>
+         */
+        private boolean enabled = true;
+
+        /**
+         * 获取是否启用租户过滤。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用租户过滤。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    /**
+     * 行级数据权限配置。
+     */
+    public static class DataScope {
+
+        /**
+         * 创建默认数据权限配置。
+         */
+        public DataScope() {
+        }
+
+        /**
+         * 是否启用行级数据权限。
+         *
+         * <p>
+         * 默认值：true。只有注册 {@code DataPermissionProvider}
+         * 并返回非空规则时才会限制数据范围。
+         * </p>
+         */
+        private boolean enabled = true;
+
+        /**
+         * 获取是否启用行级数据权限。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用行级数据权限。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+    }
+
+    /**
+     * 动态数据源配置。
+     *
+     * <p>
+     * 开启后会注册 {@code jpaPlusRoutingDataSource} 作为主数据源，
+     * 逻辑名称通过 {@link #targets} 映射到容器中的数据源 Bean。
+     * </p>
+     */
+    public static class Datasource {
+
+        /**
+         * 创建默认动态数据源配置。
+         */
+        public Datasource() {
+        }
+
+        /**
+         * 是否启用动态数据源。
+         *
+         * <p>
+         * 默认值：false。开启后必须先定义目标数据源 Bean，
+         * 否则启动时无法建立连接。
+         * </p>
+         */
+        private boolean enabled = false;
+
+        /**
+         * 默认数据源逻辑名称。
+         *
+         * <p>
+         * 默认值：{@code primary}。未指定目标时使用该数据源。
+         * </p>
+         */
+        private String primary = "primary";
+
+        /**
+         * 只读数据源逻辑名称。
+         *
+         * <p>
+         * 默认值：{@code read}。{@code @DataSource(readOnly = true)}
+         * 未指定名称时使用该数据源。
+         * </p>
+         */
+        private String readTarget = "read";
+
+        /**
+         * 读写数据源逻辑名称。
+         *
+         * <p>
+         * 默认值：{@code write}。
+         * {@code @DataSource(readOnly = false)} 未指定名称时使用该数据源。
+         * </p>
+         */
+        private String writeTarget = "write";
+
+        /**
+         * 逻辑名称到数据源 Bean 名称的映射。
+         *
+         * <p>
+         * 默认值：空。例如 {@code primary: dataSourcePrimary}。
+         * </p>
+         */
+        private Map<String, String> targets = new LinkedHashMap<>();
+
+        /**
+         * 获取是否启用动态数据源。
+         *
+         * @return 启用时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否启用动态数据源。
+         *
+         * @param enabled 是否启用
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        /**
+         * 获取默认数据源逻辑名称。
+         *
+         * @return 默认数据源逻辑名称
+         */
+        public String getPrimary() {
+            return primary;
+        }
+
+        /**
+         * 设置默认数据源逻辑名称。
+         *
+         * @param primary 默认数据源逻辑名称
+         */
+        public void setPrimary(String primary) {
+            this.primary = primary;
+        }
+
+        /**
+         * 获取只读数据源逻辑名称。
+         *
+         * @return 只读数据源逻辑名称
+         */
+        public String getReadTarget() {
+            return readTarget;
+        }
+
+        /**
+         * 设置只读数据源逻辑名称。
+         *
+         * @param readTarget 只读数据源逻辑名称
+         */
+        public void setReadTarget(String readTarget) {
+            this.readTarget = readTarget;
+        }
+
+        /**
+         * 获取读写数据源逻辑名称。
+         *
+         * @return 读写数据源逻辑名称
+         */
+        public String getWriteTarget() {
+            return writeTarget;
+        }
+
+        /**
+         * 设置读写数据源逻辑名称。
+         *
+         * @param writeTarget 读写数据源逻辑名称
+         */
+        public void setWriteTarget(String writeTarget) {
+            this.writeTarget = writeTarget;
+        }
+
+        /**
+         * 获取逻辑名称到数据源 Bean 名称的映射。
+         *
+         * @return 逻辑名称到 Bean 名称的映射
+         */
+        public Map<String, String> getTargets() {
+            return targets;
+        }
+
+        /**
+         * 设置逻辑名称到数据源 Bean 名称的映射。
+         *
+         * @param targets 逻辑名称到 Bean 名称的映射
+         */
+        public void setTargets(Map<String, String> targets) {
+            this.targets = targets;
         }
     }
 
@@ -749,6 +1093,34 @@ public class JpaPlusProperties {
          * </p>
          */
         private String encryptionActiveKeyId;
+
+        /**
+         * 该作用域是否启用租户过滤。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局配置。
+         * </p>
+         */
+        private Boolean tenantEnabled;
+
+        /**
+         * 该作用域固定的租户。
+         *
+         * <p>
+         * 配置后忽略全局租户提供者，适用于归档、运维等场景。
+         * 默认值：空。
+         * </p>
+         */
+        private String tenant;
+
+        /**
+         * 该作用域是否启用变更历史。
+         *
+         * <p>
+         * 默认值：{@code null}，沿用全局配置。
+         * </p>
+         */
+        private Boolean trailEnabled;
 
         /**
          * 获取该作用域的批次大小。
@@ -900,6 +1272,60 @@ public class JpaPlusProperties {
          */
         public void setEncryptionActiveKeyId(String encryptionActiveKeyId) {
             this.encryptionActiveKeyId = encryptionActiveKeyId;
+        }
+
+        /**
+         * 获取该作用域是否启用租户过滤。
+         *
+         * @return 是否启用；未配置时返回 {@code null}
+         */
+        public Boolean getTenantEnabled() {
+            return tenantEnabled;
+        }
+
+        /**
+         * 设置该作用域是否启用租户过滤。
+         *
+         * @param tenantEnabled 是否启用
+         */
+        public void setTenantEnabled(Boolean tenantEnabled) {
+            this.tenantEnabled = tenantEnabled;
+        }
+
+        /**
+         * 获取该作用域固定的租户。
+         *
+         * @return 固定租户；未配置时返回 {@code null}
+         */
+        public String getTenant() {
+            return tenant;
+        }
+
+        /**
+         * 设置该作用域固定的租户。
+         *
+         * @param tenant 固定租户
+         */
+        public void setTenant(String tenant) {
+            this.tenant = tenant;
+        }
+
+        /**
+         * 获取该作用域是否启用变更历史。
+         *
+         * @return 是否启用；未配置时返回 {@code null}
+         */
+        public Boolean getTrailEnabled() {
+            return trailEnabled;
+        }
+
+        /**
+         * 设置该作用域是否启用变更历史。
+         *
+         * @param trailEnabled 是否启用
+         */
+        public void setTrailEnabled(Boolean trailEnabled) {
+            this.trailEnabled = trailEnabled;
         }
     }
 }

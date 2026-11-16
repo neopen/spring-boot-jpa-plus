@@ -1,8 +1,11 @@
 package io.github.neopen.autoconfigure;
 
 import io.github.neopen.core.persistence.audit.AuditorProvider;
+import io.github.neopen.core.persistence.audit.trail.AuditLogPublisher;
+import io.github.neopen.core.persistence.datascope.DataPermissionProvider;
 import io.github.neopen.core.persistence.manager.JpaPlusHqlExecutor;
 import io.github.neopen.core.persistence.manager.JpaPlusSqlExecutor;
+import io.github.neopen.core.persistence.tenant.TenantProvider;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 
@@ -86,17 +89,26 @@ public class JpaPlusAutoConfiguration {
      *
      * @param properties       JPA Plus 配置属性
      * @param auditorProvider  操作人提供者，允许不存在
+     * @param tenantProvider   租户提供者，允许不存在
+     * @param permissionProvider 数据权限提供者，允许不存在
+     * @param auditLogPublisher  变更历史发布者，允许不存在
      * @return 运行时配置器
      */
     @Bean
     @ConditionalOnMissingBean(JpaPlusRuntimeConfigurer.class)
     public JpaPlusRuntimeConfigurer jpaPlusRuntimeConfigurer(
             JpaPlusProperties properties,
-            ObjectProvider<AuditorProvider> auditorProvider
+            ObjectProvider<AuditorProvider> auditorProvider,
+            ObjectProvider<TenantProvider> tenantProvider,
+            ObjectProvider<DataPermissionProvider> permissionProvider,
+            ObjectProvider<AuditLogPublisher> auditLogPublisher
     ) {
         return new JpaPlusRuntimeConfigurer(
                 properties,
-                auditorProvider.getIfAvailable()
+                auditorProvider.getIfUnique(),
+                tenantProvider.getIfUnique(),
+                permissionProvider.getIfUnique(),
+                auditLogPublisher.getIfUnique()
         );
     }
 

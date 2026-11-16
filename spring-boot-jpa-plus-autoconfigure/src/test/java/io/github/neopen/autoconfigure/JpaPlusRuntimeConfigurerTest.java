@@ -4,9 +4,12 @@ import io.github.neopen.core.persistence.audit.AuditListener;
 import io.github.neopen.core.persistence.audit.Audits;
 import io.github.neopen.core.persistence.audit.CreatedAt;
 import io.github.neopen.core.persistence.audit.CreatedBy;
+import io.github.neopen.core.persistence.audit.trail.AuditTrails;
 import io.github.neopen.core.persistence.batch.BatchOperation;
+import io.github.neopen.core.persistence.datascope.DataScopes;
 import io.github.neopen.core.persistence.encrypt.EncryptedFields;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
+import io.github.neopen.core.persistence.tenant.Tenants;
 import io.github.neopen.core.scope.JpaPlusScope;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -38,6 +41,15 @@ class JpaPlusRuntimeConfigurerTest {
         Audits.clearScope("secondary");
         BatchOperation.clearScope("secondary");
         EncryptedFields.clearScope("secondary");
+        Tenants.setEnabled(true);
+        Tenants.setProvider(null);
+        Tenants.clearScope("secondary");
+        DataScopes.setEnabled(true);
+        DataScopes.setProvider(null);
+        DataScopes.clearScope("secondary");
+        AuditTrails.setEnabled(true);
+        AuditTrails.setPublisher(null);
+        AuditTrails.clearScope("secondary");
         JpaPlusScope.clear();
     }
 
@@ -248,6 +260,73 @@ class JpaPlusRuntimeConfigurerTest {
                 .isEqualTo(300);
         assertThat(LogicDeletes.isEnabled("secondary")).isTrue();
         assertThat(Audits.isEnabled("secondary")).isTrue();
+    }
+
+    /**
+     * 验证租户与数据权限提供者写入对应工具。
+     */
+    @Test
+    void shouldApplyTenantAndPermissionProviders() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+
+        new JpaPlusRuntimeConfigurer(
+                properties,
+                null,
+                () -> "t1",
+                type -> java.util.List.of(
+                        io.github.neopen.core.persistence.datascope.DataRule.of(
+                                "deptId",
+                                1L
+                        )
+                ),
+                null
+        );
+
+        assertThat(Tenants.currentTenant()).isEqualTo("t1");
+        assertThat(DataScopes.isActive()).isTrue();
+    }
+
+    /**
+     * 验证变更历史开关与发布者生效。
+     */
+    @Test
+    void shouldApplyAuditTrailConfig() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        properties.getAudit().setTrailEnabled(false);
+
+        new JpaPlusRuntimeConfigurer(
+                properties,
+                null,
+                null,
+                null,
+                entry -> {
+                }
+        );
+
+        assertThat(AuditTrails.isEnabled()).isFalse();
+    }
+
+    /**
+     * 验证作用域的租户与变更历史开关独立生效。
+     */
+    @Test
+    void shouldApplyScopedTenantAndTrail() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+        JpaPlusProperties.Scope scope = new JpaPlusProperties.Scope();
+        scope.setTenantEnabled(false);
+        scope.setTenant("t2");
+        scope.setTrailEnabled(false);
+
+        properties.getScopes().put("secondary", scope);
+
+        new JpaPlusRuntimeConfigurer(properties);
+
+        assertThat(Tenants.isEnabled()).isTrue();
+        assertThat(Tenants.isEnabled("secondary")).isFalse();
+        assertThat(AuditTrails.isEnabled()).isTrue();
+        assertThat(AuditTrails.isEnabled("secondary")).isFalse();
+        assertThat(JpaPlusScope.call("secondary", Tenants::currentTenant))
+                .isNull();
     }
 
     /** 审计实体。 */
