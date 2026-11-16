@@ -15,6 +15,7 @@ import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -70,6 +71,26 @@ class JpaPlusSqlExecutorTest {
         assertThat(page.getContent()).containsExactly("row");
         verify(dataQuery).setParameter("status", "PAID");
         verify(countQuery).setParameter("status", "PAID");
+    }
+
+    @Test
+    void shouldStreamNativeQueryResults() {
+        String sql = "select * from t_order where status = :status";
+
+        when(entityManager.createNativeQuery(sql)).thenReturn(dataQuery);
+        when(dataQuery.setParameter("status", "PAID"))
+                .thenReturn(dataQuery);
+        when(dataQuery.getResultStream())
+                .thenReturn(Stream.of("row-1", "row-2"));
+
+        List<?> result = executor
+                .stream(sql, Map.of("status", "PAID"))
+                .toList();
+
+        assertThat(result).hasSize(2);
+        assertThat(result.get(0)).isEqualTo("row-1");
+        assertThat(result.get(1)).isEqualTo("row-2");
+        verify(dataQuery).setParameter("status", "PAID");
     }
 
     @Test

@@ -22,6 +22,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * JPA Specification 查询执行器。
@@ -165,6 +166,36 @@ public class JpaPlusSpecExecutor<T> {
         applyPredicate(query, root, effective(specification), cb);
 
         return entityManager.createQuery(query).getResultList();
+    }
+
+    /**
+     * 流式查询满足条件的实体。
+     *
+     * <p>不会一次性把全部结果读入内存，适合大数据量导出、批处理
+     * 等场景。返回的流绑定当前持久化上下文，必须在事务范围内消费
+     * 完毕，并优先使用 try-with-resources 关闭：</p>
+     *
+     * <pre>{@code
+     * try (Stream<Order> stream = executor.stream(spec)) {
+     *     stream.forEach(this::handle);
+     * }
+     * }</pre>
+     *
+     * <p>结果按主键升序排列，保证流的顺序稳定。</p>
+     *
+     * @param specification 查询条件，允许为 {@code null}
+     * @return 实体流，使用完毕后需要关闭
+     */
+    public Stream<T> stream(Specification<T> specification) {
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> query = cb.createQuery(entityType);
+        Root<T> root = query.from(entityType);
+
+        query.select(root);
+        applyPredicate(query, root, effective(specification), cb);
+        applySort(query, cb, root, Sort.unsorted());
+
+        return entityManager.createQuery(query).getResultStream();
     }
 
     /**

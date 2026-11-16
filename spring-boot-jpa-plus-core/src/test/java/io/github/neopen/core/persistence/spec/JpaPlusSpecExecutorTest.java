@@ -17,6 +17,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -230,6 +231,46 @@ class JpaPlusSpecExecutorTest {
 
         assertThat(page.getContent()).isEmpty();
         assertThat(page.getTotalElements()).isZero();
+    }
+
+    /**
+     * 验证流式查询按主键升序返回结果流。
+     */
+    @Test
+    void shouldStreamResultsOrderedById() {
+        EntityManager entityManager = mock(EntityManager.class);
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        CriteriaQuery<Sample> query = mock(CriteriaQuery.class);
+        Root<Sample> root = mock(Root.class);
+        Path<Object> idPath = mock(Path.class);
+        Path<Object> deletedPath = mock(Path.class);
+        Predicate logicPredicate = mock(Predicate.class);
+        Order idOrder = mock(Order.class);
+        TypedQuery<Sample> typedQuery = mock(TypedQuery.class);
+
+        Sample first = new Sample();
+        Sample second = new Sample();
+
+        when(entityManager.getCriteriaBuilder()).thenReturn(cb);
+        when(cb.createQuery(Sample.class)).thenReturn(query);
+        when(query.from(Sample.class)).thenReturn(root);
+        when(query.select(root)).thenReturn(query);
+        when(root.get("deleted")).thenReturn(deletedPath);
+        when(cb.equal(deletedPath, false)).thenReturn(logicPredicate);
+        when(root.get("id")).thenReturn(idPath);
+        when(cb.asc(idPath)).thenReturn(idOrder);
+        when(entityManager.createQuery(query)).thenReturn(typedQuery);
+        when(typedQuery.getResultStream())
+                .thenReturn(Stream.of(first, second));
+
+        List<Sample> result = JpaPlusSpecExecutor
+                .of(entityManager, Sample.class)
+                .stream(null)
+                .toList();
+
+        assertThat(result).containsExactly(first, second);
+        verify(query).orderBy(List.of(idOrder));
+        verify(typedQuery).getResultStream();
     }
 
     /** 测试实体。 */

@@ -12,6 +12,7 @@ import org.springframework.data.domain.Sort;
 
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -324,6 +325,26 @@ class JpaPlusHqlExecutorTest {
     @SuppressWarnings("unchecked")
     private <T> TypedQuery<T> mockQuery() {
         return mock(TypedQuery.class);
+    }
+
+    @Test
+    void shouldStreamResultsWithBoundParameters() {
+        TypedQuery<String> dataQuery = mockQuery();
+        String hql = "select o.orderNo from Order o where o.status = :status";
+
+        when(entityManager.createQuery(hql, String.class))
+                .thenReturn(dataQuery);
+        when(dataQuery.setParameter("status", "PAID"))
+                .thenReturn(dataQuery);
+        when(dataQuery.getResultStream())
+                .thenReturn(Stream.of("o-1", "o-2"));
+
+        List<String> result = executor
+                .stream(hql, Map.of("status", "PAID"), String.class)
+                .toList();
+
+        assertThat(result).containsExactly("o-1", "o-2");
+        verify(dataQuery).getResultStream();
     }
 
     /** 测试实体占位。 */

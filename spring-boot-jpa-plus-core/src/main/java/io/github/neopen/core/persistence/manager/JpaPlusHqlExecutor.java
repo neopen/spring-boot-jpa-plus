@@ -18,6 +18,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -93,6 +94,38 @@ public class JpaPlusHqlExecutor {
         bindParameters(query, parameters);
 
         return query.getResultList();
+    }
+
+    /**
+     * 流式查询指定类型的结果。
+     *
+     * <p>不会一次性加载全部结果，适合大数据量导出与批处理。流绑定
+     * 当前事务，必须在事务内消费完毕，并使用 try-with-resources
+     * 关闭：</p>
+     *
+     * <pre>{@code
+     * try (Stream<Order> stream = executor.stream(hql, params, Order.class)) {
+     *     stream.forEach(this::handle);
+     * }
+     * }</pre>
+     *
+     * @param <T>        结果类型
+     * @param hql        HQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param resultType 结果类型的 {@link Class} 对象
+     * @return 结果流，使用完毕后需要关闭
+     */
+    public <T> Stream<T> stream(
+            String hql,
+            Map<String, ?> parameters,
+            Class<T> resultType
+    ) {
+        TypedQuery<T> query =
+                entityManager.createQuery(hql, resultType);
+
+        bindParameters(query, parameters);
+
+        return query.getResultStream();
     }
 
     /**
@@ -482,6 +515,32 @@ public class JpaPlusHqlExecutor {
         HqlQuery query = wrapper.build();
 
         return queryForList(
+                query.getHql(),
+                query.getParameters(),
+                wrapper.getEntityType()
+        );
+    }
+
+    /**
+     * 使用 HQL 构造器流式查询全部结果。
+     *
+     * <p>流绑定当前事务，必须在事务内消费完毕并关闭。</p>
+     *
+     * @param <T>     实体类型
+     * @param wrapper HQL 构造器
+     * @return 结果流
+     * @throws IllegalArgumentException 构造器为空时抛出
+     */
+    public <T> Stream<T> stream(HqlWrapper<T> wrapper) {
+        if (wrapper == null) {
+            throw new IllegalArgumentException(
+                    "HqlWrapper must not be null"
+            );
+        }
+
+        HqlQuery query = wrapper.build();
+
+        return stream(
                 query.getHql(),
                 query.getParameters(),
                 wrapper.getEntityType()

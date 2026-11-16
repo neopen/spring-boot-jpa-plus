@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -90,6 +91,89 @@ public class JpaPlusSqlExecutor {
             Map<String, ?> parameters
     ) {
         return queryForList(wrapper.build().getSql(), parameters);
+    }
+
+    /**
+     * 流式查询原生 SQL 结果。
+     *
+     * <p>不会一次性加载全部结果，适合大数据量导出。流绑定当前
+     * 事务，必须在事务内消费完毕并使用 try-with-resources 关闭。</p>
+     *
+     * @param sql        原生 SQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @return 结果流，使用完毕后需要关闭
+     */
+    public Stream<?> stream(
+            String sql,
+            Map<String, ?> parameters
+    ) {
+        Query query = entityManager.createNativeQuery(sql);
+
+        bindParameters(query, parameters);
+
+        return query.getResultStream();
+    }
+
+    /**
+     * 使用 SQL 构造器流式查询结果。
+     *
+     * @param wrapper    SQL 构造器
+     * @param parameters 命名参数
+     * @return 结果流，使用完毕后需要关闭
+     */
+    public Stream<?> stream(
+            SqlWrapper wrapper,
+            Map<String, ?> parameters
+    ) {
+        return stream(wrapper.build().getSql(), parameters);
+    }
+
+    /**
+     * 流式查询原生 SQL 并映射为实体流。
+     *
+     * <p>流绑定当前事务，必须在事务内消费完毕并关闭。</p>
+     *
+     * @param <T>        实体类型
+     * @param sql        原生 SQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param resultType 实体类型的 {@link Class} 对象
+     * @return 实体流，使用完毕后需要关闭
+     */
+    @SuppressWarnings("unchecked")
+    public <T> Stream<T> stream(
+            String sql,
+            Map<String, ?> parameters,
+            Class<T> resultType
+    ) {
+        Query query = entityManager.createNativeQuery(
+                sql,
+                resultType
+        );
+
+        bindParameters(query, parameters);
+
+        return (Stream<T>) query.getResultStream();
+    }
+
+    /**
+     * 使用 SQL 构造器流式查询并映射为实体流。
+     *
+     * @param <T>        实体类型
+     * @param wrapper    SQL 构造器
+     * @param resultType 实体类型的 {@link Class} 对象
+     * @return 实体流，使用完毕后需要关闭
+     */
+    public <T> Stream<T> stream(
+            SqlWrapper wrapper,
+            Class<T> resultType
+    ) {
+        SqlQuery query = wrapper.build();
+
+        return stream(
+                query.getSql(),
+                query.getParameters(),
+                resultType
+        );
     }
 
     /**
