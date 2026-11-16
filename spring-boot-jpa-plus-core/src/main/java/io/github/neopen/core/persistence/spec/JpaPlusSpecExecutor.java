@@ -1,6 +1,8 @@
 package io.github.neopen.core.persistence.spec;
 
+import io.github.neopen.core.persistence.datascope.DataScopes;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
+import io.github.neopen.core.persistence.tenant.Tenants;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
@@ -453,9 +455,13 @@ public class JpaPlusSpecExecutor<T> {
      * @return 合并后的查询条件
      */
     private Specification<T> effective(Specification<T> specification) {
-        return logicDelete
+        Specification<T> effective = logicDelete
                 ? LogicDeletes.filter(entityType, specification)
                 : specification;
+
+        effective = Tenants.filter(entityType, effective);
+
+        return DataScopes.filter(entityType, effective);
     }
 
     /**
