@@ -1,2 +1,3 @@
 io.github.neopen.autoconfigure.JpaPlusDataSourceAutoConfiguration
 io.github.neopen.autoconfigure.JpaPlusAutoConfiguration
+io.github.neopen.autoconfigure.JpaPlusMetricsAutoConfiguration

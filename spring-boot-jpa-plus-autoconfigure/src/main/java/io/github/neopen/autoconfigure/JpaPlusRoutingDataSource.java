@@ -41,6 +41,9 @@ public class JpaPlusRoutingDataSource extends AbstractDataSource
     private final Map<String, javax.sql.DataSource> resolved =
             new ConcurrentHashMap<>();
 
+    /** 指标收集器，未启用指标时为 {@code null}。 */
+    private volatile JpaPlusMetrics metrics;
+
     /**
      * 创建路由数据源。
      *
@@ -103,6 +106,18 @@ public class JpaPlusRoutingDataSource extends AbstractDataSource
     }
 
     /**
+     * 设置指标收集器。
+     *
+     * <p>由指标自动配置注入，未启用指标时保持为 {@code null}，
+     * 不会影响路由行为。</p>
+     *
+     * @param metrics 指标收集器，允许为 {@code null}
+     */
+    public void setMetrics(JpaPlusMetrics metrics) {
+        this.metrics = metrics;
+    }
+
+    /**
      * 获取当前线程生效的数据源逻辑名称。
      *
      * @return 数据源逻辑名称
@@ -123,7 +138,10 @@ public class JpaPlusRoutingDataSource extends AbstractDataSource
      */
     @Override
     public Connection getConnection() throws SQLException {
-        return resolve(currentTarget()).getConnection();
+        String target = currentTarget();
+        recordRoute(target);
+
+        return resolve(target).getConnection();
     }
 
     /**
@@ -139,7 +157,23 @@ public class JpaPlusRoutingDataSource extends AbstractDataSource
             String username,
             String password
     ) throws SQLException {
-        return resolve(currentTarget()).getConnection(username, password);
+        String target = currentTarget();
+        recordRoute(target);
+
+        return resolve(target).getConnection(username, password);
+    }
+
+    /**
+     * 记录数据源路由次数。
+     *
+     * @param target 数据源逻辑名称
+     */
+    private void recordRoute(String target) {
+        JpaPlusMetrics active = metrics;
+
+        if (active != null) {
+            active.recordRoute(target);
+        }
     }
 
     /**

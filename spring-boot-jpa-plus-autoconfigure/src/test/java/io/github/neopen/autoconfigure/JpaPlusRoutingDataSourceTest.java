@@ -1,6 +1,7 @@
 package io.github.neopen.autoconfigure;
 
 import io.github.neopen.core.persistence.datasource.DataSourceContext;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.ApplicationContext;
@@ -79,6 +80,42 @@ class JpaPlusRoutingDataSourceTest {
 
         assertThat(result).isSameAs(connection);
         verify(read).getConnection();
+    }
+
+    /**
+     * 验证路由次数写入指标。
+     *
+     * @throws SQLException 获取连接失败时抛出
+     */
+    @Test
+    void shouldRecordRouteMetric() throws SQLException {
+        ApplicationContext context = mock(ApplicationContext.class);
+        DataSource read = mock(DataSource.class);
+        Connection connection = mock(Connection.class);
+
+        when(context.getBean("readDs", DataSource.class)).thenReturn(read);
+        when(read.getConnection()).thenReturn(connection);
+
+        SimpleMeterRegistry registry = new SimpleMeterRegistry();
+        JpaPlusRoutingDataSource routing = routing(context);
+        routing.setMetrics(new JpaPlusMetrics(registry));
+
+        Connection result = DataSourceContext.call(
+                "read",
+                () -> {
+                    try {
+                        return routing.getConnection();
+                    } catch (SQLException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+        );
+
+        assertThat(result).isSameAs(connection);
+        assertThat(registry.get("jpa.plus.datasource.routes")
+                .tag("target", "read")
+                .counter()
+                .count()).isEqualTo(1.0);
     }
 
     /**
