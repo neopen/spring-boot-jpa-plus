@@ -109,6 +109,8 @@ String current = DataSourceContext.current();   // 未设置时返回 null
 
 ## 与数据源作用域的区别
 
+数据源作用域决定使用哪套连接，租户与数据权限作用域决定过滤条件，两者可以组合使用。路由次数与慢 SQL 可以通过 Micrometer 采集，详见 [指标监控](/core/metrics)。
+
 | 能力 | 入口 | 作用 |
 | --- | --- | --- |
 | 动态数据源 | `@DataSource`、`DataSourceContext` | 选择物理连接 |

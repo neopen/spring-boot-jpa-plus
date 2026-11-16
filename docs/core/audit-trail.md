@@ -35,6 +35,23 @@ public AuditLogPublisher auditLogPublisher(AuditLogRepository repository) {
 }
 ```
 
+写入数据库可能较慢，可以使用内置的异步发布者，避免阻塞业务事务：
+
+```java
+@Bean(destroyMethod = "close")
+public AuditLogPublisher auditLogPublisher(AuditLogRepository repository) {
+    return new AsyncAuditLogPublisher(
+            entry -> repository.save(AuditLogEntity.from(entry)),
+            1024
+    );
+}
+```
+
+- 队列有界，满时丢弃新记录并输出 WARNING 日志，不阻塞业务线程。
+- 默认单个后台线程，保证记录顺序与产生顺序一致；需要吞吐量时可以在构造器中增加线程数，但顺序不再有保证。
+- 容器关闭时调用 `close()` 等待队列处理完毕，超时后中断后台线程。
+- `discardedCount()` 查看丢弃数量，`queuedCount()` 查看积压情况。
+
 `AuditEntry` 字段：
 
 | 字段 | 类型 | 说明 |

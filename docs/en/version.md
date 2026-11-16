@@ -3,15 +3,16 @@
 ::: warning Important notice
 - The current official release is **0.4.0**, available as a Maven dependency.
 - The `main` branch corresponds to **0.5.0**, which is not released yet and will be published later.
-- The `dev` branch corresponds to **0.6.0**, adding multi-tenancy, row-level data permission, change history, dynamic data sources, logical-delete restoration and batch upsert.
-- This documentation is written for **0.6.0** and describes the latest behavior of `dev`.
-- As a result, the **0.4.0 release installed from Maven does not support** the 0.5 / 0.6 features described here.
+- The `dev` branch corresponds to **0.7.0**, which adds filter skipping, `OR` rule combination with association paths, stream queries, JDBC batch, metrics and asynchronous audit publishing on top of 0.6.0.
+- This documentation is written for **0.7.0** and describes the latest behavior of `dev`.
+- As a result, the **0.4.0 release installed from Maven does not support** the 0.5 / 0.6 / 0.7 features described here.
 :::
 
 ## Version overview
 
 | Version | Status | Date | Summary |
 | --- | --- | --- | --- |
+| `0.7.0` | In development | — | Filter skipping, `OR` rules with association paths, stream queries, JDBC batch, Micrometer metrics, asynchronous audit publishing |
 | `0.6.0` | In development | — | Multi-tenancy, row-level data permission, change history, dynamic data sources and read/write splitting, logical-delete restoration, batch upsert |
 | `0.5.0` | In development | — | Adds enum conversion, field encryption, desensitization, retry, slow logging, tree building and snowflake IDs |
 | `0.4.0` | Released | 2026-11-13 | Logical deletion, condition groups, Specification executor; current stable version |
@@ -24,7 +25,7 @@
 
 ## Compatibility baseline
 
-| Item | 0.4.0 | 0.5.0 / 0.6.0 |
+| Item | 0.4.0 | 0.5.0 / 0.6.0 / 0.7.0 |
 | --- | --- | --- |
 | JDK | 17+ | 17+ |
 | Spring Boot | 3.x | 3.x |
@@ -34,7 +35,54 @@
 | Modules | core / convert / autoconfigure / starter / extension | Same as 0.4.0 |
 | Coordinates | `io.github.neopen:*` | Same as 0.4.0 |
 
-`starter` only brings in `core`, `convert` and `autoconfigure`; `extension` has to be added separately in all versions.
+`starter` only brings in `core`, `convert` and `autoconfigure`; `extension` has to be added separately in every version.
+
+## 0.7.0 (in development)
+
+### New: filter control
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Per-method skipping | `@IgnoreTenant`, `@IgnoreDataScope` | Skips tenant and data-permission conditions per method or class, with nested restoration and exception safety |
+| Programmatic skipping | `Tenants#runIgnored` / `callIgnored`, `DataScopes#runIgnored` / `callIgnored` | Skips filtering inside a thread without annotations |
+
+### New: data-permission enhancements
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| `OR` combination | `DataRule.or(...)`, `DataRule.Logic` | Rules are combined left to right in declaration order, with `AND` and `OR` |
+| Association paths | `DataRule.of("dept.parentId", ...)` | Field names support `a.b` association paths |
+
+### New: queries and batching
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Stream queries | `JpaPlusSpecExecutor#stream`, `JpaPlusHqlExecutor#stream`, `JpaPlusSqlExecutor#stream` | Consumes results through `getResultStream`, suitable for large exports |
+| upsert optimization | `BatchOperation#upsertAll` | Queries all business keys once, then writes in chunks and clears at the end |
+| JDBC batch | `neopen.jpa.jdbc-batch.*` | Writes `hibernate.jdbc.batch_size`, `hibernate.order_inserts` and `hibernate.order_updates` automatically |
+
+### New: observability and auditing
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Metrics | `JpaPlusMetrics`, `neopen.jpa.metrics.*` | Micrometer counters for data source routes and slow SQL |
+| Async audit | `AsyncAuditLogPublisher` | Bounded queue with a discard policy and drain-on-close, so the business transaction never blocks |
+
+### New: configuration
+
+- `neopen.jpa.jdbc-batch.enabled` (default `false`), `batch-size` (default `50`), `order-inserts` / `order-updates` (default `true`).
+- `neopen.jpa.metrics.enabled` (default `false`), `slow-threshold-ms` (default `1000`).
+
+### Changes and migration
+
+- Filter skipping is off by default; it only applies when the annotation is present or the skip methods are called.
+- `DataRule` is now `record(field, values, logic)`; `new DataRule(field, values)` and `DataRule.of(...)` stay compatible and default to `AND`, use `DataRule.or(...)` for `OR`.
+- `BatchOperation#upsertAll` now queries all business keys once, only `flush()`es between chunks and `clear()`s once after everything is processed.
+- Metrics only apply when `micrometer-core` is present and `neopen.jpa.metrics.enabled=true`; slow SQL timing wraps the `DataSource` at the JDBC layer and does not depend on SQL style.
+
+### Documentation
+
+- Added a PostgreSQL JSONB field mapping and query example; see [PostgreSQL JSONB](/en/core/jsonb).
 
 ## 0.6.0 (in development)
 

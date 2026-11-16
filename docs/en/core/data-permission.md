@@ -26,13 +26,26 @@ A `DataRule` means "the field value must be within the given set":
 ```java
 DataRule rule = new DataRule("deptId", List.of(1L, 2L));
 DataRule same = DataRule.of("deptId", 1L, 2L);
+
+// Association path: filter by the department's parent
+DataRule nested = DataRule.of("dept.parentId", 1L);
+
+// OR combination: own department or records owned by me
+List<DataRule> rules = List.of(
+        DataRule.of("deptId", 1L, 2L),
+        DataRule.or("ownerId", 9L)
+);
+// deptId in (1,2) or ownerId in (9)
 ```
 
 | Constraint | Description |
 | --- | --- |
-| `field` | Entity field name, must not be blank |
+| `field` | Entity field name; association paths such as `dept.parentId` are supported, and it must not be blank |
 | `values` | Allowed values, must not be empty |
+| `logic` | How the rule combines with the previous one; defaults to `AND`, use `DataRule.or(...)` for `OR` |
 | Empty rule | Returning `null` or an empty list means no restriction |
+
+Rules are combined left to right in declaration order, so `a OR b AND c` means `(a OR b) AND c`. When you need more complex precedence, convert the conditions into field-value sets inside the provider.
 
 Exceptions thrown by the provider abort the query; handle degradation inside the provider. An empty list means **no restriction**, which differs from "no permission". To deny all data, return an impossible rule or throw at the business layer.
 
@@ -97,8 +110,21 @@ neopen:
 
 All three layers are combined with `Specification.and(...)`; a disabled or data-less layer does not affect the others.
 
+## Skipping Filters
+
+Background statistics or data-repair jobs can skip permission conditions per method:
+
+```java
+@IgnoreDataScope
+public long countAllOrders() {
+    return orderRepository.count();
+}
+```
+
+Nested calls restore level by level, and `DataScopes.runIgnored(...)` / `callIgnored(...)` skip the filter programmatically. See [Skipping Filters](/en/core/filter-ignore) for details.
+
 ## Boundaries
 
 - Only JPA Criteria queries are covered; `HqlWrapper`, `SqlWrapper` and native SQL need explicit conditions.
-- Rules only support "field IN set" and do not handle nested associations or subqueries; convert complex permissions into field-value sets inside the provider.
+- Rules support `field IN set`, association paths and `OR` combinations, but not subqueries; convert complex permissions into field-value sets inside the provider.
 - Bulk JPQL updates/deletes bypass the executor; `LogicDeletes` and `BatchOperation` do not append permission conditions, so validate the data scope before calling them.

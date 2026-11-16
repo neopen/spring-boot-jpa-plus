@@ -39,13 +39,14 @@ Instead of replacing JPA, it extends the existing development experience with re
 ### Features
 
 - **CRUD Operations** - Simplified common database operations.
-- **Batch Processing** - Convenient batch save, update, and delete operations.
+- **Batch Processing** - Convenient batch save, update, and delete operations, upsert by business key, and optional Hibernate JDBC batching.
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
 - **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, a specification executor, and DTO projection.
 - **Auditing** - `@CreatedAt` / `@UpdatedAt` / `@CreatedBy` / `@UpdatedBy` fields maintained automatically, with an `AuditorProvider` SPI for the current user.
 - **Change History** - `@Audited` captures field-level before/after snapshots and publishes create, update, and delete records through `AuditLogPublisher`.
 - **Multi-Tenancy** - `@TenantId` fills the tenant column on write and filters automatically on query, with fixed tenants per scope.
-- **Row-Level Data Permission** - `DataPermissionProvider` and `DataRule` append `field IN (...)` conditions to queries.
+- **Row-Level Data Permission** - `DataPermissionProvider` and `DataRule` append `field IN (...)` conditions to queries, with `OR` rules and association paths.
+- **Filter Skipping** - `@IgnoreTenant` / `@IgnoreDataScope` skip tenant and permission filters per method, with nested restoration.
 - **Dynamic Data Sources** - `@DataSource` and `DataSourceContext` support read/write splitting and per-business database switching.
 - **Enum Conversion** - Persist enums as explicit database values instead of constant names.
 - **Field Encryption** - Transparent AES-GCM encryption for annotated string fields, with key rotation and a deterministic mode for equality search.
@@ -53,6 +54,8 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **Tree & IDs** - Build trees from flat lists and generate snowflake identifiers.
 - **Data Desensitization** - Mask names, phones, ID cards, bank cards, emails, and addresses for fastjson2 and Jackson.
 - **Reliability Aspects** - Optimistic-lock retry, slow-method logging, and slow SQL logging.
+- **Stream Queries** - Stream large result sets from the Specification, HQL, and native SQL executors.
+- **Metrics** - Optional Micrometer counters for data source routes and slow SQL, plus an asynchronous audit publisher.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
 - **Pagination** - Simplified paginated queries, validated request paging parameters, and response handling.
 - **HQL & SQL** - Chained query builders with grouping, parameterized subqueries, union, pagination with automatic count, batch updates, and native SQL access.
@@ -105,12 +108,12 @@ Add the starter dependency to your `pom.xml`:
 
 Replace `${version}` with the desired release version.
 
-> **Version notice**: this documentation describes version **0.6**.
-> The current Maven release is **0.4.x**, which does not include the 0.5 / 0.6 features
+> **Version notice**: this documentation describes version **0.7**.
+> The current Maven release is **0.4.x**, which does not include the 0.5 / 0.6 / 0.7 features
 > (enum conversion, field encryption, tree utilities, snowflake IDs, desensitization,
 > optimistic-lock retry, slow logging, query builder enhancements, multi-tenancy,
-> data permission, change history, dynamic data sources, logical-delete restoration
-> and batch upsert).
+> data permission, change history, dynamic data sources, logical-delete restoration,
+> batch upsert, filter skipping, stream queries, JDBC batching and metrics).
 > See the [release page](https://jpa.helpenx.com/version) for details.
 
 ## Quick Start

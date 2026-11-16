@@ -27,8 +27,24 @@ JpaPlusSpecExecutor<Order> custom =
 | `Page<T> findPage(Specification<T> spec, Pageable pageable)` | 分页查询 |
 | `Page<T> findPage(Specification<T> spec, Pageable pageable, List<String> fetchAttributes)` | fetch join 分页 |
 | `Slice<T> findSlice(Specification<T> spec, Pageable pageable)` | 切片查询 |
+| `Stream<T> stream(Specification<T> spec)` | 流式查询，按主键升序 |
 | `long count(Specification<T> spec)` | 计数 |
 | `boolean exists(Specification<T> spec)` | 判断是否存在，基于 count |
+
+## 流式查询
+
+`stream` 不会一次性把结果读入内存，适合大数据量导出与批处理：
+
+```java
+try (Stream<Order> stream = executor.stream(spec)) {
+    stream.map(Order::getOrderNo).forEach(this::export);
+}
+```
+
+- 结果按主键升序排列，顺序稳定。
+- 流绑定当前事务，必须在事务内消费完毕，并优先使用 try-with-resources 关闭。
+- 逻辑删除、租户与数据权限条件仍会自动追加。
+- HQL 与原生 SQL 执行器同样提供 `stream(...)` 重载。
 
 ## 分页与计数
 

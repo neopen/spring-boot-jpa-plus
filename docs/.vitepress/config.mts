@@ -94,11 +94,17 @@ export default defineConfig({
                                 text: 'Data Permission',
                                 link: '/en/core/data-permission'
                             },
+                            {
+                                text: 'Skipping Filters',
+                                link: '/en/core/filter-ignore'
+                            },
                             { text: 'Batch Operations', link: '/en/core/batch' },
                             {
                                 text: 'Dynamic Data Sources',
                                 link: '/en/core/datasource'
                             },
+                            { text: 'Metrics', link: '/en/core/metrics' },
+                            { text: 'PostgreSQL JSONB', link: '/en/core/jsonb' },
                             { text: 'DTO Projection', link: '/en/core/projection' },
                             {
                                 text: 'Enum Conversion',
@@ -244,8 +250,11 @@ export default defineConfig({
                     { text: '变更历史', link: '/core/audit-trail' },
                     { text: '多租户', link: '/core/tenant' },
                     { text: '行级数据权限', link: '/core/data-permission' },
+                    { text: '过滤跳过', link: '/core/filter-ignore' },
                     { text: '批量操作', link: '/core/batch' },
                     { text: '动态数据源', link: '/core/datasource' },
+                    { text: '指标监控', link: '/core/metrics' },
+                    { text: 'PostgreSQL JSONB', link: '/core/jsonb' },
                     { text: 'DTO 投影', link: '/core/projection' },
                     { text: '枚举值转换', link: '/core/enum-convert' },
                     { text: '字段加密', link: '/core/encryption' },

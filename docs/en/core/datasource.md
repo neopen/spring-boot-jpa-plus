@@ -109,6 +109,8 @@ The context is thread-local; async tasks and thread pools must propagate the tar
 
 ## Difference from Scopes
 
+A data source scope decides which connections are used, while tenant and data-permission scopes decide the filter conditions; the two can be combined. Route counts and slow SQL can be collected through Micrometer; see [Metrics](/en/core/metrics).
+
 | Capability | Entry point | Purpose |
 | --- | --- | --- |
 | Dynamic data source | `@DataSource`, `DataSourceContext` | Selects the physical connection |

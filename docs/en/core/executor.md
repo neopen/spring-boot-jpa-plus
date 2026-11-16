@@ -27,8 +27,24 @@ JpaPlusSpecExecutor<Order> custom =
 | `Page<T> findPage(Specification<T> spec, Pageable pageable)` | Paginated query |
 | `Page<T> findPage(Specification<T> spec, Pageable pageable, List<String> fetchAttributes)` | Fetch join pagination |
 | `Slice<T> findSlice(Specification<T> spec, Pageable pageable)` | Slice query |
+| `Stream<T> stream(Specification<T> spec)` | Streaming query, ordered by primary key ascending |
 | `long count(Specification<T> spec)` | Count |
 | `boolean exists(Specification<T> spec)` | Check whether records exist, based on count |
+
+## Stream Queries
+
+`stream` does not load the whole result into memory, which suits large exports and batch processing:
+
+```java
+try (Stream<Order> stream = executor.stream(spec)) {
+    stream.map(Order::getOrderNo).forEach(this::export);
+}
+```
+
+- Results are ordered by primary key ascending, so the order is stable.
+- The stream is bound to the current transaction: consume it inside the transaction and prefer try-with-resources.
+- Logical-deletion, tenant and data-permission conditions are still appended automatically.
+- The HQL and native SQL executors provide `stream(...)` overloads as well.
 
 ## Pagination and Counting
 

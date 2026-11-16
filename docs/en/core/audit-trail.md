@@ -35,6 +35,23 @@ public AuditLogPublisher auditLogPublisher(AuditLogRepository repository) {
 }
 ```
 
+Writing to the database can be slow; use the built-in asynchronous publisher so the business transaction is not blocked:
+
+```java
+@Bean(destroyMethod = "close")
+public AuditLogPublisher auditLogPublisher(AuditLogRepository repository) {
+    return new AsyncAuditLogPublisher(
+            entry -> repository.save(AuditLogEntity.from(entry)),
+            1024
+    );
+}
+```
+
+- The queue is bounded; when full, new records are discarded with a WARNING log and the business thread never blocks.
+- A single background thread is used by default so records keep their production order; add threads in the constructor for throughput, at the cost of ordering.
+- On shutdown `close()` waits for the queue to drain and interrupts the background thread after the timeout.
+- `discardedCount()` reports discarded records and `queuedCount()` shows the backlog.
+
 `AuditEntry` fields:
 
 | Field | Type | Description |

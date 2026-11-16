@@ -119,6 +119,19 @@ neopen:
 
 Disabling filtering only affects queries; `TenantListener` still fills the field when a tenant context exists.
 
+## Skipping Per Method
+
+Jobs that must cross tenants, such as statistics and data repair, can skip the tenant filter per method:
+
+```java
+@IgnoreTenant
+public List<DocumentRecord> listAllTenants() {
+    return documentRepository.findAll();
+}
+```
+
+Nested calls restore level by level, and `Tenants.runIgnored(...)` / `callIgnored(...)` skip the filter programmatically. See [Skipping Filters](/en/core/filter-ignore) for details.
+
 ## Boundaries
 
 - Automatic filtering covers JPA Criteria queries only, including `SpecWrapper` and `JpaPlusSpecExecutor`.

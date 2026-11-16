@@ -49,10 +49,10 @@ BatchOperation.UpsertResult result = BatchOperation.upsertAll(
 
 Execution:
 
-1. Split into chunks of `batchSize` and query existing managed entities by business key.
-2. `persist` entities that do not exist.
+1. Query the existing managed entities for all business keys in one go.
+2. Split into chunks of `batchSize`; `persist` entities that do not exist.
 3. Copy persistable fields onto the managed entities for existing ones; dirty checking updates them on `flush`.
-4. `flush` and `clear` after each chunk.
+4. `flush` after each chunk and `clear` once after all chunks are processed.
 
 Rules:
 
@@ -76,3 +76,28 @@ neopen:
 `neopen.jpa.batch-size` is written into `BatchOperation` during autoconfiguration startup, and overloads that do not explicitly pass a batch size use that value; the default is 500.
 
 Note: this value is the **number of rows flushed / cleared per batch**, not Hibernate's `hibernate.jdbc.batch_size`; the two must be configured separately.
+
+## Hibernate JDBC Batch
+
+`BatchOperation` handles chunked calls at the application layer; merging them into real JDBC batches still depends on Hibernate. Enable the following to write the Hibernate settings automatically:
+
+```yaml
+neopen:
+  jpa:
+    jdbc-batch:
+      enabled: true
+      batch-size: 50
+      order-inserts: true
+      order-updates: true
+```
+
+| Property | Default | Hibernate property |
+| --- | --- | --- |
+| `neopen.jpa.jdbc-batch.enabled` | `false` | The settings below are written only when enabled |
+| `neopen.jpa.jdbc-batch.batch-size` | `50` | `hibernate.jdbc.batch_size` |
+| `neopen.jpa.jdbc-batch.order-inserts` | `true` | `hibernate.order_inserts` |
+| `neopen.jpa.jdbc-batch.order-updates` | `true` | `hibernate.order_updates` |
+
+- Disabled by default so existing write ordering is unchanged.
+- `order-inserts` / `order-updates` group statements of the same type before submitting; disable them when strict write ordering matters.
+- Only affects entity operations such as `persist` and `merge`; bulk JPQL updates are not affected.

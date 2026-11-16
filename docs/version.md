@@ -3,15 +3,16 @@
 ::: warning 特别说明
 - 当前正式发布版本为 **0.4.0**，可以直接通过 Maven 依赖引入。
 - 代码仓库 `main` 分支对应 **0.5.0**，尚未发布，将在后续正式发布。
-- `dev` 分支对应 **0.6.0**，新增多租户、行级数据权限、变更历史、动态数据源、逻辑删除恢复与批量 upsert。
-- 本站文档按 **0.6.0** 编写，描述的是 `dev` 分支的最新行为。
-- 因此，通过 Maven 引入的 **0.4.0 不支持**本文档中的 0.5 / 0.6 新功能。
+- `dev` 分支对应 **0.7.0**，在 0.6.0 基础上新增过滤跳过、规则 OR 组合与关联路径、流式查询、JDBC 批量、指标监控与异步审计发布。
+- 本站文档按 **0.7.0** 编写，描述的是 `dev` 分支的最新行为。
+- 因此，通过 Maven 引入的 **0.4.0 不支持**本文档中的 0.5 / 0.6 / 0.7 新功能。
 :::
 
 ## 版本总览
 
 | 版本 | 状态 | 日期 | 说明 |
 | --- | --- | --- | --- |
+| `0.7.0` | 开发中 | — | 过滤跳过、规则 OR 组合与关联路径、流式查询、JDBC 批量、Micrometer 指标、异步审计发布 |
 | `0.6.0` | 开发中 | — | 多租户、行级数据权限、变更历史、动态数据源与读写分离、逻辑删除恢复、批量 upsert |
 | `0.5.0` | 开发中 | — | 新增枚举转换、字段加密、脱敏、重试、慢日志、树与雪花 ID 等能力 |
 | `0.4.0` | 已发布 | 2026-11-13 | 逻辑删除、条件分组、Specification 执行器，当前稳定版本 |
@@ -24,7 +25,7 @@
 
 ## 兼容性基线
 
-| 项 | 0.4.0 | 0.5.0 / 0.6.0 |
+| 项 | 0.4.0 | 0.5.0 / 0.6.0 / 0.7.0 |
 | --- | --- | --- |
 | JDK | 17+ | 17+ |
 | Spring Boot | 3.x | 3.x |
@@ -34,7 +35,54 @@
 | 模块结构 | core / convert / autoconfigure / starter / extension | 与 0.4.0 相同 |
 | 坐标 | `io.github.neopen:*` | 与 0.4.0 相同 |
 
-`starter` 只传递 `core`、`convert`、`autoconfigure`；`extension` 需要单独引入，三个版本保持一致。
+`starter` 只传递 `core`、`convert`、`autoconfigure`；`extension` 需要单独引入，各版本保持一致。
+
+## 0.7.0（开发中）
+
+### 新增：过滤控制
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 方法级跳过 | `@IgnoreTenant`、`@IgnoreDataScope` | 按方法或类临时跳过租户与数据权限条件，支持嵌套与异常恢复 |
+| 代码跳过 | `Tenants#runIgnored` / `callIgnored`、`DataScopes#runIgnored` / `callIgnored` | 无注解场景在线程内临时跳过过滤 |
+
+### 新增：数据权限增强
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| OR 组合 | `DataRule.or(...)`、`DataRule.Logic` | 规则按声明顺序从左到右组合，支持 `AND` 与 `OR` |
+| 关联路径 | `DataRule.of("dept.parentId", ...)` | 字段名支持 `a.b` 形式的关联路径 |
+
+### 新增：查询与批量
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 流式查询 | `JpaPlusSpecExecutor#stream`、`JpaPlusHqlExecutor#stream`、`JpaPlusSqlExecutor#stream` | 基于 `getResultStream` 逐条消费，适合大数据量导出 |
+| upsert 优化 | `BatchOperation#upsertAll` | 一次查询全部业务键，再分批写入并统一清理 |
+| JDBC 批量 | `neopen.jpa.jdbc-batch.*` | 自动写入 `hibernate.jdbc.batch_size`、`hibernate.order_inserts`、`hibernate.order_updates` |
+
+### 新增：可观测性与审计
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 指标监控 | `JpaPlusMetrics`、`neopen.jpa.metrics.*` | 通过 Micrometer 统计数据源路由次数与慢 SQL 次数 |
+| 异步审计 | `AsyncAuditLogPublisher` | 有界队列 + 丢弃策略 + 关闭时排空，避免阻塞业务事务 |
+
+### 新增：配置项
+
+- `neopen.jpa.jdbc-batch.enabled`（默认 `false`）、`batch-size`（默认 `50`）、`order-inserts` / `order-updates`（默认 `true`）。
+- `neopen.jpa.metrics.enabled`（默认 `false`）、`slow-threshold-ms`（默认 `1000`）。
+
+### 变更与迁移
+
+- 过滤跳过默认不生效，只有标注注解或显式调用跳过方法时才有影响。
+- `DataRule` 改为 `record(field, values, logic)`；`new DataRule(field, values)` 与 `DataRule.of(...)` 保持兼容，默认 `AND`，需要 `OR` 时使用 `DataRule.or(...)`。
+- `BatchOperation#upsertAll` 改为一次性查询全部业务键，批次中间只 `flush()`，全部处理完成后统一 `clear()`。
+- 指标相关能力仅在引入 `micrometer-core` 且 `neopen.jpa.metrics.enabled=true` 时生效；慢 SQL 统计在 JDBC 层包装 `DataSource`，对 SQL 写法无侵入。
+
+### 文档
+
+- 新增 PostgreSQL JSONB 字段映射与查询示例，详见 [PostgreSQL JSONB](/core/jsonb)。
 
 ## 0.6.0（开发中）
 

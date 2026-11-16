@@ -26,13 +26,26 @@ public DataPermissionProvider dataPermissionProvider() {
 ```java
 DataRule rule = new DataRule("deptId", List.of(1L, 2L));
 DataRule same = DataRule.of("deptId", 1L, 2L);
+
+// 关联路径：按部门的上级部门过滤
+DataRule nested = DataRule.of("dept.parentId", 1L);
+
+// OR 组合：本部门或本人负责
+List<DataRule> rules = List.of(
+        DataRule.of("deptId", 1L, 2L),
+        DataRule.or("ownerId", 9L)
+);
+// deptId in (1,2) or ownerId in (9)
 ```
 
 | 约束 | 说明 |
 | --- | --- |
-| `field` | 实体字段名，不能为空白 |
+| `field` | 实体字段名，支持 `dept.parentId` 形式的关联路径，不能为空白 |
 | `values` | 允许值集合，不能为空 |
+| `logic` | 与上一条规则的组合方式，默认 `AND`，可用 `DataRule.or(...)` 改为 `OR` |
 | 空规则 | 返回 `null` 或空列表表示该实体不做限制 |
+
+多条规则按声明顺序从左到右组合，`a OR b AND c` 等价于 `(a OR b) AND c`。需要更复杂的优先级时，请在提供者中把条件换算为字段值集合。
 
 提供者抛出异常会中断查询，请在提供者内部处理降级逻辑。返回空集合表示**不做限制**，与「无权限」不同；需要拒绝全部数据时请返回一个不可能匹配的规则，或在业务层直接抛错。
 
@@ -97,8 +110,21 @@ neopen:
 
 三层条件都通过 `Specification.and(...)` 合并，任意一层未启用或没有数据时不影响其他层。
 
+## 临时跳过
+
+后台统计、数据修复等场景可以按方法跳过权限条件：
+
+```java
+@IgnoreDataScope
+public long countAllOrders() {
+    return orderRepository.count();
+}
+```
+
+嵌套调用按层恢复，也可以使用 `DataScopes.runIgnored(...)` / `callIgnored(...)` 在代码中临时跳过。详见 [过滤跳过](/core/filter-ignore)。
+
 ## 适用边界
 
 - 只覆盖 JPA Criteria 查询；`HqlWrapper`、`SqlWrapper` 与原生 SQL 需要自行追加条件。
-- 规则只支持「字段 IN 集合」，不支持嵌套关联路径与子查询；复杂权限建议在提供者中换算为字段值集合。
+- 规则支持 `字段 IN 集合`、关联路径与 `OR` 组合，但不支持子查询；复杂权限建议在提供者中换算为字段值集合。
 - 批量 JPQL 更新/删除不经过执行器，`LogicDeletes`、`BatchOperation` 等方法不会自动附加权限条件，调用前需要自行校验数据范围。

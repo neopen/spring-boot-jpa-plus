@@ -9,6 +9,82 @@
 
 
 
+## 0.7.0 (开发中)
+
+0.7.0 在 0.6.0 的数据隔离与可观测能力上继续补齐**过滤控制、查询效率与运维可观测性**，模块结构与 Maven 坐标保持不变。
+
+### 依赖坐标
+
+```xml
+<dependency>
+    <groupId>io.github.neopen</groupId>
+    <artifactId>spring-boot-jpa-plus-starter</artifactId>
+    <version>0.7.0-SNAPSHOT</version>
+</dependency>
+```
+
+### 版本亮点
+
+- **过滤可控**：`@IgnoreTenant` / `@IgnoreDataScope` 与代码级跳过，支持嵌套恢复与异常安全。
+- **规则更灵活**：`DataRule` 支持 `OR` 组合与 `dept.parentId` 形式的关联路径。
+- **大数据量更省内存**：Specification、HQL、原生 SQL 执行器新增流式查询。
+- **写入更快**：`upsertAll` 一次性查询全部业务键，并可自动开启 Hibernate JDBC 批量。
+- **可观测性**：Micrometer 统计数据源路由次数与慢 SQL 次数。
+- **审计不阻塞**：`AsyncAuditLogPublisher` 有界队列 + 丢弃策略。
+
+### 新增能力
+
+#### 1. 过滤跳过
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 方法级跳过 | `@IgnoreTenant`、`@IgnoreDataScope` | 方法或类级别生效，嵌套调用按层恢复 |
+| 代码跳过 | `Tenants#ignore` / `restore` / `runIgnored` / `callIgnored`、`DataScopes` 同名方法 | 无注解场景在线程内临时跳过 |
+
+#### 2. 数据权限增强
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| `OR` 组合 | `DataRule.or(...)`、`DataRule.Logic` | 规则按声明顺序从左到右组合，默认 `AND` |
+| 关联路径 | `DataRule.of("dept.parentId", ...)` | 字段名支持 `a.b` 逐级关联 |
+
+#### 3. 查询与批量
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 流式查询 | `JpaPlusSpecExecutor#stream`、`JpaPlusHqlExecutor#stream`、`JpaPlusSqlExecutor#stream` | 基于 `getResultStream`，事务内消费 |
+| upsert 优化 | `BatchOperation#upsertAll` | 一次查询全部业务键，每批 `flush`，结束后统一 `clear` |
+| JDBC 批量 | `JdbcBatchHibernateCustomizer`、`neopen.jpa.jdbc-batch.*` | 写入 `hibernate.jdbc.batch_size`、`order_inserts`、`order_updates` |
+
+#### 4. 可观测性与审计
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 指标监控 | `JpaPlusMetrics`、`neopen.jpa.metrics.*` | 数据源路由次数与慢 SQL 次数（Micrometer `Counter`） |
+| 异步审计 | `AsyncAuditLogPublisher` | 有界队列、满时丢弃并告警、关闭时排空 |
+
+### 新增配置项
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `neopen.jpa.jdbc-batch.enabled` | `false` | 是否写入 Hibernate JDBC 批量参数 |
+| `neopen.jpa.jdbc-batch.batch-size` | `50` | 对应 `hibernate.jdbc.batch_size` |
+| `neopen.jpa.jdbc-batch.order-inserts` | `true` | 对应 `hibernate.order_inserts` |
+| `neopen.jpa.jdbc-batch.order-updates` | `true` | 对应 `hibernate.order_updates` |
+| `neopen.jpa.metrics.enabled` | `false` | 是否注册指标采集 |
+| `neopen.jpa.metrics.slow-threshold-ms` | `1000` | 慢 SQL 判定阈值 |
+
+指标仅在引入 `micrometer-core` 且开启后生效，未引入时自动配置不加载。
+
+### 兼容性
+
+- 过滤跳过默认不生效，未使用注解或跳过方法的项目行为不变。
+- `DataRule` 改为 `record(field, values, logic)`，原有两参构造器与 `DataRule.of(...)` 保持兼容，默认 `AND`。
+- `upsertAll` 不再在每个批次后 `clear()`，传入实体在方法返回后均为游离状态。
+- 版本号调整为 `0.7.0-SNAPSHOT`，模块结构与 Maven 坐标保持不变。
+
+------
+
 ## 0.6.0 (开发中)
 
 0.6.0 聚焦**数据隔离、变更可追溯与多库部署**，在保持模块结构与 Maven 坐标不变的前提下新增多项企业级能力。

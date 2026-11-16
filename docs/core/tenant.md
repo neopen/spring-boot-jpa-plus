@@ -119,6 +119,19 @@ neopen:
 
 关闭过滤只影响查询，`TenantListener` 仍会在有租户上下文时填充字段。
 
+## 方法级跳过
+
+登录、定时任务、运维等场景可以临时跳过租户过滤：
+
+```java
+@IgnoreTenant
+public List<DocumentRecord> listAllTenants() {
+    return documentRepository.findAll();
+}
+```
+
+注解支持方法级与类级，嵌套调用按层恢复；也可以使用 `Tenants.runIgnored(...)` / `callIgnored(...)` 在代码中临时跳过。详见 [过滤跳过](/core/filter-ignore)。
+
 ## 适用边界
 
 - 自动过滤只覆盖 JPA Criteria 查询，包括 `SpecWrapper`、`JpaPlusSpecExecutor`。
