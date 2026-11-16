@@ -9,6 +9,32 @@
 - **商品库存**：`SpecWrapper` 查询与 HQL、原生 SQL 的对照实现，原生字段比较、批量补货、基于 `SqlWrapper` 的聚合统计。
 - **同一接口三种实现**：`OrderService` 与 `ProductService` 各有 JPA、HQL、原生 SQL 三套实现。
 - **0.5 新增能力**：`QueryFeatureService`、`CustomerSecretService` 与 `AuditConfiguration` 演示请求分页、union、数据源作用域、字段加密与审计操作人。
+- **0.6 新增能力**：`DocumentFeatureService` 与 `FeatureDataConfiguration` 演示多租户、行级数据权限、逻辑删除恢复、变更历史与批量 upsert。
+
+## 0.6 新能力示例
+
+`DocumentFeatureController` 演示 0.6 新增能力，实体与依赖见 `bean/entity/DocumentRecord`、`config/FeatureDataConfiguration`：
+
+| 方法 | 路径 | 演示内容 |
+| --- | --- | --- |
+| GET | `/feature/documents` | 自动追加租户与部门权限条件 |
+| POST | `/feature/documents?docNo=DOC-001&title=...` | 写入时自动填充租户字段 |
+| POST | `/feature/documents/{id}/rename?title=...` | 生成 `UPDATE` 变更历史 |
+| DELETE | `/feature/documents/{id}` | 逻辑删除 |
+| POST | `/feature/documents/{id}/restore` | `LogicDeletes.restoreById` 恢复逻辑删除 |
+| POST | `/feature/documents/upsert` | `BatchOperation.upsertAll` 按 `docNo` 新增或更新 |
+| GET | `/feature/documents/audit` | 查看当前进程内的变更历史 |
+
+请求头 `X-Demo-Tenant` 与 `X-Demo-Dept` 分别指定租户与部门，未提供时使用 `demo-tenant` 与默认部门：
+
+```bash
+curl -H "X-Demo-Tenant: tenant-a" -H "X-Demo-Dept: 10" \
+  "http://localhost:8080/feature/documents"
+```
+
+- `FeatureDataConfiguration` 注册 `TenantProvider`、`DataPermissionProvider` 与 `AuditLogPublisher`。
+- `DocumentRecord` 同时标注 `@Audited`、`@TenantId`、`@LogicDelete`，并在 `@EntityListeners` 中注册两个监听器。
+- `DemoAuditStore` 用内存列表保存变更历史，示例重启后清空。
 
 ## 0.5 新能力示例
 

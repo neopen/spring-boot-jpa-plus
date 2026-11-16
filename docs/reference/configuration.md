@@ -14,6 +14,14 @@
 | `neopen.jpa.audit.enabled` | `boolean` | `true` | 是否启用审计字段填充 |
 | `neopen.jpa.audit.zone` | `ZoneId` | `UTC` | 审计时间字段使用的时区 |
 | `neopen.jpa.audit.auditor` | `String` | 空 | 固定的操作人名称，为空时不写入；容器中存在 `AuditorProvider` Bean 时以该 Bean 为准 |
+| `neopen.jpa.audit.trail-enabled` | `boolean` | `true` | 是否发布 `@Audited` 实体的变更历史，需要注册 `AuditLogPublisher` |
+| `neopen.jpa.tenant.enabled` | `boolean` | `true` | 是否为声明 `@TenantId` 的实体追加租户过滤 |
+| `neopen.jpa.data-scope.enabled` | `boolean` | `true` | 是否追加 `DataPermissionProvider` 返回的行级权限条件 |
+| `neopen.jpa.datasource.enabled` | `boolean` | `false` | 是否启用路由数据源接管默认数据源 |
+| `neopen.jpa.datasource.primary` | `String` | `primary` | 默认数据源逻辑名称，必须出现在 `targets` 中 |
+| `neopen.jpa.datasource.read-target` | `String` | `read` | `@DataSource(readOnly = true)` 的默认目标 |
+| `neopen.jpa.datasource.write-target` | `String` | `write` | `@DataSource(readOnly = false)` 的默认目标 |
+| `neopen.jpa.datasource.targets` | `Map<String, String>` | 空 | 逻辑名称到数据源 Bean 名称的映射，开启动态数据源时不能为空 |
 | `neopen.jpa.encryption.enabled` | `boolean` | `true` | 是否启用字段加密；关闭后加密转换器按明文读写 |
 | `neopen.jpa.encryption.key` | `String` | 空 | 加密密钥，启动时经 SHA-256 派生；未配置时读写加密字段会抛出异常 |
 | `neopen.jpa.encryption.keys` | `Map<String, String>` | 空 | 多密钥配置，键为密钥编号、值为密钥；配置后优先于 `encryption.key` |
@@ -47,6 +55,20 @@ neopen:
       enabled: true
       zone: Asia/Shanghai
       auditor: system
+      trail-enabled: true
+    tenant:
+      enabled: true
+    data-scope:
+      enabled: true
+    datasource:
+      enabled: false
+      primary: primary
+      read-target: read
+      write-target: write
+      targets:
+        primary: dataSourcePrimary
+        read: dataSourceRead
+        write: dataSourceWrite
     encryption:
       enabled: true
       key: change-me-in-production
@@ -76,6 +98,10 @@ neopen:
 | `batch-size` | `BatchOperation.setDefaultBatchSize(...)` |
 | `logic-delete.enabled` | `LogicDeletes.setEnabled(...)` |
 | `audit.enabled` / `audit.auditor` / `audit.zone` | `Audits.setEnabled(...)`、`Audits.setAuditorSupplier(...)`、`Audits.setClock(...)` |
+| `audit.trail-enabled` | `AuditTrails.setEnabled(...)`、注册容器中的 `AuditLogPublisher` |
+| `tenant.enabled` | `Tenants.setEnabled(...)`、注册容器中的 `TenantProvider` |
+| `data-scope.enabled` | `DataScopes.setEnabled(...)`、注册容器中的 `DataPermissionProvider` |
+| `datasource.*` | 注册 `jpaPlusRoutingDataSource` 与 `DataSourceAspect`，按 `targets` 解析目标数据源 |
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`、`EncryptedFields.setKey(...)`（仅在配置了密钥时写入） |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)`（配置了多密钥时优先使用） |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | 注册 `SlowSqlHibernateCustomizer`，写入 Hibernate 慢查询阈值 |
@@ -120,6 +146,9 @@ neopen:
 | `scopes.<name>.encryption-key` | 空 | 该作用域的单密钥 |
 | `scopes.<name>.encryption-keys` | 空 | 该作用域的多密钥配置 |
 | `scopes.<name>.encryption-active-key-id` | 空 | 该作用域当前加密使用的密钥编号 |
+| `scopes.<name>.tenant-enabled` | 空 | 该作用域是否追加租户过滤 |
+| `scopes.<name>.tenant` | 空 | 该作用域固定的租户，优先于租户提供者 |
+| `scopes.<name>.trail-enabled` | 空 | 该作用域是否发布变更历史 |
 
 未配置的项沿用全局配置。访问对应数据源时通过 `JpaPlusScope` 绑定作用域：
 

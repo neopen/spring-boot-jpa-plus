@@ -14,6 +14,14 @@ All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Sw
 | `neopen.jpa.audit.enabled` | `boolean` | `true` | Whether to enable audit field population |
 | `neopen.jpa.audit.zone` | `ZoneId` | `UTC` | Time zone used by audit time fields |
 | `neopen.jpa.audit.auditor` | `String` | empty | Fixed operator name; nothing is written when it is empty. An `AuditorProvider` bean takes precedence |
+| `neopen.jpa.audit.trail-enabled` | `boolean` | `true` | Whether to publish change history for `@Audited` entities; requires an `AuditLogPublisher` |
+| `neopen.jpa.tenant.enabled` | `boolean` | `true` | Whether to append tenant filters for entities declaring `@TenantId` |
+| `neopen.jpa.data-scope.enabled` | `boolean` | `true` | Whether to append the row-level rules returned by `DataPermissionProvider` |
+| `neopen.jpa.datasource.enabled` | `boolean` | `false` | Whether to register the routing data source and take over the default data source |
+| `neopen.jpa.datasource.primary` | `String` | `primary` | Default logical data source name, must be present in `targets` |
+| `neopen.jpa.datasource.read-target` | `String` | `read` | Default target of `@DataSource(readOnly = true)` |
+| `neopen.jpa.datasource.write-target` | `String` | `write` | Default target of `@DataSource(readOnly = false)` |
+| `neopen.jpa.datasource.targets` | `Map<String, String>` | empty | Logical name to data source bean name mapping, required when dynamic data sources are enabled |
 | `neopen.jpa.encryption.enabled` | `boolean` | `true` | Whether to enable field encryption; when disabled, the encryption converter reads and writes plaintext |
 | `neopen.jpa.encryption.key` | `String` | empty | Encryption key, derived through SHA-256 at startup; reading or writing encrypted fields throws an exception when it is not configured |
 | `neopen.jpa.encryption.keys` | `Map<String, String>` | empty | Multiple keys keyed by key id; takes precedence over `encryption.key` |
@@ -47,6 +55,20 @@ neopen:
       enabled: true
       zone: Asia/Shanghai
       auditor: system
+      trail-enabled: true
+    tenant:
+      enabled: true
+    data-scope:
+      enabled: true
+    datasource:
+      enabled: false
+      primary: primary
+      read-target: read
+      write-target: write
+      targets:
+        primary: dataSourcePrimary
+        read: dataSourceRead
+        write: dataSourceWrite
     encryption:
       enabled: true
       key: change-me-in-production
@@ -76,6 +98,10 @@ neopen:
 | `batch-size` | `BatchOperation.setDefaultBatchSize(...)` |
 | `logic-delete.enabled` | `LogicDeletes.setEnabled(...)` |
 | `audit.enabled` / `audit.auditor` / `audit.zone` | `Audits.setEnabled(...)`, `Audits.setAuditorSupplier(...)`, `Audits.setClock(...)` |
+| `audit.trail-enabled` | `AuditTrails.setEnabled(...)`, registers the `AuditLogPublisher` bean |
+| `tenant.enabled` | `Tenants.setEnabled(...)`, registers the `TenantProvider` bean |
+| `data-scope.enabled` | `DataScopes.setEnabled(...)`, registers the `DataPermissionProvider` bean |
+| `datasource.*` | Registers `jpaPlusRoutingDataSource` and `DataSourceAspect`, resolving targets from `targets` |
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`, `EncryptedFields.setKey(...)` (written only when the key is configured) |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)` (used when multiple keys are configured) |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | Registers `SlowSqlHibernateCustomizer` with Hibernate's slow query threshold |
@@ -120,6 +146,9 @@ neopen:
 | `scopes.<name>.encryption-key` | empty | Single encryption key for the scope |
 | `scopes.<name>.encryption-keys` | empty | Multiple keys for the scope |
 | `scopes.<name>.encryption-active-key-id` | empty | Key id used for new ciphertext in the scope |
+| `scopes.<name>.tenant-enabled` | empty | Whether the scope filters by tenant |
+| `scopes.<name>.tenant` | empty | Fixed tenant for the scope, takes precedence over providers |
+| `scopes.<name>.trail-enabled` | empty | Whether the scope publishes change history |
 
 Unconfigured items fall back to the global settings. Bind the scope when accessing that datasource:
 

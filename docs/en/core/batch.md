@@ -11,6 +11,7 @@
 | `static <T> void persistAll(EntityManager em, Collection<T> entities, int batchSize)` | Batch `persist`, suitable for new entities |
 | `static <T> void removeAll(EntityManager em, Collection<T> entities, int batchSize)` | Batch `remove`, suitable for managed entities |
 | `static <T> void forEachBatch(Collection<T> values, int batchSize, Consumer<List<T>> consumer)` | Consumes a collection in batches, suitable for calling repository batch methods |
+| `static <T> UpsertResult upsertAll(EntityManager em, Class<T> type, Collection<T> entities, Function<T,Object> keyExtractor, String keyProperty)` | Inserts or updates by business key in batches |
 | `static void setDefaultBatchSize(int batchSize)` / `static int getDefaultBatchSize()` | Reads or modifies the default batch size |
 
 ## Usage
@@ -29,6 +30,36 @@ BatchOperation.forEachBatch(ids, 500, batch ->
 - `mergeAll` returns the list of merged entities.
 - A null `EntityManager`, a non-positive batch size, or a null callback throws `IllegalArgumentException` before any database operation starts.
 - `persistAll` targets entities that are not yet persisted, while `removeAll` targets managed entities; confirm the entity state before use, otherwise JPA will throw an error.
+
+## Batch Upsert
+
+Insert or update by business key without supplying primary keys:
+
+```java
+BatchOperation.UpsertResult result = BatchOperation.upsertAll(
+        entityManager,
+        DocumentRecord.class,
+        records,
+        DocumentRecord::getDocNo,   // business key extractor
+        "docNo",                    // business key property
+        500
+);
+// result.inserted() / result.updated() / result.total()
+```
+
+Execution:
+
+1. Split into chunks of `batchSize` and query existing managed entities by business key.
+2. `persist` entities that do not exist.
+3. Copy persistable fields onto the managed entities for existing ones; dirty checking updates them on `flush`.
+4. `flush` and `clear` after each chunk.
+
+Rules:
+
+- The business key must be unique; duplicates in one chunk match the same row.
+- Copying skips `@Id`, `@Version`, `@Transient` and the key property, and only handles simple field types.
+- All input entities are detached after the call; do not rely on their lazy loading afterwards.
+- A blank `keyProperty`, a non-positive batch size, or a null extractor throws `IllegalArgumentException`.
 
 ## Default Batch Size
 

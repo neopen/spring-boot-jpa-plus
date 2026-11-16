@@ -9,6 +9,96 @@
 
 
 
+## 0.6.0 (开发中)
+
+0.6.0 聚焦**数据隔离、变更可追溯与多库部署**，在保持模块结构与 Maven 坐标不变的前提下新增多项企业级能力。
+
+### 依赖坐标
+
+```xml
+<dependency>
+    <groupId>io.github.neopen</groupId>
+    <artifactId>spring-boot-jpa-plus-starter</artifactId>
+    <version>0.6.0-SNAPSHOT</version>
+</dependency>
+```
+
+### 版本亮点
+
+- **数据隔离开箱可用**：`@TenantId` 写入自动填充、查询自动过滤，支持作用域固定租户。
+- **行级数据权限**：`DataPermissionProvider` + `DataRule` 统一转换为 `字段 IN (...)` 条件。
+- **变更可追溯**：`@Audited` + `AuditLogPublisher` 输出字段级前后快照。
+- **多库部署**：`@DataSource` 注解与 `DataSourceContext` 支持读写分离与按业务选库。
+- **逻辑删除可恢复**：新增主键批量恢复。
+- **自然键批量 upsert**：无需主键即可按业务键新增或更新。
+
+### 新增能力
+
+#### 1. 多租户
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 租户字段 | `@TenantId` | 支持 `String`、`Long`、`Integer`、`UUID` |
+| 写入填充 | `TenantListener` | `@PrePersist` / `@PreUpdate` 自动写入当前租户 |
+| 查询过滤 | `Tenants#filter`、`JpaPlusSpecExecutor` | 在逻辑删除之后自动追加租户条件 |
+| 租户来源 | `TenantProvider`、`neopen.jpa.scopes.<name>.tenant` | 全局提供者与作用域固定租户 |
+
+#### 2. 行级数据权限
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 权限规则 | `DataRule`、`DataPermissionProvider` | 规则转换为 `字段 IN (...)` |
+| 查询过滤 | `DataScopes#filter`、`JpaPlusSpecExecutor` | 在租户条件之后追加，三层条件按 `AND` 合并 |
+| 作用域隔离 | `DataScopes#setProvider`、`DataScopes#setEnabled` | 按线程作用域启用或替换规则 |
+
+#### 3. 变更历史
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 记录开关 | `@Audited`、`AuditTrailListener` | 生命周期回调采集快照 |
+| 变更模型 | `AuditEntry`、`AuditChange`、`AuditAction` | `CREATE`、`UPDATE`、`DELETE` 三类记录 |
+| 发布 | `AuditLogPublisher`、`AuditTrails` | 全局与作用域发布者，异常仅记录日志 |
+| 操作人 | `Audits#currentAuditor` | 与审计字段共用 `AuditorProvider` |
+
+#### 4. 动态数据源
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 路由数据源 | `JpaPlusRoutingDataSource`、`neopen.jpa.datasource.*` | 按逻辑名称解析数据源 Bean，接管默认数据源 |
+| 注解切换 | `@DataSource` | 方法或类级别选择目标，支持 `readOnly` 读写分离 |
+| 手动切换 | `DataSourceContext` | 线程上下文栈，支持嵌套恢复 |
+
+#### 5. 逻辑删除与批量增强
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 逻辑删除恢复 | `LogicDeletes#restoreById`、`restoreAllById`、`restoreAll` | 主键批量恢复或清除托管实体标记 |
+| 批量 upsert | `BatchOperation#upsertAll`、`UpsertResult` | 按业务键分批查询，存在更新、不存在新增 |
+
+### 新增配置项
+
+| 配置项 | 默认值 | 说明 |
+| --- | --- | --- |
+| `neopen.jpa.tenant.enabled` | `true` | 多租户过滤总开关 |
+| `neopen.jpa.data-scope.enabled` | `true` | 行级数据权限总开关 |
+| `neopen.jpa.audit.trail-enabled` | `true` | 变更历史总开关 |
+| `neopen.jpa.datasource.enabled` | `false` | 动态数据源开关 |
+| `neopen.jpa.datasource.primary` | `primary` | 默认数据源逻辑名称 |
+| `neopen.jpa.datasource.read-target` | `read` | 只读目标名称 |
+| `neopen.jpa.datasource.write-target` | `write` | 写入目标名称 |
+| `neopen.jpa.datasource.targets` | 空 | 逻辑名称到 Bean 名称的映射 |
+| `neopen.jpa.scopes.<name>.tenant-enabled` | 空 | 作用域租户开关 |
+| `neopen.jpa.scopes.<name>.tenant` | 空 | 作用域固定租户 |
+| `neopen.jpa.scopes.<name>.trail-enabled` | 空 | 作用域变更历史开关 |
+
+### 兼容性
+
+- 未使用新注解与提供者的项目行为不变。
+- 动态数据源仅在 `enabled=true` 且容器中没有 `DataSource` 时生效。
+- 版本号调整为 `0.6.0-SNAPSHOT`，模块结构与 Maven 坐标保持不变。
+
+------
+
 ## 0.5.0 (2026-11-15)
 
 0.5.0 是一次较大的能力扩充，围绕**数据安全、查询表达力、多数据源治理与可观测性**补齐了多项长期需求，同时保持模块结构与 Maven 坐标不变。

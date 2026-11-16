@@ -54,6 +54,22 @@ Differences:
 - `deleteAll` requires the entities to be in a managed state and changes the field values in memory.
 - When the entity is not annotated with `@LogicDelete`, all three methods throw `IllegalArgumentException`.
 
+## Restoring
+
+```java
+int restored = LogicDeletes.restoreById(entityManager, Order.class, 1L);
+int batch = LogicDeletes.restoreAllById(entityManager, Order.class, ids);
+int cleared = LogicDeletes.restoreAll(entityManager, Order.class, orders);
+```
+
+| Method | Behavior |
+| --- | --- |
+| `restoreById(EntityManager, Class<T>, Object id)` | Executes a JPQL update setting the logical deletion field to `false` |
+| `restoreAllById(EntityManager, Class<T>, Collection<?> ids)` | Same as above, with batch primary keys; an empty collection returns 0 |
+| `restoreAll(EntityManager, Class<T>, Collection<T> entities)` | Modifies managed entity fields directly; dirty checking synchronizes them on commit |
+
+As with deletion: bulk updates do not trigger lifecycle callbacks, and `restoreAll` requires managed entities. Restoration does not check whether a row is actually deleted; repeated calls return the affected row count.
+
 ## Global Switch
 
 ```java

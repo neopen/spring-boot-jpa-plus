@@ -54,6 +54,22 @@ int marked = LogicDeletes.deleteAll(entityManager, Order.class, orders);
 - `deleteAll` 要求实体处于托管状态，改的是内存中的字段值。
 - 实体未标注 `@LogicDelete` 时，三个方法都抛 `IllegalArgumentException`。
 
+## 恢复
+
+```java
+int restored = LogicDeletes.restoreById(entityManager, Order.class, 1L);
+int batch = LogicDeletes.restoreAllById(entityManager, Order.class, ids);
+int cleared = LogicDeletes.restoreAll(entityManager, Order.class, orders);
+```
+
+| 方法 | 行为 |
+| --- | --- |
+| `restoreById(EntityManager, Class<T>, Object id)` | 执行 JPQL 更新，把逻辑删除字段置为 `false` |
+| `restoreAllById(EntityManager, Class<T>, Collection<?> ids)` | 同上，批量主键；空集合直接返回 0 |
+| `restoreAll(EntityManager, Class<T>, Collection<T> entities)` | 直接修改托管实体的字段，提交时由脏检查同步 |
+
+与删除方法一致：批量更新不触发生命周期回调；`restoreAll` 要求实体处于托管状态。恢复同样不校验数据是否真的处于删除状态，重复调用返回受影响行数。
+
 ## 全局开关
 
 ```java

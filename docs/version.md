@@ -3,14 +3,16 @@
 ::: warning 特别说明
 - 当前正式发布版本为 **0.4.0**，可以直接通过 Maven 依赖引入。
 - 代码仓库 `main` 分支对应 **0.5.0**，尚未发布，将在后续正式发布。
-- 本站文档按 **0.5.0** 编写，描述的是 `main` 分支的最新行为。
-- 因此，通过 Maven 引入的 **0.4.0 不支持**本文档中的 0.5 新功能。
+- `dev` 分支对应 **0.6.0**，新增多租户、行级数据权限、变更历史、动态数据源、逻辑删除恢复与批量 upsert。
+- 本站文档按 **0.6.0** 编写，描述的是 `dev` 分支的最新行为。
+- 因此，通过 Maven 引入的 **0.4.0 不支持**本文档中的 0.5 / 0.6 新功能。
 :::
 
 ## 版本总览
 
 | 版本 | 状态 | 日期 | 说明 |
 | --- | --- | --- | --- |
+| `0.6.0` | 开发中 | — | 多租户、行级数据权限、变更历史、动态数据源与读写分离、逻辑删除恢复、批量 upsert |
 | `0.5.0` | 开发中 | — | 新增枚举转换、字段加密、脱敏、重试、慢日志、树与雪花 ID 等能力 |
 | `0.4.0` | 已发布 | 2026-11-13 | 逻辑删除、条件分组、Specification 执行器，当前稳定版本 |
 | `0.3.0` | 已发布 | 2026-11-13 | 注解式查询条件、安全排序、fetch join 分页 |
@@ -22,7 +24,7 @@
 
 ## 兼容性基线
 
-| 项 | 0.4.0 | 0.5.0 |
+| 项 | 0.4.0 | 0.5.0 / 0.6.0 |
 | --- | --- | --- |
 | JDK | 17+ | 17+ |
 | Spring Boot | 3.x | 3.x |
@@ -32,7 +34,52 @@
 | 模块结构 | core / convert / autoconfigure / starter / extension | 与 0.4.0 相同 |
 | 坐标 | `io.github.neopen:*` | 与 0.4.0 相同 |
 
-`starter` 只传递 `core`、`convert`、`autoconfigure`；`extension` 需要单独引入，两个版本保持一致。
+`starter` 只传递 `core`、`convert`、`autoconfigure`；`extension` 需要单独引入，三个版本保持一致。
+
+## 0.6.0（开发中）
+
+### 新增：多租户与数据权限
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 多租户 | `@TenantId`、`TenantProvider`、`TenantListener`、`Tenants` | 写入自动填充租户字段，查询自动追加租户条件，支持作用域固定租户 |
+| 行级数据权限 | `DataPermissionProvider`、`DataRule`、`DataScopes` | 规则转换为 `字段 IN (...)` 条件，与逻辑删除、租户条件按 `AND` 合并 |
+
+### 新增：变更历史
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 变更历史 | `@Audited`、`AuditTrailListener`、`AuditTrails`、`AuditLogPublisher` | 字段级前后快照，输出 `CREATE` / `UPDATE` / `DELETE` 记录 |
+| 记录模型 | `AuditEntry`、`AuditChange`、`AuditAction` | 实体、主键、变更明细、操作人与发生时间 |
+
+### 新增：动态数据源
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 路由数据源 | `neopen.jpa.datasource.*`、`JpaPlusRoutingDataSource` | 按逻辑名称映射到容器中的数据源 Bean，接管 Spring Boot 默认数据源 |
+| 注解切换 | `@DataSource` | 按方法或类选择目标数据源，支持 `readOnly` 读写分离 |
+| 手动切换 | `DataSourceContext` | 线程上下文栈，支持 `run` / `call` 与嵌套恢复 |
+
+### 新增：逻辑删除与批量增强
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 逻辑删除恢复 | `LogicDeletes#restoreById`、`restoreAllById`、`restoreAll` | 按主键批量恢复或对托管实体清除删除标记 |
+| 批量 upsert | `BatchOperation#upsertAll`、`UpsertResult` | 按业务唯一键分批查询，存在则更新、不存在则新增 |
+
+### 新增：配置项
+
+- `neopen.jpa.tenant.enabled`（默认 `true`）。
+- `neopen.jpa.data-scope.enabled`（默认 `true`）。
+- `neopen.jpa.audit.trail-enabled`（默认 `true`）。
+- `neopen.jpa.datasource.*`：`enabled`、`primary`、`read-target`、`write-target`、`targets`。
+- `neopen.jpa.scopes.<name>` 新增 `tenant-enabled`、`tenant`、`trail-enabled`。
+
+### 变更与迁移
+
+- 数据源路由通过 `@AutoConfiguration(before = DataSourceAutoConfiguration.class)` 注册，仅在 `neopen.jpa.datasource.enabled=true` 且容器中没有 `DataSource` 时生效；已自定义数据源的项目不受影响。
+- 租户与数据权限默认启用，但只有声明 `@TenantId` 或注册 `DataPermissionProvider` 时才产生条件，未使用相关能力的项目行为不变。
+- 变更历史默认启用，但只有标注 `@Audited` 且声明 `AuditTrailListener` 的实体会产生记录。
 
 ## 0.5.0（开发中）
 
@@ -146,5 +193,5 @@
 ## 选择依赖版本
 
 - **稳定使用**：依赖 0.4.0，并按 0.4.0 的 API 使用文档中已发布的能力。
-- **提前体验 0.5**：克隆源码后执行 `mvn install -DskipTests` 安装到本地仓库，再将依赖版本改为本地构建版本。
-- **等待正式发布**：0.5.0 发布后，本站文档与 Maven 依赖将保持一致。
+- **提前体验 0.5 / 0.6**：克隆源码后执行 `mvn install -DskipTests` 安装到本地仓库，再将依赖版本改为本地构建版本。
+- **等待正式发布**：0.5.0 / 0.6.0 发布后，本站文档与 Maven 依赖将保持一致。

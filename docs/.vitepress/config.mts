@@ -82,7 +82,23 @@ export default defineConfig({
                                 link: '/en/core/logic-delete'
                             },
                             { text: 'Auditing', link: '/en/core/auditing' },
+                            {
+                                text: 'Change History',
+                                link: '/en/core/audit-trail'
+                            },
+                            {
+                                text: 'Multi-Tenancy',
+                                link: '/en/core/tenant'
+                            },
+                            {
+                                text: 'Data Permission',
+                                link: '/en/core/data-permission'
+                            },
                             { text: 'Batch Operations', link: '/en/core/batch' },
+                            {
+                                text: 'Dynamic Data Sources',
+                                link: '/en/core/datasource'
+                            },
                             { text: 'DTO Projection', link: '/en/core/projection' },
                             {
                                 text: 'Enum Conversion',
@@ -225,7 +241,11 @@ export default defineConfig({
                     { text: '安全排序', link: '/core/sorting' },
                     { text: '逻辑删除', link: '/core/logic-delete' },
                     { text: '审计字段', link: '/core/auditing' },
+                    { text: '变更历史', link: '/core/audit-trail' },
+                    { text: '多租户', link: '/core/tenant' },
+                    { text: '行级数据权限', link: '/core/data-permission' },
                     { text: '批量操作', link: '/core/batch' },
+                    { text: '动态数据源', link: '/core/datasource' },
                     { text: 'DTO 投影', link: '/core/projection' },
                     { text: '枚举值转换', link: '/core/enum-convert' },
                     { text: '字段加密', link: '/core/encryption' },

@@ -3,14 +3,16 @@
 ::: warning Important notice
 - The current official release is **0.4.0**, available as a Maven dependency.
 - The `main` branch corresponds to **0.5.0**, which is not released yet and will be published later.
-- This documentation is written for **0.5.0** and describes the latest behavior of `main`.
-- As a result, the **0.4.0 release installed from Maven does not support** the 0.5 features described here.
+- The `dev` branch corresponds to **0.6.0**, adding multi-tenancy, row-level data permission, change history, dynamic data sources, logical-delete restoration and batch upsert.
+- This documentation is written for **0.6.0** and describes the latest behavior of `dev`.
+- As a result, the **0.4.0 release installed from Maven does not support** the 0.5 / 0.6 features described here.
 :::
 
 ## Version overview
 
 | Version | Status | Date | Summary |
 | --- | --- | --- | --- |
+| `0.6.0` | In development | — | Multi-tenancy, row-level data permission, change history, dynamic data sources and read/write splitting, logical-delete restoration, batch upsert |
 | `0.5.0` | In development | — | Adds enum conversion, field encryption, desensitization, retry, slow logging, tree building and snowflake IDs |
 | `0.4.0` | Released | 2026-11-13 | Logical deletion, condition groups, Specification executor; current stable version |
 | `0.3.0` | Released | 2026-11-13 | Annotation-driven conditions, safe sorting, fetch join paging |
@@ -22,7 +24,7 @@
 
 ## Compatibility baseline
 
-| Item | 0.4.0 | 0.5.0 |
+| Item | 0.4.0 | 0.5.0 / 0.6.0 |
 | --- | --- | --- |
 | JDK | 17+ | 17+ |
 | Spring Boot | 3.x | 3.x |
@@ -32,7 +34,52 @@
 | Modules | core / convert / autoconfigure / starter / extension | Same as 0.4.0 |
 | Coordinates | `io.github.neopen:*` | Same as 0.4.0 |
 
-`starter` only brings in `core`, `convert` and `autoconfigure`; `extension` has to be added separately in both versions.
+`starter` only brings in `core`, `convert` and `autoconfigure`; `extension` has to be added separately in all versions.
+
+## 0.6.0 (in development)
+
+### New: multi-tenancy and data permission
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Multi-tenancy | `@TenantId`, `TenantProvider`, `TenantListener`, `Tenants` | Fills the tenant column on write and filters automatically on query, with an optional fixed tenant per scope |
+| Row-level data permission | `DataPermissionProvider`, `DataRule`, `DataScopes` | Converts rules into `field IN (...)` conditions combined with logical deletion and tenant conditions using `AND` |
+
+### New: change history
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Change history | `@Audited`, `AuditTrailListener`, `AuditTrails`, `AuditLogPublisher` | Field-level before/after snapshots published as `CREATE` / `UPDATE` / `DELETE` records |
+| Record model | `AuditEntry`, `AuditChange`, `AuditAction` | Entity, id, change details, actor and timestamp |
+
+### New: dynamic data sources
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Routing data source | `neopen.jpa.datasource.*`, `JpaPlusRoutingDataSource` | Maps logical names to data source beans and takes over the Spring Boot default |
+| Annotation switching | `@DataSource` | Selects a target per method or class, supports read/write splitting via `readOnly` |
+| Manual switching | `DataSourceContext` | Thread-local stack with `run` / `call` and nested restoration |
+
+### New: logical deletion and batch improvements
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Logical-delete restoration | `LogicDeletes#restoreById`, `restoreAllById`, `restoreAll` | Restores by primary key in bulk or clears the flag on managed entities |
+| Batch upsert | `BatchOperation#upsertAll`, `UpsertResult` | Queries by business key in chunks and inserts or updates accordingly |
+
+### New: configuration
+
+- `neopen.jpa.tenant.enabled` (default `true`).
+- `neopen.jpa.data-scope.enabled` (default `true`).
+- `neopen.jpa.audit.trail-enabled` (default `true`).
+- `neopen.jpa.datasource.*`: `enabled`, `primary`, `read-target`, `write-target`, `targets`.
+- `neopen.jpa.scopes.<name>` gains `tenant-enabled`, `tenant` and `trail-enabled`.
+
+### Changes and migration
+
+- The routing data source is registered through `@AutoConfiguration(before = DataSourceAutoConfiguration.class)` and only applies when `neopen.jpa.datasource.enabled=true` and no `DataSource` bean exists; projects with a custom data source are unaffected.
+- Tenant and data-permission filtering are enabled by default but only produce conditions when `@TenantId` is declared or a `DataPermissionProvider` is registered, so behavior is unchanged for projects that do not use them.
+- Change history is enabled by default but only records entities annotated with `@Audited` and the `AuditTrailListener`.
 
 ## 0.5.0 (in development)
 

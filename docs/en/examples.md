@@ -9,6 +9,7 @@
 - **Product stock**: a `SpecWrapper` query compared with HQL and native SQL implementations, native field comparisons, batch restocking, and aggregate statistics based on `SqlWrapper`.
 - **Three implementations of the same interface**: `OrderService` and `ProductService` each have JPA, HQL and native SQL implementations.
 - **New in 0.5**: `QueryFeatureService`, `CustomerSecretService` and `AuditConfiguration` demonstrate request paging, union, datasource scopes, field encryption and the audit auditor.
+- **New in 0.6**: `DocumentFeatureService` and `FeatureDataConfiguration` demonstrate multi-tenancy, row-level data permission, logical-delete restoration, change history and batch upsert.
 
 ## 0.5 feature examples
 
@@ -37,6 +38,31 @@ neopen:
 - The `archive-view` scope only disables the logic delete filter; other queries still exclude deleted rows.
 - Phone numbers use `DeterministicEncryptedFieldConverter`, so encrypt the plaintext before querying; ID cards use a random IV, so the same plaintext produces different ciphertext each time.
 - `AuditConfiguration` registers an `AuditorProvider` that reads the `X-Demo-User` header and falls back to `demo-user` outside a web request.
+
+## 0.6 feature examples
+
+`DocumentFeatureController` collects the capabilities added in 0.6. See `bean/entity/DocumentRecord` and `config/FeatureDataConfiguration`:
+
+| Method | Path | Demonstration |
+| --- | --- | --- |
+| GET | `/feature/documents` | Appends tenant and department conditions automatically |
+| POST | `/feature/documents?docNo=DOC-001&title=...` | Fills the tenant column on write |
+| POST | `/feature/documents/{id}/rename?title=...` | Produces an `UPDATE` change-history record |
+| DELETE | `/feature/documents/{id}` | Logical deletion |
+| POST | `/feature/documents/{id}/restore` | `LogicDeletes.restoreById` restores the row |
+| POST | `/feature/documents/upsert` | `BatchOperation.upsertAll` inserts or updates by `docNo` |
+| GET | `/feature/documents/audit` | Returns the in-process change history |
+
+The `X-Demo-Tenant` and `X-Demo-Dept` headers set the tenant and department; they default to `demo-tenant` and the default department:
+
+```bash
+curl -H "X-Demo-Tenant: tenant-a" -H "X-Demo-Dept: 10" \
+  "http://localhost:8080/feature/documents"
+```
+
+- `FeatureDataConfiguration` registers a `TenantProvider`, a `DataPermissionProvider` and an `AuditLogPublisher`.
+- `DocumentRecord` is annotated with `@Audited`, `@TenantId` and `@LogicDelete`, and registers both listeners in `@EntityListeners`.
+- `DemoAuditStore` keeps change history in an in-memory list, which is cleared when the demo restarts.
 
 ## Route layout
 
