@@ -7,26 +7,53 @@ import java.util.List;
  * 行级数据权限规则。
  *
  * <p>表示某个字段的取值必须落在指定集合内，例如按部门、组织或
- * 区域限制可见数据。</p>
+ * 区域限制可见数据。字段支持关联路径，例如 {@code dept.parentId}；
+ * 多条规则之间默认按 {@code AND} 组合，使用 {@link #or(String,
+ * Object...)} 创建按 {@code OR} 组合的规则。</p>
  *
  * <pre>{@code
  * List<DataRule> rules = List.of(
  *         DataRule.of("deptId", 1L, 2L),
+ *         DataRule.or("ownerId", 9L),
  *         new DataRule("status", List.of("ACTIVE"))
  * );
+ * // 生成 deptId in (1,2) or ownerId in (9) and status in ('ACTIVE')
  * }</pre>
  *
- * @param field  实体字段名
+ * @param field  实体字段名，支持 {@code a.b} 形式的关联路径
  * @param values 允许的字段值，不能为空
+ * @param logic  与上一条规则的组合方式，不能为 {@code null}
  * @author neopen
  * @see DataScopes
  * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
  * @see <a href="https://jpa.helpenx.com">官网</a>
  */
-public record DataRule(String field, Collection<?> values) {
+public record DataRule(String field, Collection<?> values, Logic logic) {
 
     /**
-     * 校验字段与取值。
+     * 规则之间的组合方式。
+     */
+    public enum Logic {
+
+        /** 与上一条规则按 AND 组合，默认值。 */
+        AND,
+
+        /** 与上一条规则按 OR 组合。 */
+        OR
+    }
+
+    /**
+     * 使用默认的 {@code AND} 组合创建规则。
+     *
+     * @param field  实体字段名
+     * @param values 允许的字段值
+     */
+    public DataRule(String field, Collection<?> values) {
+        this(field, values, Logic.AND);
+    }
+
+    /**
+     * 校验字段、取值与组合方式。
      */
     public DataRule {
         if (field == null || field.isBlank()) {
@@ -41,11 +68,17 @@ public record DataRule(String field, Collection<?> values) {
             );
         }
 
+        if (logic == null) {
+            throw new IllegalArgumentException(
+                    "Data rule logic must not be null: " + field
+            );
+        }
+
         values = List.copyOf(values);
     }
 
     /**
-     * 创建数据权限规则。
+     * 创建按 {@code AND} 组合的数据权限规则。
      *
      * @param field  实体字段名
      * @param values 允许的字段值
@@ -53,5 +86,16 @@ public record DataRule(String field, Collection<?> values) {
      */
     public static DataRule of(String field, Object... values) {
         return new DataRule(field, List.of(values));
+    }
+
+    /**
+     * 创建按 {@code OR} 组合的数据权限规则。
+     *
+     * @param field  实体字段名
+     * @param values 允许的字段值
+     * @return 数据权限规则
+     */
+    public static DataRule or(String field, Object... values) {
+        return new DataRule(field, List.of(values), Logic.OR);
     }
 }

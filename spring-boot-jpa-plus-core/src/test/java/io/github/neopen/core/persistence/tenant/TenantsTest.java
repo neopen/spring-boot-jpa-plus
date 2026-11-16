@@ -25,10 +25,56 @@ class TenantsTest {
      */
     @AfterEach
     void reset() {
+        while (Tenants.isIgnored()) {
+            Tenants.restore();
+        }
+
         Tenants.setEnabled(true);
         Tenants.setProvider(null);
         Tenants.clearScope("archive");
         JpaPlusScope.clear();
+    }
+
+    /**
+     * 验证跳过租户过滤后不再返回当前租户。
+     */
+    @Test
+    void shouldIgnoreTenantFilter() {
+        Tenants.setProvider(() -> "t1");
+
+        assertThat(Tenants.callIgnored(Tenants::currentTenant)).isNull();
+        assertThat(Tenants.isIgnored()).isFalse();
+        assertThat(Tenants.currentTenant()).isEqualTo("t1");
+    }
+
+    /**
+     * 验证嵌套跳过按层恢复。
+     */
+    @Test
+    void shouldRestoreNestedIgnore() {
+        Tenants.setProvider(() -> "t1");
+
+        Tenants.callIgnored(() -> {
+            Tenants.ignore();
+            assertThat(Tenants.isIgnored()).isTrue();
+
+            Tenants.restore();
+            assertThat(Tenants.isIgnored()).isTrue();
+
+            return null;
+        });
+
+        assertThat(Tenants.isIgnored()).isFalse();
+    }
+
+    /**
+     * 验证未跳过时调用恢复会失败。
+     */
+    @Test
+    void shouldRejectRestoreWithoutIgnore() {
+        assertThatThrownBy(Tenants::restore)
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessageContaining("not ignored");
     }
 
     /**

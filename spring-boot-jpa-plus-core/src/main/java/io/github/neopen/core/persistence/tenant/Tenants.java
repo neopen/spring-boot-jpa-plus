@@ -6,6 +6,7 @@ import org.springframework.data.jpa.domain.Specification;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Supplier;
 
 /**
  * 多租户工具。
@@ -50,6 +51,10 @@ public final class Tenants {
     /** 按数据源作用域固定的租户。 */
     private static final Map<String, String> scopeTenants =
             new ConcurrentHashMap<>();
+
+    /** 当前线程跳过租户过滤的嵌套层数。 */
+    private static final ThreadLocal<Integer> IGNORE_DEPTH =
+            new ThreadLocal<>();
 
     /** 工具类不允许实例化。 */
     private Tenants() {
@@ -160,11 +165,98 @@ public final class Tenants {
     }
 
     /**
+     * 判断当前线程是否跳过租户过滤。
+     *
+     * @return 跳过时返回 {@code true}
+     */
+    public static boolean isIgnored() {
+        Integer depth = IGNORE_DEPTH.get();
+
+        return depth != null && depth > 0;
+    }
+
+    /**
+     * 开始跳过租户过滤。
+     *
+     * <p>支持嵌套调用，必须与 {@link #restore()} 成对使用；业务代码
+     * 优先使用 {@link #runIgnored(Runnable)} 或
+     * {@link #callIgnored(Supplier)}，避免异常时漏掉恢复。</p>
+     */
+    public static void ignore() {
+        IGNORE_DEPTH.set(ignoreDepth() + 1);
+    }
+
+    /**
+     * 结束一层租户过滤跳过。
+     *
+     * @throws IllegalStateException 当前没有跳过租户过滤时抛出
+     */
+    public static void restore() {
+        int depth = ignoreDepth();
+
+        if (depth <= 0) {
+            throw new IllegalStateException(
+                    "Tenant filter is not ignored"
+            );
+        }
+
+        if (depth == 1) {
+            IGNORE_DEPTH.remove();
+        } else {
+            IGNORE_DEPTH.set(depth - 1);
+        }
+    }
+
+    /**
+     * 在跳过租户过滤的上下文中执行逻辑。
+     *
+     * @param action 执行逻辑，不能为 {@code null}
+     * @throws IllegalArgumentException 执行逻辑为空时抛出
+     */
+    public static void runIgnored(Runnable action) {
+        callIgnored(() -> {
+            action.run();
+            return null;
+        });
+    }
+
+    /**
+     * 在跳过租户过滤的上下文中执行有返回值逻辑。
+     *
+     * <p>执行结束后恢复之前的过滤状态，异常同样会恢复。</p>
+     *
+     * @param <T>    返回值类型
+     * @param action 执行逻辑，不能为 {@code null}
+     * @return 执行结果
+     * @throws IllegalArgumentException 执行逻辑为空时抛出
+     */
+    public static <T> T callIgnored(Supplier<T> action) {
+        if (action == null) {
+            throw new IllegalArgumentException(
+                    "Ignored action must not be null"
+            );
+        }
+
+        ignore();
+
+        try {
+            return action.get();
+        } finally {
+            restore();
+        }
+    }
+
+    /**
      * 获取当前租户。
      *
-     * @return 当前租户；未启用或没有租户上下文时返回 {@code null}
+     * @return 当前租户；未启用、被忽略或没有租户上下文时返回
+     *         {@code null}
      */
     public static String currentTenant() {
+        if (isIgnored()) {
+            return null;
+        }
+
         if (!activeEnabled(JpaPlusScope.currentScopeName())) {
             return null;
         }
@@ -283,6 +375,17 @@ public final class Tenants {
                 );
             }
         });
+    }
+
+    /**
+     * 获取当前线程跳过租户过滤的嵌套层数。
+     *
+     * @return 嵌套层数，未跳过时返回 0
+     */
+    private static int ignoreDepth() {
+        Integer depth = IGNORE_DEPTH.get();
+
+        return depth == null ? 0 : depth;
     }
 
     /**
