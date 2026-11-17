@@ -116,7 +116,7 @@ class DocumentFeatureIntegrationTest {
      * 验证新增与修改会生成变更历史。
      */
     @Test
-    void shouldRecordAuditTrail() {
+    void shouldRecordAuditTrail() throws InterruptedException {
         DemoContext.setTenant("tenant-audit");
         DocumentRecord document = documentFeatureService.create(
                 "DOC-AU-1",
@@ -126,7 +126,7 @@ class DocumentFeatureIntegrationTest {
 
         documentFeatureService.rename(document.getId(), "新标题");
 
-        List<AuditEntry> entries = DemoAuditStore.snapshot();
+        List<AuditEntry> entries = awaitAuditEntries(2);
 
         assertThat(entries)
                 .extracting(AuditEntry::action)
@@ -145,9 +145,31 @@ class DocumentFeatureIntegrationTest {
         entityManager.remove(managed);
         entityManager.flush();
 
-        assertThat(DemoAuditStore.snapshot())
+        assertThat(awaitAuditEntries(3))
                 .extracting(AuditEntry::action)
                 .contains(AuditAction.DELETE);
+    }
+
+    /**
+     * 等待异步发布者把记录投递到演示存储。
+     *
+     * @param expected 期望的记录数量
+     * @return 变更历史快照
+     * @throws InterruptedException 等待被中断时抛出
+     */
+    private List<AuditEntry> awaitAuditEntries(int expected)
+            throws InterruptedException {
+        for (int i = 0; i < 50; i++) {
+            List<AuditEntry> entries = DemoAuditStore.snapshot();
+
+            if (entries.size() >= expected) {
+                return entries;
+            }
+
+            Thread.sleep(20L);
+        }
+
+        return DemoAuditStore.snapshot();
     }
 
     /**

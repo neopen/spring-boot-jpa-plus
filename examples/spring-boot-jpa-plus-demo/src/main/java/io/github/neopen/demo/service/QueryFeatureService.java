@@ -18,6 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
 import java.util.List;
+import java.util.stream.Stream;
 
 /**
  * 0.5 新增查询能力的示例服务。
@@ -170,6 +171,30 @@ public class QueryFeatureService {
         return orders.stream()
                 .map(this::toSummary)
                 .toList();
+    }
+
+    /**
+     * 流式查询订单，适合大数据量导出。
+     *
+     * <p>结果按主键升序返回，流绑定在当前事务上，使用
+     * try-with-resources 及时释放数据库游标。</p>
+     *
+     * @param orderNo 订单编号关键字，允许为空
+     * @return 订单摘要列表
+     */
+    @Transactional(readOnly = true)
+    public List<OrderSummaryVo> streamSummaries(String orderNo) {
+        SpecWrapper<Order> wrapper = SpecWrapper.create(Order.class);
+
+        if (StringUtils.hasText(orderNo)) {
+            wrapper.like("orderNo", orderNo);
+        }
+
+        try (Stream<Order> stream = JpaPlusSpecExecutor
+                .of(entityManager, Order.class)
+                .stream(wrapper.filterDeleted().toSpecification())) {
+            return stream.map(this::toSummary).toList();
+        }
     }
 
     /**

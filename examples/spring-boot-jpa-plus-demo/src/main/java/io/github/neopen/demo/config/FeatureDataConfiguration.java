@@ -1,5 +1,6 @@
 package io.github.neopen.demo.config;
 
+import io.github.neopen.core.persistence.audit.trail.AsyncAuditLogPublisher;
 import io.github.neopen.core.persistence.audit.trail.AuditLogPublisher;
 import io.github.neopen.core.persistence.datascope.DataPermissionProvider;
 import io.github.neopen.core.persistence.datascope.DataRule;
@@ -7,6 +8,8 @@ import io.github.neopen.core.persistence.tenant.TenantProvider;
 import io.github.neopen.demo.bean.entity.DocumentRecord;
 import io.github.neopen.demo.support.DemoAuditStore;
 import io.github.neopen.demo.support.DemoContext;
+import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.simple.SimpleMeterRegistry;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -64,10 +67,26 @@ public class FeatureDataConfiguration {
     /**
      * 变更历史发布者。
      *
-     * @return 变更历史发布者
+     * <p>使用异步发布者避免写入审计存储时阻塞业务事务，
+     * 容器关闭时由 {@code destroyMethod} 等待队列处理完毕。</p>
+     *
+     * @return 异步变更历史发布者
+     */
+    @Bean(destroyMethod = "close")
+    public AuditLogPublisher demoAuditLogPublisher() {
+        return new AsyncAuditLogPublisher(DemoAuditStore::add, 256);
+    }
+
+    /**
+     * 演示用指标注册表。
+     *
+     * <p>真实项目引入 Actuator 后由 Spring Boot 自动提供；
+     * 未引入时手动注册一个简单实现即可让指标生效。</p>
+     *
+     * @return 简单指标注册表
      */
     @Bean
-    public AuditLogPublisher demoAuditLogPublisher() {
-        return DemoAuditStore::add;
+    public MeterRegistry demoMeterRegistry() {
+        return new SimpleMeterRegistry();
     }
 }

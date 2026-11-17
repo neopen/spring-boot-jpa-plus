@@ -109,6 +109,23 @@ public class QueryFeatureController {
     }
 
     /**
+     * 流式查询订单，演示大数据量导出。
+     *
+     * @param orderNo 订单编号关键字
+     * @return 订单摘要列表
+     */
+    @GetMapping("/stream")
+    @ApiOperation("流式查询")
+    @SysControllerLog("流式查询")
+    public Json<List<OrderSummaryVo>> stream(
+            @RequestParam(required = false) String orderNo
+    ) {
+        return Json.getSuccs(
+                queryFeatureService.streamSummaries(orderNo)
+        );
+    }
+
+    /**
      * 保存客户敏感信息，演示字段加密写入。
      *
      * @param customerNo 客户编号

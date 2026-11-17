@@ -7,9 +7,11 @@ import io.github.neopen.core.persistence.spec.SpecWrapper;
 import io.github.neopen.demo.bean.entity.Order;
 import io.github.neopen.demo.bean.param.OrderParam;
 import io.github.neopen.demo.bean.param.OrderQueryParam;
+import io.github.neopen.demo.bean.vo.OrderSummaryVo;
 import io.github.neopen.demo.bean.vo.OrderVo;
 import io.github.neopen.demo.persistence.repo.OrderRepo;
 import io.github.neopen.demo.service.OrderService;
+import io.github.neopen.demo.service.QueryFeatureService;
 import io.github.neopen.demo.support.TestDataFactory;
 import io.github.neopen.extension.response.Json;
 import jakarta.persistence.EntityManager;
@@ -52,6 +54,26 @@ class QueryCapabilityIntegrationTest {
     /** 实体管理器。 */
     @Autowired
     private EntityManager entityManager;
+
+    /** 查询能力示例服务。 */
+    @Autowired
+    private QueryFeatureService queryFeatureService;
+
+    /**
+     * 验证流式查询按主键升序返回未删除订单。
+     *
+     * @throws Exception 新增订单失败时抛出
+     */
+    @Test
+    void shouldStreamOrders() throws Exception {
+        orderService.add(TestDataFactory.orderParam("ST-001", "PAID"));
+        orderService.add(TestDataFactory.orderParam("ST-002", "PAID"));
+        entityManager.clear();
+
+        assertThat(queryFeatureService.streamSummaries("ST-"))
+                .extracting(OrderSummaryVo::getOrderNo)
+                .containsExactly("ST-001", "ST-002");
+    }
 
     /**
      * 验证 JPA 查询自动排除逻辑删除的订单。

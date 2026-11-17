@@ -44,6 +44,14 @@ neopen:
     slow-sql:
       enabled: true
       threshold-ms: 500
+    # 0.7：自动开启 Hibernate JDBC 批量
+    jdbc-batch:
+      enabled: true
+      batch-size: 50
+    # 0.7：统计数据源路由与慢 SQL，需类路径存在 Micrometer
+    metrics:
+      enabled: true
+      slow-threshold-ms: 500
     scopes:
       # 归档查询作用域：只影响绑定该作用域的线程，其他查询仍过滤已删除数据
       archive-view:
