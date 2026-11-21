@@ -26,6 +26,12 @@ public class EncryptedFieldConverter
         implements AttributeConverter<String, String> {
 
     /**
+     * 创建默认实例。
+     */
+    public EncryptedFieldConverter() {
+    }
+
+    /**
      * 加密字段值。
      *
      * @param attribute 明文字段值，允许为 {@code null}

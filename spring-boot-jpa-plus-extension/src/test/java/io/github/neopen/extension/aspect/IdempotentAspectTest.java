@@ -4,8 +4,6 @@ import io.github.neopen.extension.annotation.Idempotent;
 import org.junit.jupiter.api.Test;
 import org.springframework.aop.aspectj.annotation.AspectJProxyFactory;
 
-import java.io.IOException;
-import java.io.InvalidObjectException;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThatCode;
@@ -27,7 +25,7 @@ class IdempotentAspectTest {
         proxy.submit(orderNo);
 
         assertThatThrownBy(() -> proxy.submit(orderNo))
-                .isInstanceOf(InvalidObjectException.class)
+                .isInstanceOf(IllegalStateException.class)
                 .hasMessageContaining("重复提交");
     }
 
@@ -52,7 +50,7 @@ class IdempotentAspectTest {
         IdempotentService proxy = createProxy();
 
         assertThatThrownBy(() -> proxy.submit(null))
-                .isInstanceOf(InvalidObjectException.class)
+                .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("幂等键为空");
     }
 
@@ -92,10 +90,9 @@ class IdempotentAspectTest {
          * 按订单号幂等提交。
          *
          * @param orderNo 订单号
-         * @throws IOException 重复提交
          */
         @Idempotent(required = true, key = "#orderNo", ttl = 30)
-        public void submit(String orderNo) throws IOException {
+        public void submit(String orderNo) {
         }
 
         /**

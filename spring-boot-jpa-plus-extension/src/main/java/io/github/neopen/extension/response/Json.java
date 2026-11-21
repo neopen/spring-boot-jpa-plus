@@ -1,7 +1,6 @@
 package io.github.neopen.extension.response;
 
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
 import java.util.*;
 
@@ -15,7 +14,6 @@ import java.util.*;
  * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Data
-@NoArgsConstructor
 @SuppressWarnings("all")
 public class Json<V> {
 
@@ -33,6 +31,12 @@ public class Json<V> {
 
     /** 响应消息。 */
     private String message;
+
+    /**
+     * 创建空响应。
+     */
+    public Json() {
+    }
 
     /**
      * 创建不含数据的成功响应。

@@ -27,6 +27,12 @@ import java.util.concurrent.TimeUnit;
 @Aspect
 public class SlowLogAspect {
 
+    /**
+     * 创建默认实例。
+     */
+    public SlowLogAspect() {
+    }
+
     /** 日志。 */
     private static final Logger log =
             LoggerFactory.getLogger(SlowLogAspect.class);

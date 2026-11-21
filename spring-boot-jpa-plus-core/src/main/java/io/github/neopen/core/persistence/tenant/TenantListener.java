@@ -19,6 +19,12 @@ import jakarta.persistence.PreUpdate;
 public final class TenantListener {
 
     /**
+     * 创建默认实例。
+     */
+    public TenantListener() {
+    }
+
+    /**
      * 插入前填充租户字段。
      *
      * @param entity 实体

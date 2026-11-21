@@ -28,6 +28,12 @@
 | `neopen.jpa.encryption.active-key-id` | `String` | 空 | 当前加密使用的密钥编号；配置多把密钥时必须指定 |
 | `neopen.jpa.slow-sql.enabled` | `boolean` | `false` | 是否记录慢 SQL，开启后通过 Hibernate 阈值输出 |
 | `neopen.jpa.slow-sql.threshold-ms` | `long` | `1000` | 慢 SQL 阈值，单位毫秒，必须大于 0 |
+| `neopen.jpa.jdbc-batch.enabled` | `boolean` | `false` | 是否自动写入 Hibernate JDBC 批量参数 |
+| `neopen.jpa.jdbc-batch.batch-size` | `int` | `50` | 写入 `hibernate.jdbc.batch_size`，必须大于 0 |
+| `neopen.jpa.jdbc-batch.order-inserts` | `boolean` | `true` | 是否按实体类型排序 INSERT 以提升批处理效率 |
+| `neopen.jpa.jdbc-batch.order-updates` | `boolean` | `true` | 是否按实体类型排序 UPDATE |
+| `neopen.jpa.metrics.enabled` | `boolean` | `false` | 是否采集数据源路由与慢 SQL 指标，需要类路径存在 Micrometer |
+| `neopen.jpa.metrics.slow-threshold-ms` | `long` | `1000` | 慢 SQL 指标阈值，单位毫秒，必须大于 0 |
 | `neopen.jpa.scopes.<name>` | `object` | 空 | 按数据源作用域覆盖上述开关，见下文「多数据源作用域隔离」 |
 
 ## 扩展组件
@@ -105,6 +111,8 @@ neopen:
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`、`EncryptedFields.setKey(...)`（仅在配置了密钥时写入） |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)`（配置了多密钥时优先使用） |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | 注册 `SlowSqlHibernateCustomizer`，写入 Hibernate 慢查询阈值 |
+| `jdbc-batch.*` | 注册 `JdbcBatchHibernateCustomizer`，写入 Hibernate JDBC 批量参数 |
+| `metrics.enabled` / `metrics.slow-threshold-ms` | 注册 `JpaPlusMetrics` 并用 `SlowSqlMetricsDataSource` 包装数据源，需要 Micrometer |
 
 这些值在应用启动时写入静态开关，因此同一 JVM 内的所有使用方共享。运行期也可以通过对应工具类的 setter 调整。
 

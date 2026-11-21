@@ -28,6 +28,12 @@ All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Sw
 | `neopen.jpa.encryption.active-key-id` | `String` | empty | Key id used for new ciphertext; required when multiple keys are configured |
 | `neopen.jpa.slow-sql.enabled` | `boolean` | `false` | Whether to log slow SQL through Hibernate's threshold |
 | `neopen.jpa.slow-sql.threshold-ms` | `long` | `1000` | Slow SQL threshold in milliseconds, must be greater than 0 |
+| `neopen.jpa.jdbc-batch.enabled` | `boolean` | `false` | Whether to apply Hibernate JDBC batch settings automatically |
+| `neopen.jpa.jdbc-batch.batch-size` | `int` | `50` | Written to `hibernate.jdbc.batch_size`, must be greater than 0 |
+| `neopen.jpa.jdbc-batch.order-inserts` | `boolean` | `true` | Whether to order INSERTs by entity type for efficient batching |
+| `neopen.jpa.jdbc-batch.order-updates` | `boolean` | `true` | Whether to order UPDATEs by entity type |
+| `neopen.jpa.metrics.enabled` | `boolean` | `false` | Whether to collect datasource routing and slow SQL metrics; requires Micrometer on the classpath |
+| `neopen.jpa.metrics.slow-threshold-ms` | `long` | `1000` | Slow SQL metric threshold in milliseconds, must be greater than 0 |
 | `neopen.jpa.scopes.<name>` | `object` | empty | Overrides the switches above per datasource scope, see "Multi-datasource scope isolation" below |
 
 ## Extension Components
@@ -105,6 +111,8 @@ neopen:
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`, `EncryptedFields.setKey(...)` (written only when the key is configured) |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)` (used when multiple keys are configured) |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | Registers `SlowSqlHibernateCustomizer` with Hibernate's slow query threshold |
+| `jdbc-batch.*` | Registers `JdbcBatchHibernateCustomizer` with Hibernate JDBC batch settings |
+| `metrics.enabled` / `metrics.slow-threshold-ms` | Registers `JpaPlusMetrics` and wraps the datasource with `SlowSqlMetricsDataSource`; requires Micrometer |
 
 These values are written to static switches when the application starts, so all consumers in the same JVM share them. They can also be adjusted at runtime through the setters of the corresponding utility classes.
 

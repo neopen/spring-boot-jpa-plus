@@ -15,6 +15,12 @@ import java.io.IOException;
  */
 public class NetworkUtil {
 
+    /**
+     * 工具类禁止实例化。
+     */
+    private NetworkUtil() {
+    }
+
     /** 当前工具类的日志记录器。 */
     private static Logger logger = LoggerFactory.getLogger(NetworkUtil.class);
 

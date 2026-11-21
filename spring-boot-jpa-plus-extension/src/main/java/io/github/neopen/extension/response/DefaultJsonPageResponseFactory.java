@@ -16,6 +16,12 @@ public class DefaultJsonPageResponseFactory
         implements JsonPageResponseFactory {
 
     /**
+     * 创建默认实例。
+     */
+    public DefaultJsonPageResponseFactory() {
+    }
+
+    /**
      * {@inheritDoc}
      *
      * @throws IllegalArgumentException 总记录数小于 0

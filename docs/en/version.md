@@ -3,15 +3,16 @@
 ::: warning Important notice
 - The current official release is **0.4.0**, available as a Maven dependency.
 - The `main` branch corresponds to **0.5.0**, which is not released yet and will be published later.
-- The `dev` branch corresponds to **0.7.0**, which adds filter skipping, `OR` rule combination with association paths, stream queries, JDBC batch, metrics and asynchronous audit publishing on top of 0.6.0.
-- This documentation is written for **0.7.0** and describes the latest behavior of `dev`.
-- As a result, the **0.4.0 release installed from Maven does not support** the 0.5 / 0.6 / 0.7 features described here.
+- The `dev` branch corresponds to **0.8.0**, the release-preparation version after 0.7.0. Its capabilities match 0.7.0 and focus on compatibility, API review and release validation.
+- This documentation is written for **0.8.0** and describes the latest behavior of `dev`.
+- As a result, the **0.4.0 release installed from Maven does not support** the 0.5 / 0.6 / 0.7 / 0.8 capabilities described here.
 :::
 
 ## Version overview
 
 | Version | Status | Date | Summary |
 | --- | --- | --- | --- |
+| `0.8.0` | In development | — | Release preparation: compatibility matrix, API review, performance baseline and first official release; no new features |
 | `0.7.0` | In development | — | Filter skipping, `OR` rules with association paths, stream queries, JDBC batch, Micrometer metrics, asynchronous audit publishing |
 | `0.6.0` | In development | — | Multi-tenancy, row-level data permission, change history, dynamic data sources and read/write splitting, logical-delete restoration, batch upsert |
 | `0.5.0` | In development | — | Adds enum conversion, field encryption, desensitization, retry, slow logging, tree building and snowflake IDs |
@@ -25,7 +26,7 @@
 
 ## Compatibility baseline
 
-| Item | 0.4.0 | 0.5.0 / 0.6.0 / 0.7.0 |
+| Item | 0.4.0 | 0.5.0 / 0.6.0 / 0.7.0 / 0.8.0 |
 | --- | --- | --- |
 | JDK | 17+ | 17+ |
 | Spring Boot | 3.x | 3.x |

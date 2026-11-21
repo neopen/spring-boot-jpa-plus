@@ -25,6 +25,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @Slf4j
 public class IdempotentUtil {
 
+    /**
+     * 工具类禁止实例化。
+     */
+    private IdempotentUtil() {
+    }
+
     /** 以会话编号为键缓存一次性令牌。 */
     public final static Map<String, Object> tokenMap = new LRUCache<>(200, 20);
 

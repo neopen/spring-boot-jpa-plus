@@ -51,6 +51,10 @@ export default defineConfig({
                                 link: '/en/guide/modules'
                             },
                             {
+                                text: 'Migrating 0.4 → 0.8',
+                                link: '/en/guide/migration-0.4-to-0.8'
+                            },
+                            {
                                 text: 'Releases',
                                 link: '/en/version'
                             }
@@ -104,6 +108,10 @@ export default defineConfig({
                                 link: '/en/core/datasource'
                             },
                             { text: 'Metrics', link: '/en/core/metrics' },
+                            {
+                                text: 'Performance Baseline',
+                                link: '/en/core/benchmark'
+                            },
                             { text: 'PostgreSQL JSONB', link: '/en/core/jsonb' },
                             { text: 'DTO Projection', link: '/en/core/projection' },
                             {
@@ -233,6 +241,7 @@ export default defineConfig({
                 items: [
                     { text: '快速开始', link: '/guide/getting-started' },
                     { text: '模块与依赖', link: '/guide/modules' },
+                    { text: '从 0.4 迁移到 0.8', link: '/guide/migration-0.4-to-0.8' },
                     { text: '版本发布', link: '/version' }
                 ]
             },
@@ -254,6 +263,7 @@ export default defineConfig({
                     { text: '批量操作', link: '/core/batch' },
                     { text: '动态数据源', link: '/core/datasource' },
                     { text: '指标监控', link: '/core/metrics' },
+                    { text: '性能基线', link: '/core/benchmark' },
                     { text: 'PostgreSQL JSONB', link: '/core/jsonb' },
                     { text: 'DTO 投影', link: '/core/projection' },
                     { text: '枚举值转换', link: '/core/enum-convert' },

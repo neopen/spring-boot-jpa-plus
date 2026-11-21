@@ -24,6 +24,12 @@ import io.github.neopen.extension.annotation.Desensitize;
 public class DesensitizeValueFilter implements ValueFilter {
 
     /**
+     * 创建默认实例。
+     */
+    public DesensitizeValueFilter() {
+    }
+
+    /**
      * 处理单个字段值。
      *
      * @param object 当前对象，可能为 {@code null}

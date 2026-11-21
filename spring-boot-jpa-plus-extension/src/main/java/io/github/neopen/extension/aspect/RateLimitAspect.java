@@ -36,6 +36,12 @@ import java.util.concurrent.ConcurrentHashMap;
 @Aspect
 public class RateLimitAspect {
 
+    /**
+     * 创建默认实例。
+     */
+    public RateLimitAspect() {
+    }
+
     /** SpEL 表达式解析器。 */
     private static final ExpressionParser PARSER =
             new SpelExpressionParser();
@@ -99,10 +105,20 @@ public class RateLimitAspect {
             return fallback;
         }
 
+        Object[] args = joinPoint.getArgs();
+        if (args == null) {
+            args = new Object[0];
+        }
+
+        Object root = joinPoint.getTarget();
+        if (root == null) {
+            root = method.getDeclaringClass();
+        }
+
         EvaluationContext context = new MethodBasedEvaluationContext(
-                null,
+                root,
                 method,
-                joinPoint.getArgs(),
+                args,
                 NAME_DISCOVERER
         );
 

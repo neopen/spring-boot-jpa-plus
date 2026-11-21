@@ -15,6 +15,12 @@ import java.util.concurrent.TimeUnit;
  */
 public class RateLimiterUtil {
 
+    /**
+     * 工具类禁止实例化。
+     */
+    private RateLimiterUtil() {
+    }
+
     /** 每秒基准许可数。 */
     public static int sec_sum = 5;
 

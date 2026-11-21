@@ -13,7 +13,6 @@ import org.springframework.util.ObjectUtils;
 import java.lang.reflect.Field;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
-import java.util.InvalidPropertiesFormatException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -30,6 +29,12 @@ import java.util.regex.Pattern;
 @Aspect
 @Component
 public class DateStrAspect {
+
+    /**
+     * 创建默认实例。
+     */
+    public DateStrAspect() {
+    }
 
     /** 匹配带有日期校验注解的方法。 */
     private static final String AOP_POINTCUT_EXPRESSION = "@annotation(io.github.neopen.convert.annotation.DateStrValid)";
@@ -86,9 +91,9 @@ public class DateStrAspect {
      *
      * @param field 待检查字段；为 {@code null} 时直接返回
      * @param param 字段对应的参数值
-     * @throws InvalidPropertiesFormatException 必填值为空或格式非法
+     * @throws IllegalArgumentException 必填值为空或格式非法
      */
-    private void isAnnoType(Field field, Object param) throws InvalidPropertiesFormatException {
+    private void isAnnoType(Field field, Object param) {
         if (field == null)
             return;
 
@@ -98,10 +103,10 @@ public class DateStrAspect {
 
         if (annotation.annotationType().equals(DateStrFormat.class)) {
             if (annotation.required() && param == null)
-                throw new InvalidPropertiesFormatException("日期/时间不能为空");
+                throw new IllegalArgumentException("日期/时间不能为空");
 
             if (!annotation.ignore() && !isValidDate(param, annotation.value()))
-                throw new InvalidPropertiesFormatException("日期/时间格式非法（" + annotation.value() + "）");
+                throw new IllegalArgumentException("日期/时间格式非法（" + annotation.value() + "）");
         }
     }
 

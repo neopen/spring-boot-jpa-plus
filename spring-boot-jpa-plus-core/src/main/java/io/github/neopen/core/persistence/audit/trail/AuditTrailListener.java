@@ -24,6 +24,12 @@ import jakarta.persistence.PreUpdate;
 public final class AuditTrailListener {
 
     /**
+     * 创建默认实例。
+     */
+    public AuditTrailListener() {
+    }
+
+    /**
      * 加载后记录快照。
      *
      * @param entity 实体

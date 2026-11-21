@@ -31,6 +31,12 @@ import java.lang.reflect.Method;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class OptimisticLockRetryAspect {
 
+    /**
+     * 创建默认实例。
+     */
+    public OptimisticLockRetryAspect() {
+    }
+
     /** 日志。 */
     private static final Logger log =
             LoggerFactory.getLogger(OptimisticLockRetryAspect.class);

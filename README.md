@@ -108,7 +108,7 @@ Add the starter dependency to your `pom.xml`:
 
 Replace `${version}` with the desired release version.
 
-> **Version notice**: this documentation describes version **0.7**.
+> **Version notice**: this documentation describes version **0.8**.
 > The current Maven release is **0.4.x**, which does not include the 0.5 / 0.6 / 0.7 features
 > (enum conversion, field encryption, tree utilities, snowflake IDs, desensitization,
 > optimistic-lock retry, slow logging, query builder enhancements, multi-tenancy,

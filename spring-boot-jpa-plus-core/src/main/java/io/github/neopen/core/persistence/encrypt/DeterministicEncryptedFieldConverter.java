@@ -29,6 +29,12 @@ public class DeterministicEncryptedFieldConverter
         implements AttributeConverter<String, String> {
 
     /**
+     * 创建默认实例。
+     */
+    public DeterministicEncryptedFieldConverter() {
+    }
+
+    /**
      * 确定性加密字段值。
      *
      * @param attribute 明文字段值，允许为 {@code null}

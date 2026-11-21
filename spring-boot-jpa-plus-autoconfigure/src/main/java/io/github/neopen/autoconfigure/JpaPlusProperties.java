@@ -2,6 +2,8 @@ package io.github.neopen.autoconfigure;
 
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
+import java.time.DateTimeException;
+import java.time.ZoneId;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -1002,8 +1004,22 @@ public class JpaPlusProperties {
          * 设置审计时区。
          *
          * @param zone 时区编号，例如 {@code Asia/Shanghai}
+         * @throws IllegalArgumentException 时区为空或不是合法的时区编号
          */
         public void setZone(String zone) {
+            if (zone == null || zone.isBlank()) {
+                throw new IllegalArgumentException(
+                        "neopen.jpa.audit.zone must not be blank"
+                );
+            }
+            try {
+                ZoneId.of(zone);
+            } catch (DateTimeException ex) {
+                throw new IllegalArgumentException(
+                        "neopen.jpa.audit.zone is not a valid zone id: " + zone,
+                        ex
+                );
+            }
             this.zone = zone;
         }
 

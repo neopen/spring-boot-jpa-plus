@@ -33,6 +33,12 @@ public abstract class AbstractBaseService<
         implements BaseVoService<T, V>, BasePredicateService<T, P> {
 
     /**
+     * 创建默认实例。
+     */
+    public AbstractBaseService() {
+    }
+
+    /**
      * Entity 集合转换为 VO 集合。
      *
      * <p>

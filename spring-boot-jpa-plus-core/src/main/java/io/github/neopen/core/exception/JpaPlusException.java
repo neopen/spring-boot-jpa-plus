@@ -3,7 +3,11 @@ package io.github.neopen.core.exception;
 /**
  * JPA Plus 基础异常。
  *
- * <p>用于统一封装框架运行期间无法继续处理的异常。</p>
+ * <p>表示框架无法按预期继续执行的领域异常，典型场景为实体元数据非法、
+ * 类型转换失败或反射调用异常。</p>
+ *
+ * <p>约定：参数与配置错误使用 {@link IllegalArgumentException}，
+ * 运行状态不满足使用 {@link IllegalStateException}，不要用本异常替代二者。</p>
  *
  * @author neopen
  * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>

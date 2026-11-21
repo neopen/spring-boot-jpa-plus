@@ -21,8 +21,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import java.io.IOException;
-import java.io.InvalidObjectException;
 import java.lang.reflect.Method;
 
 /**
@@ -45,6 +43,12 @@ import java.lang.reflect.Method;
 @Slf4j
 public class IdempotentAspect {
 
+    /**
+     * 创建默认实例。
+     */
+    public IdempotentAspect() {
+    }
+
     /** SpEL 表达式解析器。 */
     private static final ExpressionParser PARSER =
             new SpelExpressionParser();
@@ -62,12 +66,10 @@ public class IdempotentAspect {
      * 在目标方法执行前执行幂等校验。
      *
      * @param joinPoint 当前连接点
-     * @throws IOException            校验失败
      * @throws ClassNotFoundException 解析目标方法失败
      */
     @Before("idempotentPointcut()")
-    public void before(JoinPoint joinPoint)
-            throws IOException, ClassNotFoundException {
+    public void before(JoinPoint joinPoint) throws ClassNotFoundException {
         Idempotent idempotent = getUserGroupAuthParam(joinPoint);
 
         if (idempotent == null || !idempotent.required()) {
@@ -91,20 +93,31 @@ public class IdempotentAspect {
      *
      * @param joinPoint 当前连接点
      * @param idempotent 幂等注解
-     * @throws IOException 业务键为空或重复提交
+     * @throws IllegalArgumentException 幂等键为空
+     * @throws IllegalStateException    重复提交
      */
     private void checkBusinessKey(
             JoinPoint joinPoint,
             Idempotent idempotent
-    ) throws IOException {
+    ) {
         MethodSignature signature =
                 (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
 
+        Object[] args = joinPoint.getArgs();
+        if (args == null) {
+            args = new Object[0];
+        }
+
+        Object root = joinPoint.getTarget();
+        if (root == null) {
+            root = method.getDeclaringClass();
+        }
+
         EvaluationContext context = new MethodBasedEvaluationContext(
-                null,
+                root,
                 method,
-                joinPoint.getArgs(),
+                args,
                 NAME_DISCOVERER
         );
 
@@ -115,7 +128,7 @@ public class IdempotentAspect {
         String businessKey = value == null ? null : String.valueOf(value);
 
         if (!StringUtils.hasText(businessKey)) {
-            throw new InvalidObjectException("幂等键为空，请检查注解配置");
+            throw new IllegalArgumentException("幂等键为空，请检查注解配置");
         }
 
         String key = method.getDeclaringClass().getName()
@@ -123,7 +136,7 @@ public class IdempotentAspect {
                 + ":" + businessKey;
 
         if (!IdempotentUtil.acquire(key, idempotent.ttl())) {
-            throw new InvalidObjectException("重复提交，请勿多次操作");
+            throw new IllegalStateException("重复提交，请勿多次操作");
         }
     }
 
@@ -131,14 +144,14 @@ public class IdempotentAspect {
      * 校验一次性令牌。
      *
      * @param joinPoint 当前连接点
-     * @throws IOException 令牌无效或已过期
+     * @throws IllegalStateException 令牌无效或已过期
      */
-    private void checkToken(JoinPoint joinPoint) throws IOException {
+    private void checkToken(JoinPoint joinPoint) {
         HttpServletRequest request = currentRequest();
         String token = findToken(joinPoint.getArgs());
 
         if (!IdempotentUtil.checkToken(request, token)) {
-            throw new InvalidObjectException("已过期，请刷新重试");
+            throw new IllegalStateException("已过期，请刷新重试");
         }
     }
 
@@ -146,15 +159,15 @@ public class IdempotentAspect {
      * 获取当前 HTTP 请求。
      *
      * @return 当前请求
-     * @throws IOException 当前上下文不是 Web 请求
+     * @throws IllegalStateException 当前上下文不是 Web 请求
      */
-    private HttpServletRequest currentRequest() throws IOException {
+    private HttpServletRequest currentRequest() {
         ServletRequestAttributes attributes =
                 (ServletRequestAttributes) RequestContextHolder
                         .getRequestAttributes();
 
         if (attributes == null) {
-            throw new InvalidObjectException("无法获取当前请求");
+            throw new IllegalStateException("无法获取当前请求");
         }
 
         return attributes.getRequest();

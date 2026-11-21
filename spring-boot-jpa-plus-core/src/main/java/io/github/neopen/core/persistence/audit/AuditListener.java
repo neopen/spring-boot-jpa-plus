@@ -30,6 +30,12 @@ import jakarta.persistence.PreUpdate;
 public class AuditListener {
 
     /**
+     * 创建默认实例。
+     */
+    public AuditListener() {
+    }
+
+    /**
      * 插入前填充审计字段。
      *
      * @param entity 实体

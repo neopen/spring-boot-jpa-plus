@@ -32,6 +32,12 @@ import org.springframework.dao.OptimisticLockingFailureException;
 public class ExtensionAutoConfiguration {
 
     /**
+     * 创建默认实例。
+     */
+    public ExtensionAutoConfiguration() {
+    }
+
+    /**
      * 注册默认 JSON 分页响应工厂。
      *
      * <p>用户可通过自定义 {@link JsonPageResponseFactory} 覆盖默认实现。</p>

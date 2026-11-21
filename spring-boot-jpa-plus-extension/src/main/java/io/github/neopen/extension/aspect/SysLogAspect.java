@@ -4,6 +4,7 @@ import com.alibaba.fastjson2.JSONObject;
 import io.github.neopen.extension.annotation.SysControllerLog;
 import io.github.neopen.extension.annotation.SysServiceLog;
 import io.github.neopen.extension.utils.NetworkUtil;
+import io.github.neopen.extension.exception.RateLimitException;
 import io.github.neopen.extension.utils.RateLimiterUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
@@ -19,7 +20,6 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.io.IOException;
-import java.io.InvalidObjectException;
 import java.lang.reflect.Method;
 
 /**
@@ -36,6 +36,12 @@ import java.lang.reflect.Method;
 @Slf4j
 @SuppressWarnings("all")
 public class SysLogAspect {
+
+    /**
+     * 创建默认实例。
+     */
+    public SysLogAspect() {
+    }
 
     /** 定义服务日志注解切点。 */
     @Pointcut("@annotation(io.github.neopen.extension.annotation.SysServiceLog)")
@@ -55,7 +61,8 @@ public class SysLogAspect {
      * 在控制器方法执行前记录操作并检查限流规则。
      *
      * @param joinPoint 当前连接点
-     * @throws IOException 请求超过限流规则或发生 I/O 错误
+     * @throws RateLimitException 请求超过限流规则
+     * @throws IOException        解析客户端地址失败
      */
     @Before("controllerAspect()")
     public void doBefore(JoinPoint joinPoint) throws IOException {
@@ -74,7 +81,7 @@ public class SysLogAspect {
         if (enableLimiter) {
             Object user = request.getSession().getAttribute("_curent_user");
             if (user != null && !RateLimiterUtil.tryAcquire("test", request.getRequestURI()))
-                throw new InvalidObjectException("请求频繁");
+                throw new RateLimitException("请求频繁");
         }
     }
 
@@ -83,7 +90,7 @@ public class SysLogAspect {
      *
      * @param joinPoint 当前连接点
      * @param e         目标方法抛出的异常
-     * @throws IOException 获取请求信息时发生 I/O 错误
+     * @throws IOException 解析客户端地址失败
      */
     @AfterThrowing(pointcut = "serviceAspect()", throwing = "e")
     public void doAfterThrowing(JoinPoint joinPoint, Throwable e) throws IOException {

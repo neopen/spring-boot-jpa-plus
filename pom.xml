@@ -8,7 +8,7 @@
 
     <groupId>io.github.neopen</groupId>
     <artifactId>spring-boot-jpa-plus</artifactId>
-    <version>0.7.0-SNAPSHOT</version>
+    <version>0.8.0-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>Spring Boot JPA Plus</name>
@@ -38,6 +38,9 @@
 
         <!-- 扩展模块 -->
         <module>spring-boot-jpa-plus-extension</module>
+
+        <!-- 基准测试（不发布） -->
+        <module>spring-boot-jpa-plus-benchmarks</module>
 
         <!-- 示例项目 -->
         <module>examples/spring-boot-jpa-plus-demo</module>
@@ -72,7 +75,7 @@
             scm:git:https://github.com/neopen/spring-boot-jpa-plus.git
         </connection>
         <developerConnection>
-            scm:git:ssh://[email protected]/neopen/spring-boot-jpa-plus.git
+            scm:git:ssh://git@github.com/neopen/spring-boot-jpa-plus.git
         </developerConnection>
         <url>https://github.com/neopen/spring-boot-jpa-plus</url>
     </scm>
@@ -236,6 +239,33 @@
                         <arg>loopback</arg>
                     </gpgArguments>
                 </configuration>
+            </plugin>
+
+            <!--
+                静态检查：SpotBugs。
+
+                只阻断高优先级（High）问题，避免历史代码的样式类告警
+                阻塞构建；规则在 verify 阶段执行，`mvn verify` 与
+                `mvn install` 都会覆盖。
+            -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <version>4.8.6.6</version>
+                <configuration>
+                    <effort>Max</effort>
+                    <threshold>High</threshold>
+                    <failOnError>true</failOnError>
+                </configuration>
+                <executions>
+                    <execution>
+                        <id>spotbugs-check</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
         </plugins>
     </build>

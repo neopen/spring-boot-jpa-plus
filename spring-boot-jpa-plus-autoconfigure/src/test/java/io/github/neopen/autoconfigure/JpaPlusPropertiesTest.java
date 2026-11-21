@@ -34,6 +34,26 @@ class JpaPlusPropertiesTest {
     }
 
     /**
+     * 验证审计时区必须非空且合法。
+     */
+    @Test
+    void shouldRejectInvalidAuditZone() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+
+        assertThatThrownBy(() -> properties.getAudit().setZone(" "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("must not be blank");
+
+        assertThatThrownBy(() -> properties.getAudit().setZone("Mars/Olympus"))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("not a valid zone id");
+
+        properties.getAudit().setZone("Asia/Shanghai");
+
+        assertThat(properties.getAudit().getZone()).isEqualTo("Asia/Shanghai");
+    }
+
+    /**
      * 验证慢 SQL 阈值必须大于 0。
      */
     @Test
