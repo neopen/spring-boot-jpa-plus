@@ -16,14 +16,18 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Slice;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -271,6 +275,141 @@ class JpaPlusSpecExecutorTest {
         assertThat(result).containsExactly(first, second);
         verify(query).orderBy(List.of(idOrder));
         verify(typedQuery).getResultStream();
+    }
+
+    /**
+     * 验证按批次消费结果并在每批后清理持久化上下文。
+     */
+    @Test
+    void shouldConsumeResultsInBatchesAndClearContext() {
+        EntityManager entityManager = mock(EntityManager.class);
+        Sample first = new Sample();
+        Sample second = new Sample();
+        Sample third = new Sample();
+        Sample fourth = new Sample();
+        Sample fifth = new Sample();
+
+        stubStream(
+                entityManager,
+                Stream.of(first, second, third, fourth, fifth)
+        );
+
+        List<List<Sample>> batches = new ArrayList<>();
+
+        JpaPlusSpecExecutor.of(entityManager, Sample.class)
+                .forEachBatch(null, 2, batches::add);
+
+        assertThat(batches)
+                .containsExactly(
+                        List.of(first, second),
+                        List.of(third, fourth),
+                        List.of(fifth)
+                );
+        verify(entityManager, times(3)).flush();
+        verify(entityManager, times(3)).clear();
+    }
+
+    /**
+     * 验证结果为空时不触发批次回调。
+     */
+    @Test
+    void shouldSkipCallbackForEmptyResult() {
+        EntityManager entityManager = mock(EntityManager.class);
+        stubStream(entityManager, Stream.empty());
+
+        List<List<Sample>> batches = new ArrayList<>();
+
+        JpaPlusSpecExecutor.of(entityManager, Sample.class)
+                .forEachBatch(null, 10, batches::add);
+
+        assertThat(batches).isEmpty();
+        verify(entityManager, never()).flush();
+        verify(entityManager, never()).clear();
+    }
+
+    /**
+     * 验证回调异常时关闭流并原样抛出异常。
+     */
+    @Test
+    void shouldCloseStreamWhenConsumerFails() {
+        EntityManager entityManager = mock(EntityManager.class);
+        AtomicBoolean closed = new AtomicBoolean();
+
+        stubStream(
+                entityManager,
+                Stream.of(new Sample(), new Sample())
+                        .onClose(() -> closed.set(true))
+        );
+
+        assertThatThrownBy(() -> JpaPlusSpecExecutor
+                .of(entityManager, Sample.class)
+                .forEachBatch(null, 1, batch -> {
+                    throw new IllegalStateException("boom");
+                }))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("boom");
+
+        assertThat(closed).isTrue();
+        verify(entityManager, never()).clear();
+    }
+
+    /**
+     * 验证分批参数校验在创建查询前完成。
+     */
+    @Test
+    void shouldRejectInvalidBatchArguments() {
+        EntityManager entityManager = mock(EntityManager.class);
+        JpaPlusSpecExecutor<Sample> executor =
+                JpaPlusSpecExecutor.of(entityManager, Sample.class);
+
+        assertThatThrownBy(
+                () -> executor.forEachBatch(null, 0, batch -> {
+                })
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Batch size");
+
+        assertThatThrownBy(
+                () -> executor.forEachBatch(null, 10, null)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Consumer");
+
+        verifyNoInteractions(entityManager);
+    }
+
+    /**
+     * 为流式查询准备 Mock 对象。
+     *
+     * @param entityManager 实体管理器 Mock
+     * @param stream        结果流
+     * @return 类型化查询 Mock
+     */
+    private TypedQuery<Sample> stubStream(
+            EntityManager entityManager,
+            Stream<Sample> stream
+    ) {
+        CriteriaBuilder cb = mock(CriteriaBuilder.class);
+        CriteriaQuery<Sample> query = mock(CriteriaQuery.class);
+        Root<Sample> root = mock(Root.class);
+        Path<Object> idPath = mock(Path.class);
+        Path<Object> deletedPath = mock(Path.class);
+        Predicate logicPredicate = mock(Predicate.class);
+        Order idOrder = mock(Order.class);
+        TypedQuery<Sample> typedQuery = mock(TypedQuery.class);
+
+        when(entityManager.getCriteriaBuilder()).thenReturn(cb);
+        when(cb.createQuery(Sample.class)).thenReturn(query);
+        when(query.from(Sample.class)).thenReturn(root);
+        when(query.select(root)).thenReturn(query);
+        when(root.get("deleted")).thenReturn(deletedPath);
+        when(cb.equal(deletedPath, false)).thenReturn(logicPredicate);
+        when(root.get("id")).thenReturn(idPath);
+        when(cb.asc(idPath)).thenReturn(idOrder);
+        when(entityManager.createQuery(query)).thenReturn(typedQuery);
+        when(typedQuery.getResultStream()).thenReturn(stream);
+
+        return typedQuery;
     }
 
     /** 测试实体。 */

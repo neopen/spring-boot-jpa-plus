@@ -14,10 +14,12 @@ import org.springframework.data.domain.Sort;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -548,6 +550,58 @@ public class JpaPlusHqlExecutor {
     }
 
     /**
+     * 按批次流式消费 HQL 查询结果。
+     *
+     * <p>在 {@link #stream(String, Map, Class)} 基础上按批次回调，
+     * 每批回调返回后执行 {@code flush} 与 {@code clear}，一级缓存
+     * 不会随结果总量增长。执行器不提交事务，事务边界由调用方控制；
+     * 回调异常或提前退出时流会在异常传播前关闭。</p>
+     *
+     * @param <T>        结果类型
+     * @param hql        HQL 查询语句
+     * @param parameters 命名参数；无参数时可为 {@code null}
+     * @param resultType 结果类型的 {@link Class} 对象
+     * @param batchSize  每批数量，必须大于 0
+     * @param consumer   批次回调
+     * @throws IllegalArgumentException 批次大小不大于 0 或回调为空
+     */
+    public <T> void forEachBatch(
+            String hql,
+            Map<String, ?> parameters,
+            Class<T> resultType,
+            int batchSize,
+            Consumer<List<T>> consumer
+    ) {
+        validateBatch(batchSize, consumer);
+
+        consumeBatches(
+                stream(hql, parameters, resultType),
+                batchSize,
+                consumer
+        );
+    }
+
+    /**
+     * 使用 HQL 构造器按批次流式消费结果。
+     *
+     * @param <T>       实体类型
+     * @param wrapper   HQL 构造器
+     * @param batchSize 每批数量，必须大于 0
+     * @param consumer  批次回调
+     * @throws IllegalArgumentException 构造器为空、批次大小不大于 0
+     *                                  或回调为空时抛出
+     */
+    public <T> void forEachBatch(
+            HqlWrapper<T> wrapper,
+            int batchSize,
+            Consumer<List<T>> consumer
+    ) {
+        validateBatch(batchSize, consumer);
+
+        consumeBatches(stream(wrapper), batchSize, consumer);
+    }
+
+    /**
      * 使用 HQL 构造器统计总数。
      *
      * @param <T>     实体类型
@@ -806,5 +860,80 @@ public class JpaPlusHqlExecutor {
         }
 
         parameters.forEach(query::setParameter);
+    }
+
+    /**
+     * 校验分批消费参数。
+     *
+     * @param batchSize 每批数量
+     * @param consumer  批次回调
+     * @throws IllegalArgumentException 批次大小不大于 0 或回调为空
+     */
+    private void validateBatch(int batchSize, Consumer<?> consumer) {
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException(
+                    "Batch size must be greater than zero"
+            );
+        }
+
+        if (consumer == null) {
+            throw new IllegalArgumentException(
+                    "Consumer must not be null"
+            );
+        }
+    }
+
+    /**
+     * 按批次消费结果流，并在每批回调后清理持久化上下文。
+     *
+     * <p>流始终通过 try-with-resources 关闭，保证正常结束、回调异常
+     * 与提前退出都不会遗留未关闭的游标。</p>
+     *
+     * @param <T>       结果类型
+     * @param stream    结果流
+     * @param batchSize 每批数量
+     * @param consumer  批次回调
+     */
+    private <T> void consumeBatches(
+            Stream<T> stream,
+            int batchSize,
+            Consumer<? super List<T>> consumer
+    ) {
+        try (Stream<T> source = stream) {
+            Iterator<T> iterator = source.iterator();
+            List<T> batch = new ArrayList<>(
+                    Math.min(batchSize, 1024)
+            );
+
+            while (iterator.hasNext()) {
+                batch.add(iterator.next());
+
+                if (batch.size() == batchSize) {
+                    applyBatch(batch, consumer);
+                    batch = new ArrayList<>(batchSize);
+                }
+            }
+
+            if (!batch.isEmpty()) {
+                applyBatch(batch, consumer);
+            }
+        }
+    }
+
+    /**
+     * 执行一批回调并清理持久化上下文。
+     *
+     * @param <T>      结果类型
+     * @param batch    当前批次
+     * @param consumer 批次回调
+     */
+    private <T> void applyBatch(
+            List<T> batch,
+            Consumer<? super List<T>> consumer
+    ) {
+        consumer.accept(batch);
+
+        entityManager.flush();
+        entityManager.clear();
     }
 }

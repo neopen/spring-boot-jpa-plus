@@ -34,8 +34,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 /**
@@ -210,6 +212,32 @@ public class JpaPlusSpecExecutor<T> {
         applySort(query, cb, root, Sort.unsorted());
 
         return entityManager.createQuery(query).getResultStream();
+    }
+
+    /**
+     * 按批次流式消费满足条件的实体。
+     *
+     * <p>在 {@link #stream(Specification)} 基础上按 {@code batchSize}
+     * 聚合结果，每批回调返回后执行 {@code flush} 与 {@code clear}，
+     * 因此一级缓存不会随结果总量增长，适合大数据量导出与批处理。</p>
+     *
+     * <p>执行器不会提交或回滚事务，事务边界仍由调用方控制；回调抛出
+     * 异常或需要提前结束遍历时，流会在异常传播前关闭。每批实体在
+     * 回调返回后即被清出持久化上下文，后续批次不再保留已消费实体。</p>
+     *
+     * @param specification 查询条件，允许为 {@code null}
+     * @param batchSize     每批数量，必须大于 0
+     * @param consumer      批次回调
+     * @throws IllegalArgumentException 批次大小不大于 0 或回调为空
+     */
+    public void forEachBatch(
+            Specification<T> specification,
+            int batchSize,
+            Consumer<List<T>> consumer
+    ) {
+        validateBatch(batchSize, consumer);
+
+        consumeBatches(stream(specification), batchSize, consumer);
     }
 
     /**
@@ -968,5 +996,80 @@ public class JpaPlusSpecExecutor<T> {
         }
 
         return path;
+    }
+
+    /**
+     * 校验分批消费参数。
+     *
+     * @param batchSize 每批数量
+     * @param consumer  批次回调
+     * @throws IllegalArgumentException 批次大小不大于 0 或回调为空
+     */
+    private void validateBatch(int batchSize, Consumer<?> consumer) {
+        if (batchSize <= 0) {
+            throw new IllegalArgumentException(
+                    "Batch size must be greater than zero"
+            );
+        }
+
+        if (consumer == null) {
+            throw new IllegalArgumentException(
+                    "Consumer must not be null"
+            );
+        }
+    }
+
+    /**
+     * 按批次消费结果流，并在每批回调后清理持久化上下文。
+     *
+     * <p>流始终通过 try-with-resources 关闭，保证正常结束、回调异常
+     * 与提前退出都不会遗留未关闭的游标。</p>
+     *
+     * @param <R>       结果类型
+     * @param stream    结果流
+     * @param batchSize 每批数量
+     * @param consumer  批次回调
+     */
+    private <R> void consumeBatches(
+            Stream<R> stream,
+            int batchSize,
+            Consumer<? super List<R>> consumer
+    ) {
+        try (Stream<R> source = stream) {
+            Iterator<R> iterator = source.iterator();
+            List<R> batch = new ArrayList<>(
+                    Math.min(batchSize, 1024)
+            );
+
+            while (iterator.hasNext()) {
+                batch.add(iterator.next());
+
+                if (batch.size() == batchSize) {
+                    applyBatch(batch, consumer);
+                    batch = new ArrayList<>(batchSize);
+                }
+            }
+
+            if (!batch.isEmpty()) {
+                applyBatch(batch, consumer);
+            }
+        }
+    }
+
+    /**
+     * 执行一批回调并清理持久化上下文。
+     *
+     * @param <R>      结果类型
+     * @param batch    当前批次
+     * @param consumer 批次回调
+     */
+    private <R> void applyBatch(
+            List<R> batch,
+            Consumer<? super List<R>> consumer
+    ) {
+        consumer.accept(batch);
+
+        entityManager.flush();
+        entityManager.clear();
     }
 }

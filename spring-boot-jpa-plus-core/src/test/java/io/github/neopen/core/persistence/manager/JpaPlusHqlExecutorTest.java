@@ -10,13 +10,18 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -345,6 +350,116 @@ class JpaPlusHqlExecutorTest {
 
         assertThat(result).containsExactly("o-1", "o-2");
         verify(dataQuery).getResultStream();
+    }
+
+    @Test
+    void shouldConsumeStreamInBatchesAndClearContext() {
+        TypedQuery<String> dataQuery = mockQuery();
+        String hql = "select o.orderNo from Order o";
+
+        when(entityManager.createQuery(hql, String.class))
+                .thenReturn(dataQuery);
+        when(dataQuery.getResultStream()).thenReturn(
+                Stream.of("o-1", "o-2", "o-3", "o-4", "o-5")
+        );
+
+        List<List<String>> batches = new ArrayList<>();
+
+        executor.forEachBatch(
+                hql,
+                null,
+                String.class,
+                2,
+                batches::add
+        );
+
+        assertThat(batches)
+                .containsExactly(
+                        List.of("o-1", "o-2"),
+                        List.of("o-3", "o-4"),
+                        List.of("o-5")
+                );
+        verify(entityManager, times(3)).flush();
+        verify(entityManager, times(3)).clear();
+    }
+
+    @Test
+    void shouldNotInvokeConsumerForEmptyResult() {
+        TypedQuery<String> dataQuery = mockQuery();
+        String hql = "select o.orderNo from Order o";
+
+        when(entityManager.createQuery(hql, String.class))
+                .thenReturn(dataQuery);
+        when(dataQuery.getResultStream()).thenReturn(Stream.empty());
+
+        AtomicInteger calls = new AtomicInteger();
+
+        executor.forEachBatch(
+                hql,
+                null,
+                String.class,
+                10,
+                batch -> calls.incrementAndGet()
+        );
+
+        assertThat(calls).hasValue(0);
+        verify(entityManager, never()).flush();
+        verify(entityManager, never()).clear();
+    }
+
+    @Test
+    void shouldCloseStreamWhenConsumerFails() {
+        TypedQuery<String> dataQuery = mockQuery();
+        String hql = "select o.orderNo from Order o";
+        AtomicBoolean closed = new AtomicBoolean();
+
+        when(entityManager.createQuery(hql, String.class))
+                .thenReturn(dataQuery);
+        when(dataQuery.getResultStream()).thenReturn(
+                Stream.of("o-1", "o-2").onClose(
+                        () -> closed.set(true)
+                )
+        );
+
+        assertThatThrownBy(() -> executor.forEachBatch(
+                hql,
+                null,
+                String.class,
+                1,
+                batch -> {
+                    throw new IllegalStateException("boom");
+                }
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("boom");
+
+        assertThat(closed).isTrue();
+        verify(entityManager, never()).flush();
+        verify(entityManager, never()).clear();
+    }
+
+    @Test
+    void shouldRejectInvalidBatchArguments() {
+        assertThatThrownBy(() -> executor.forEachBatch(
+                "select o from Order o",
+                null,
+                String.class,
+                0,
+                batch -> {
+                }
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Batch size");
+
+        assertThatThrownBy(() -> executor.forEachBatch(
+                "select o from Order o",
+                null,
+                String.class,
+                10,
+                null
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Consumer");
     }
 
     /** 测试实体占位。 */

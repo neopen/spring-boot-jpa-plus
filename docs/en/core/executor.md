@@ -28,6 +28,7 @@ JpaPlusSpecExecutor<Order> custom =
 | `Page<T> findPage(Specification<T> spec, Pageable pageable, List<String> fetchAttributes)` | Fetch join pagination |
 | `Slice<T> findSlice(Specification<T> spec, Pageable pageable)` | Slice query |
 | `Stream<T> stream(Specification<T> spec)` | Streaming query, ordered by primary key ascending |
+| `void forEachBatch(Specification<T> spec, int batchSize, Consumer<List<T>> consumer)` | Consumes in batches and runs `flush` / `clear` after each batch |
 | `long count(Specification<T> spec)` | Count |
 | `boolean exists(Specification<T> spec)` | Check whether records exist, based on count |
 
@@ -45,6 +46,22 @@ try (Stream<Order> stream = executor.stream(spec)) {
 - The stream is bound to the current transaction: consume it inside the transaction and prefer try-with-resources.
 - Logical-deletion, tenant and data-permission conditions are still appended automatically.
 - The HQL and native SQL executors provide `stream(...)` overloads as well.
+
+## Batched Consumption
+
+`forEachBatch` groups the streaming result into batches and runs `flush` and `clear` after each callback, so the first-level cache does not grow with the total export size:
+
+```java
+executor.forEachBatch(spec, 500, batch -> {
+    batch.forEach(this::export);
+});
+```
+
+- Each batch is detached after its callback returns; do not keep references to it afterwards.
+- The executor does not commit the transaction: call it inside a transaction and decide commit or rollback yourself.
+- If the callback throws, the stream is closed and the exception is rethrown; throw from the callback to stop the traversal early.
+- `batchSize` must be greater than 0 and the callback must not be `null`.
+- The HQL and native SQL executors provide `forEachBatch(...)` overloads too, following the same parameter order as the corresponding `stream(...)` plus trailing `batchSize` and `Consumer`.
 
 ## Pagination and Counting
 

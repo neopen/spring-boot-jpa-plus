@@ -103,6 +103,7 @@ K3 边界：库只传播**作用域与过滤开关**；租户值本身仍由 `Te
 P3 进展（2026-11-22）：
 
 - K1 已完成：新增 `KeysetPageParams`、`KeysetCursor`、`KeysetPage` 与 `JpaPlusSpecExecutor#keyset(...)`，自动追加主键 tiebreaker，禁止忽略大小写与显式空值排序，复合主键直接拒绝；H2 集成用例覆盖单键 ASC/DESC、复合键混合方向、排序值重复时跨页推进以及与 offset 分页结果一致。core 行覆盖率由 70.83% 提升至 72.28%。
+- K2 已完成：Spec / HQL / SQL 执行器新增 `forEachBatch(...)`，按批聚合流式结果并在每批回调后执行 `flush` / `clear`，不提交事务；回调异常或提前退出时通过 try-with-resources 关闭流。单元测试覆盖整除与余数批次、空结果、异常关闭与参数校验；H2 集成用例覆盖三个执行器、十万行导出时持久化上下文保持有界，并断言上一批实体已脱离上下文。
 
 ### 二、P2 收尾项（并入 P3）
 

@@ -13,13 +13,17 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -332,6 +336,104 @@ class JpaPlusSqlExecutorTest {
         ))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("SQL");
+    }
+
+    @Test
+    void shouldConsumeNativeResultsInBatches() {
+        String sql = "select order_no from t_order";
+
+        when(entityManager.createNativeQuery(sql)).thenReturn(dataQuery);
+        when(dataQuery.getResultStream()).thenReturn(
+                Stream.of("o-1", "o-2", "o-3")
+        );
+
+        List<List<?>> batches = new ArrayList<>();
+
+        executor.forEachBatch(sql, null, 2, batches::add);
+
+        assertThat(batches)
+                .containsExactly(
+                        List.of("o-1", "o-2"),
+                        List.of("o-3")
+                );
+        verify(entityManager, times(2)).flush();
+        verify(entityManager, times(2)).clear();
+    }
+
+    @Test
+    void shouldConsumeTypedEntitiesInBatches() {
+        String sql = "select * from t_order where status = :status";
+        SampleEntity first = new SampleEntity(1L);
+        SampleEntity second = new SampleEntity(2L);
+
+        when(entityManager.createNativeQuery(sql, SampleEntity.class))
+                .thenReturn(dataQuery);
+        when(dataQuery.setParameter("status", "PAID"))
+                .thenReturn(dataQuery);
+        when(dataQuery.getResultStream())
+                .thenReturn(Stream.of(first, second));
+
+        List<List<SampleEntity>> batches = new ArrayList<>();
+
+        executor.forEachBatch(
+                sql,
+                Map.of("status", "PAID"),
+                SampleEntity.class,
+                5,
+                batches::add
+        );
+
+        assertThat(batches).containsExactly(List.of(first, second));
+        verify(dataQuery).setParameter("status", "PAID");
+        verify(entityManager).flush();
+        verify(entityManager).clear();
+    }
+
+    @Test
+    void shouldCloseStreamWhenConsumerFails() {
+        String sql = "select order_no from t_order";
+        AtomicBoolean closed = new AtomicBoolean();
+
+        when(entityManager.createNativeQuery(sql)).thenReturn(dataQuery);
+        when(dataQuery.getResultStream()).thenReturn(
+                Stream.of("o-1").onClose(() -> closed.set(true))
+        );
+
+        assertThatThrownBy(() -> executor.forEachBatch(
+                sql,
+                null,
+                1,
+                batch -> {
+                    throw new IllegalStateException("boom");
+                }
+        ))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("boom");
+
+        assertThat(closed).isTrue();
+        verify(entityManager, never()).clear();
+    }
+
+    @Test
+    void shouldRejectInvalidBatchArguments() {
+        assertThatThrownBy(() -> executor.forEachBatch(
+                "select * from t_order",
+                null,
+                -1,
+                batch -> {
+                }
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Batch size");
+
+        assertThatThrownBy(() -> executor.forEachBatch(
+                "select * from t_order",
+                null,
+                10,
+                null
+        ))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("Consumer");
     }
 
     /**

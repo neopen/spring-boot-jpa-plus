@@ -28,6 +28,7 @@ JpaPlusSpecExecutor<Order> custom =
 | `Page<T> findPage(Specification<T> spec, Pageable pageable, List<String> fetchAttributes)` | fetch join 分页 |
 | `Slice<T> findSlice(Specification<T> spec, Pageable pageable)` | 切片查询 |
 | `Stream<T> stream(Specification<T> spec)` | 流式查询，按主键升序 |
+| `void forEachBatch(Specification<T> spec, int batchSize, Consumer<List<T>> consumer)` | 按批流式消费，每批后执行 `flush` / `clear` |
 | `long count(Specification<T> spec)` | 计数 |
 | `boolean exists(Specification<T> spec)` | 判断是否存在，基于 count |
 
@@ -45,6 +46,22 @@ try (Stream<Order> stream = executor.stream(spec)) {
 - 流绑定当前事务，必须在事务内消费完毕，并优先使用 try-with-resources 关闭。
 - 逻辑删除、租户与数据权限条件仍会自动追加。
 - HQL 与原生 SQL 执行器同样提供 `stream(...)` 重载。
+
+## 分批消费
+
+`forEachBatch` 在流式查询基础上按批聚合结果，每批回调返回后自动执行 `flush` 与 `clear`，因此一级缓存不会随导出总量增长：
+
+```java
+executor.forEachBatch(spec, 500, batch -> {
+    batch.forEach(this::export);
+});
+```
+
+- 每批实体在回调返回后被清出持久化上下文，回调外不要继续持有引用。
+- 执行器不提交事务，需要在事务范围内调用，由调用方决定提交或回滚。
+- 回调抛出异常时执行器会关闭流并原样抛出；需要提前结束遍历时，同样在回调内抛出异常。
+- `batchSize` 必须大于 0，回调不能为 `null`。
+- HQL 与原生 SQL 执行器同样提供 `forEachBatch(...)` 重载，参数顺序与对应 `stream(...)` 一致，并在末尾追加 `batchSize` 与 `Consumer`。
 
 ## 分页与计数
 
