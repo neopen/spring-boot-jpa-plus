@@ -30,7 +30,7 @@
 | `persistence.condition` | `QueryCondition`、`QueryConditionEntry`、`QueryConditionMapper`、`ConditionApplier`、`ConditionOperator` |
 | `persistence.dao` | `JpaPlusDao` |
 | `persistence.datasource` | `DataSource`、`DataSourceContext` |
-| `persistence.sort` / `page` / `mapping` | `Sorts`、`PageParams`、`ResultMapper` |
+| `persistence.sort` / `page` / `mapping` | `Sorts`、`PageParams`、`KeysetPageParams`、`KeysetCursor`、`KeysetPage`、`ResultMapper` |
 | `persistence.convert` | `EnumValue`、`EnumValueConverter`、`EnumValues` |
 | `scope` / `util` / `id` | `JpaPlusScope`、`TreeUtils`、`SnowflakeIdGenerator` |
 | `exception` | `JpaPlusException` |

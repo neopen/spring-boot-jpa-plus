@@ -2,8 +2,13 @@ package io.github.neopen.core.persistence.spec;
 
 import io.github.neopen.core.persistence.datascope.DataScopes;
 import io.github.neopen.core.persistence.logicdelete.LogicDeletes;
+import io.github.neopen.core.persistence.page.KeysetCursor;
+import io.github.neopen.core.persistence.page.KeysetPage;
+import io.github.neopen.core.persistence.page.KeysetPageParams;
 import io.github.neopen.core.persistence.tenant.Tenants;
+import jakarta.persistence.EmbeddedId;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.IdClass;
 import jakarta.persistence.TypedQuery;
 import jakarta.persistence.criteria.CriteriaBuilder;
 import jakarta.persistence.criteria.CriteriaQuery;
@@ -18,10 +23,19 @@ import org.springframework.data.domain.Slice;
 import org.springframework.data.domain.SliceImpl;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.util.DirectFieldAccessFallbackBeanWrapper;
 
+import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 /**
@@ -312,6 +326,88 @@ public class JpaPlusSpecExecutor<T> {
     }
 
     /**
+     * 游标（keyset）分页查询。
+     *
+     * <p>不计算总数，也不使用 offset，而是以 {@link KeysetCursor} 为
+     * 起点生成 {@code (排序键, 主键) > (?, ?)} 条件。排序键必须唯一，
+     * 执行器会在排序末尾自动追加主键作为 tiebreaker（已包含主键时
+     * 不重复追加）。</p>
+     *
+     * <p>游标值按排序字段的 Java 类型转换，支持字符串、常用数值、
+     * {@link Boolean}、{@link UUID}、{@link LocalDate}、
+     * {@link LocalDateTime}、{@link LocalTime}、{@link Instant}
+     * 与枚举。复合主键实体不支持游标分页。</p>
+     *
+     * @param specification 查询条件，允许为 {@code null}
+     * @param params        游标分页参数
+     * @return 游标分页结果
+     * @throws IllegalArgumentException 参数非法、游标值个数与排序项不匹配、
+     *                                 游标值类型不支持或主键为复合主键时抛出
+     */
+    public KeysetPage<T> keyset(
+            Specification<T> specification,
+            KeysetPageParams params
+    ) {
+        if (params == null) {
+            throw new IllegalArgumentException(
+                    "Keyset page params must not be null"
+            );
+        }
+
+        ensureSimplePrimaryKey();
+
+        Sort sort = withTiebreaker(params.getSort());
+        List<Sort.Order> orders = new ArrayList<>();
+        sort.forEach(orders::add);
+
+        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaQuery<T> query = cb.createQuery(entityType);
+        Root<T> root = query.from(entityType);
+
+        query.select(root);
+
+        Predicate predicate = null;
+        Specification<T> effective = effective(specification);
+
+        if (effective != null) {
+            predicate = effective.toPredicate(root, query, cb);
+        }
+
+        Predicate combined = combine(
+                cb,
+                predicate,
+                keysetPredicate(
+                        cb,
+                        root,
+                        orders,
+                        cursorValues(root, orders, params.getCursor())
+                )
+        );
+
+        if (combined != null) {
+            query.where(combined);
+        }
+
+        applySort(query, cb, root, sort);
+
+        TypedQuery<T> typedQuery = entityManager.createQuery(query);
+        typedQuery.setMaxResults(params.getSize() + 1);
+
+        List<T> content = typedQuery.getResultList();
+        boolean hasNext = content.size() > params.getSize();
+
+        if (hasNext) {
+            content = new ArrayList<>(content.subList(0, params.getSize()));
+        }
+
+        KeysetCursor nextCursor = hasNext
+                ? cursorOf(orders, content.get(content.size() - 1))
+                : null;
+
+        return new KeysetPage<>(content, nextCursor);
+    }
+
+    /**
      * 按主键查询实体。
      *
      * <p>查询会自动追加逻辑删除过滤，已删除实体返回 {@code null}。</p>
@@ -552,6 +648,309 @@ public class JpaPlusSpecExecutor<T> {
         }
 
         query.orderBy(orders);
+    }
+
+    /**
+     * 在排序末尾追加主键，保证游标条件使用的排序唯一。
+     *
+     * @param sort 原始排序
+     * @return 追加 tiebreaker 后的排序
+     */
+    private Sort withTiebreaker(Sort sort) {
+        for (Sort.Order order : sort) {
+            if (idAttribute.equals(order.getProperty())) {
+                return sort;
+            }
+        }
+
+        List<Sort.Order> orders = new ArrayList<>();
+        sort.forEach(orders::add);
+        orders.add(Sort.Order.asc(idAttribute));
+
+        return Sort.by(orders);
+    }
+
+    /**
+     * 解析游标值，并按排序路径的 Java 类型转换。
+     *
+     * @param root   查询根
+     * @param orders 排序项
+     * @param cursor 游标，允许为 {@code null}
+     * @return 转换后的游标值；未携带游标时返回 {@code null}
+     */
+    private List<Object> cursorValues(
+            Root<T> root,
+            List<Sort.Order> orders,
+            KeysetCursor cursor
+    ) {
+        if (cursor == null) {
+            return null;
+        }
+
+        List<Object> values = cursor.getValues();
+
+        if (values.size() != orders.size()) {
+            throw new IllegalArgumentException(
+                    "Cursor value count must match sort order count"
+            );
+        }
+
+        List<Object> resolved = new ArrayList<>(values.size());
+
+        for (int i = 0; i < values.size(); i++) {
+            Path<?> attribute = path(root, orders.get(i).getProperty());
+            resolved.add(convert(attribute, values.get(i)));
+        }
+
+        return resolved;
+    }
+
+    /**
+     * 构建字典序游标条件：{@code (a > v1) OR (a = v1 AND b < v2)}。
+     *
+     * @param cb     构建器
+     * @param root   查询根
+     * @param orders 排序项
+     * @param values 游标值，允许为 {@code null}
+     * @return 游标条件；未携带游标时返回 {@code null}
+     */
+    private Predicate keysetPredicate(
+            CriteriaBuilder cb,
+            Root<T> root,
+            List<Sort.Order> orders,
+            List<Object> values
+    ) {
+        if (values == null) {
+            return null;
+        }
+
+        List<Predicate> equals = new ArrayList<>(orders.size());
+        List<Predicate> terms = new ArrayList<>(orders.size());
+
+        for (int i = 0; i < orders.size(); i++) {
+            Sort.Order order = orders.get(i);
+            Path<?> attribute = path(root, order.getProperty());
+            Predicate comparison = comparison(
+                    cb,
+                    attribute,
+                    order,
+                    values.get(i)
+            );
+
+            if (equals.isEmpty()) {
+                terms.add(comparison);
+            } else {
+                List<Predicate> parts = new ArrayList<>(equals.size() + 1);
+                parts.addAll(equals);
+                parts.add(comparison);
+                terms.add(cb.and(parts.toArray(new Predicate[0])));
+            }
+
+            equals.add(cb.equal(attribute, values.get(i)));
+        }
+
+        return cb.or(terms.toArray(new Predicate[0]));
+    }
+
+    /**
+     * 按排序方向生成比较条件。
+     *
+     * @param cb        构建器
+     * @param attribute 排序路径
+     * @param order     排序项
+     * @param value     游标值
+     * @return 比较条件
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Predicate comparison(
+            CriteriaBuilder cb,
+            Path<?> attribute,
+            Sort.Order order,
+            Object value
+    ) {
+        Path path = attribute;
+        Comparable target = (Comparable) value;
+
+        return order.isAscending()
+                ? cb.greaterThan(path, target)
+                : cb.lessThan(path, target);
+    }
+
+    /**
+     * 把解码后的字符串游标转换为排序路径对应的 Java 类型。
+     *
+     * @param attribute 排序路径
+     * @param raw       游标值
+     * @return 转换后的值
+     * @throws IllegalArgumentException 类型不支持时抛出
+     */
+    private Object convert(Path<?> attribute, Object raw) {
+        if (!(raw instanceof String text)) {
+            return raw;
+        }
+
+        Class<?> type = attribute.getJavaType();
+
+        if (type == null || type == String.class || type == Object.class) {
+            return text;
+        }
+
+        if (type == Integer.class || type == int.class) {
+            return Integer.valueOf(text);
+        }
+
+        if (type == Long.class || type == long.class) {
+            return Long.valueOf(text);
+        }
+
+        if (type == Short.class || type == short.class) {
+            return Short.valueOf(text);
+        }
+
+        if (type == Byte.class || type == byte.class) {
+            return Byte.valueOf(text);
+        }
+
+        if (type == Double.class || type == double.class) {
+            return Double.valueOf(text);
+        }
+
+        if (type == Float.class || type == float.class) {
+            return Float.valueOf(text);
+        }
+
+        if (type == BigDecimal.class) {
+            return new BigDecimal(text);
+        }
+
+        if (type == BigInteger.class) {
+            return new BigInteger(text);
+        }
+
+        if (type == Boolean.class || type == boolean.class) {
+            return Boolean.valueOf(text);
+        }
+
+        if (type == UUID.class) {
+            return UUID.fromString(text);
+        }
+
+        if (type == LocalDate.class) {
+            return LocalDate.parse(text);
+        }
+
+        if (type == LocalDateTime.class) {
+            return LocalDateTime.parse(text);
+        }
+
+        if (type == LocalTime.class) {
+            return LocalTime.parse(text);
+        }
+
+        if (type == Instant.class) {
+            return Instant.parse(text);
+        }
+
+        if (type.isEnum()) {
+            return toEnum(type, text);
+        }
+
+        throw new IllegalArgumentException(
+                "Unsupported cursor value type: " + type.getName()
+        );
+    }
+
+    /**
+     * 按枚举类型解析游标值。
+     *
+     * @param type 枚举类型
+     * @param text 游标值
+     * @return 枚举值
+     */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private Enum<?> toEnum(Class<?> type, String text) {
+        return Enum.valueOf((Class) type, text);
+    }
+
+    /**
+     * 以最后一行的排序键值生成下一页游标。
+     *
+     * @param orders 排序项
+     * @param last   当前页最后一行
+     * @return 下一页游标
+     */
+    private KeysetCursor cursorOf(List<Sort.Order> orders, T last) {
+        Object[] values = new Object[orders.size()];
+        DirectFieldAccessFallbackBeanWrapper wrapper =
+                new DirectFieldAccessFallbackBeanWrapper(last);
+
+        for (int i = 0; i < orders.size(); i++) {
+            values[i] = wrapper.getPropertyValue(
+                    orders.get(i).getProperty()
+            );
+        }
+
+        return KeysetCursor.of(values);
+    }
+
+    /**
+     * 合并查询条件与游标条件。
+     *
+     * @param cb    构建器
+     * @param left  查询条件，允许为 {@code null}
+     * @param right 游标条件，允许为 {@code null}
+     * @return 合并后的条件；两者都为空时返回 {@code null}
+     */
+    private Predicate combine(
+            CriteriaBuilder cb,
+            Predicate left,
+            Predicate right
+    ) {
+        if (left == null) {
+            return right;
+        }
+
+        if (right == null) {
+            return left;
+        }
+
+        return cb.and(left, right);
+    }
+
+    /**
+     * 校验实体主键为单一主键。
+     *
+     * @throws IllegalArgumentException 主键为复合主键时抛出
+     */
+    private void ensureSimplePrimaryKey() {
+        if (entityType.isAnnotationPresent(IdClass.class)
+                || hasEmbeddedId(entityType)) {
+            throw new IllegalArgumentException(
+                    "Keyset pagination does not support composite primary keys"
+            );
+        }
+    }
+
+    /**
+     * 判断实体是否使用嵌入式主键。
+     *
+     * @param type 实体类型
+     * @return 存在 {@code @EmbeddedId} 字段时返回 {@code true}
+     */
+    private boolean hasEmbeddedId(Class<?> type) {
+        Class<?> current = type;
+
+        while (current != null && current != Object.class) {
+            for (Field field : current.getDeclaredFields()) {
+                if (field.isAnnotationPresent(EmbeddedId.class)) {
+                    return true;
+                }
+            }
+
+            current = current.getSuperclass();
+        }
+
+        return false;
     }
 
     /**

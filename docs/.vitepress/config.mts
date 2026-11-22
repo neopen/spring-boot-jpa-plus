@@ -82,6 +82,10 @@ export default defineConfig({
                             },
                             { text: 'Safe Sorting', link: '/en/core/sorting' },
                             {
+                                text: 'Keyset Pagination',
+                                link: '/en/core/keyset-pagination'
+                            },
+                            {
                                 text: 'Logical Deletion',
                                 link: '/en/core/logic-delete'
                             },
@@ -254,6 +258,7 @@ export default defineConfig({
                     { text: 'Specification 执行器', link: '/core/executor' },
                     { text: '注解式查询条件', link: '/core/conditions' },
                     { text: '安全排序', link: '/core/sorting' },
+                    { text: '游标分页', link: '/core/keyset-pagination' },
                     { text: '逻辑删除', link: '/core/logic-delete' },
                     { text: '审计字段', link: '/core/auditing' },
                     { text: '变更历史', link: '/core/audit-trail' },

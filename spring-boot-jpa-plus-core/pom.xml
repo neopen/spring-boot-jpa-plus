@@ -38,6 +38,13 @@
             <scope>test</scope>
         </dependency>
 
+        <!-- 集成测试数据库：H2 内存库 -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
     <build>
