@@ -27,6 +27,7 @@
         <lombok.version>1.18.42</lombok.version>
         <hutool.version>5.8.41</hutool.version>
         <fastjson2.version>2.0.53</fastjson2.version>
+        <jacoco.version>0.8.12</jacoco.version>
     </properties>
 
     <modules>
@@ -184,6 +185,13 @@
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-surefire-plugin</artifactId>
                     <version>3.2.5</version>
+                </plugin>
+
+                <!-- 覆盖率采集与门槛校验 -->
+                <plugin>
+                    <groupId>org.jacoco</groupId>
+                    <artifactId>jacoco-maven-plugin</artifactId>
+                    <version>${jacoco.version}</version>
                 </plugin>
             </plugins>
         </pluginManagement>

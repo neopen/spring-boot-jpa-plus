@@ -14,8 +14,9 @@
 
 - [ ] `mvn -B -ntp clean install -Dgpg.skip=true` 全绿
 - [ ] SpotBugs 高优先级检查通过（`mvn verify`，根 POM 已配置 `effort=Max`、`threshold=High`）
+- [x] JaCoCo 行覆盖率门槛：core ≥ 70%，autoconfigure ≥ 72%（`verify` 阶段强制）
 - [ ] JMH 基线可复现，环境与数据已记录在 `docs/core/benchmark.md` / `docs/en/core/benchmark.md`
-- [ ] 测试数量与基线一致（当前 355 个：core 240 / autoconfigure 40 / convert 6 / extension 27 / demo 42）
+- [ ] 测试数量与基线一致（当前 356 个：core 240 / autoconfigure 41 / convert 6 / extension 27 / demo 42）
 - [x] `docs` 目录 `npm run build` 通过，无死链
 - [ ] 示例工程可本地启动，0.7 新增能力（流式查询、异步审计、JDBC 批量、指标）可演示
 - [ ] `mvn -B -ntp verify -Pcentral -Dgpg.skip=true` 能生成 sources / javadoc 制品
