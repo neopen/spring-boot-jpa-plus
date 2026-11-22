@@ -51,6 +51,10 @@ export default defineConfig({
                                 link: '/en/guide/modules'
                             },
                             {
+                                text: 'FAQ',
+                                link: '/en/faq'
+                            },
+                            {
                                 text: 'Migrating 0.4 → 0.8',
                                 link: '/en/guide/migration-0.4-to-0.8'
                             },
@@ -249,6 +253,7 @@ export default defineConfig({
                 items: [
                     { text: '快速开始', link: '/guide/getting-started' },
                     { text: '模块与依赖', link: '/guide/modules' },
+                    { text: '常见问题', link: '/faq' },
                     { text: '从 0.4 迁移到 0.8', link: '/guide/migration-0.4-to-0.8' },
                     { text: '版本发布', link: '/version' }
                 ]
