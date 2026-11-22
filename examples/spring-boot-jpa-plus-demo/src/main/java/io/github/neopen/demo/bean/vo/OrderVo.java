@@ -2,7 +2,6 @@ package io.github.neopen.demo.bean.vo;
 
 import lombok.Data;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -15,7 +14,7 @@ import java.util.List;
  * @see <a href="https://jpa.helpenx.com">官网</a>
  */
 @Data
-public class OrderVo implements Serializable {
+public class OrderVo {
 
     /** 订单标识。 */
     private Long id;

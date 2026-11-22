@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+
+    <!--
+        JMH 注解处理器生成的基准驱动类（jmh_generated 包）不属于项目源码，
+        其中的模板代码会触发死存储等告警，这里统一排除。
+    -->
+    <Match>
+        <Class name="~io\.github\.neopen\.benchmarks\.jmh_generated\..*"/>
+    </Match>
+
+</FindBugsFilter>

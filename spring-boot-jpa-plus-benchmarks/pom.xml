@@ -79,6 +79,17 @@
                 </configuration>
             </plugin>
 
+            <!-- 排除 JMH 注解处理器生成的驱动类 -->
+            <plugin>
+                <groupId>com.github.spotbugs</groupId>
+                <artifactId>spotbugs-maven-plugin</artifactId>
+                <configuration>
+                    <excludeFilterFile>
+                        ${project.basedir}/spotbugs-exclude.xml
+                    </excludeFilterFile>
+                </configuration>
+            </plugin>
+
             <!-- 生成可直接执行的 fat jar：java -jar target/jpa-plus-benchmarks.jar -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
