@@ -1,6 +1,6 @@
 # 公开 API 盘点与冻结草案
 
-面向 1.0 的 API 冻结前置盘点。范围：`core`、`autoconfigure`、`convert`、`extension` 四个库模块的 `public` 类型，共 122 个、36 个包；`starter` 仅做依赖聚合，`examples` 不参与 API 承诺。
+面向 1.0 的 API 冻结前置盘点。范围：`core`、`autoconfigure`、`convert`、`extension` 四个库模块的 `public` 类型，共 124 个、37 个包；`starter` 仅做依赖聚合，`examples` 不参与 API 承诺。
 
 ## 稳定性分级
 
@@ -33,6 +33,7 @@
 | `persistence.sort` / `page` / `mapping` | `Sorts`、`PageParams`、`KeysetPageParams`、`KeysetCursor`、`KeysetPage`、`ResultMapper` |
 | `persistence.convert` | `EnumValue`、`EnumValueConverter`、`EnumValues` |
 | `scope` / `util` / `id` | `JpaPlusScope`、`TreeUtils`、`SnowflakeIdGenerator` |
+| `context` | `JpaPlusContext`、`JpaPlusContextTaskDecorator` |
 | `exception` | `JpaPlusException` |
 
 ### autoconfigure

@@ -180,6 +180,17 @@ public class JpaPlusProperties {
     private Datasource datasource = new Datasource();
 
     /**
+     * 跨线程上下文传播配置。
+     *
+     * <p>
+     * 默认值：启用。注册 {@code JpaPlusContextTaskDecorator} Bean，
+     * 供线程池手动装配；不会自动修改已有线程池。
+     * </p>
+     */
+    private ContextPropagation contextPropagation =
+            new ContextPropagation();
+
+    /**
      * 按数据源作用域配置的开关。
      *
      * <p>
@@ -402,6 +413,26 @@ public class JpaPlusProperties {
      */
     public void setDatasource(Datasource datasource) {
         this.datasource = datasource;
+    }
+
+    /**
+     * 获取跨线程上下文传播配置。
+     *
+     * @return 上下文传播配置
+     */
+    public ContextPropagation getContextPropagation() {
+        return contextPropagation;
+    }
+
+    /**
+     * 设置跨线程上下文传播配置。
+     *
+     * @param contextPropagation 上下文传播配置
+     */
+    public void setContextPropagation(
+            ContextPropagation contextPropagation
+    ) {
+        this.contextPropagation = contextPropagation;
     }
 
     /**
@@ -1610,6 +1641,51 @@ public class JpaPlusProperties {
          */
         public void setTrailEnabled(Boolean trailEnabled) {
             this.trailEnabled = trailEnabled;
+        }
+    }
+
+    /**
+     * 跨线程上下文传播配置。
+     *
+     * <p>
+     * 启用后注册 {@code JpaPlusContextTaskDecorator}，把提交线程的
+     * 作用域、过滤跳过深度与数据源路由栈传播到线程池任务；已有线程池
+     * 需要自行设置该装饰器。
+     * </p>
+     */
+    public static class ContextPropagation {
+
+        /**
+         * 创建默认上下文传播配置。
+         */
+        public ContextPropagation() {
+        }
+
+        /**
+         * 是否注册上下文传播装饰器。
+         *
+         * <p>
+         * 默认值：true。
+         * </p>
+         */
+        private boolean enabled = true;
+
+        /**
+         * 获取是否注册上下文传播装饰器。
+         *
+         * @return 注册时返回 {@code true}
+         */
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        /**
+         * 设置是否注册上下文传播装饰器。
+         *
+         * @param enabled 是否注册
+         */
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
         }
     }
 }

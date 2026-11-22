@@ -380,9 +380,12 @@ public final class Tenants {
     /**
      * 获取当前线程跳过租户过滤的嵌套层数。
      *
+     * <p>同时作为 {@link io.github.neopen.core.context.JpaPlusContext}
+     * 捕获与恢复上下文时的读取入口。</p>
+     *
      * @return 嵌套层数，未跳过时返回 0
      */
-    private static int ignoreDepth() {
+    public static int ignoreDepth() {
         Integer depth = IGNORE_DEPTH.get();
 
         return depth == null ? 0 : depth;

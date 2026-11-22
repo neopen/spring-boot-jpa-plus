@@ -1,5 +1,6 @@
 package io.github.neopen.autoconfigure;
 
+import io.github.neopen.core.context.JpaPlusContextTaskDecorator;
 import io.github.neopen.core.persistence.audit.AuditorProvider;
 import io.github.neopen.core.persistence.audit.trail.AuditLogPublisher;
 import io.github.neopen.core.persistence.datascope.DataPermissionProvider;
@@ -20,6 +21,7 @@ import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfigurat
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.task.TaskDecorator;
 import org.springframework.orm.jpa.SharedEntityManagerCreator;
 
 /**
@@ -181,6 +183,31 @@ public class JpaPlusAutoConfiguration {
     @ConditionalOnMissingBean(IgnoreFilterAspect.class)
     public IgnoreFilterAspect ignoreFilterAspect() {
         return new IgnoreFilterAspect();
+    }
+
+    /**
+     * 注册跨线程上下文传播装饰器。
+     *
+     * <p>把提交线程的作用域、数据权限与租户过滤跳过深度、数据源
+     * 路由栈传播到线程池任务，任务结束后恢复工作线程原状态。</p>
+     *
+     * <p>仅在 {@code neopen.jpa.context-propagation.enabled} 不为
+     * {@code false} 时注册；容器中已有 {@link TaskDecorator} 时不再
+     * 创建默认实现。自动配置不会修改业务已有线程池，需要业务代码
+     * 主动设置该装饰器。</p>
+     *
+     * @return 上下文传播装饰器
+     */
+    @Bean
+    @ConditionalOnMissingBean(TaskDecorator.class)
+    @ConditionalOnProperty(
+            prefix = "neopen.jpa.context-propagation",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    public TaskDecorator jpaPlusContextTaskDecorator() {
+        return new JpaPlusContextTaskDecorator();
     }
 
     /**

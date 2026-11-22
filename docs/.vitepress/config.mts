@@ -106,6 +106,10 @@ export default defineConfig({
                                 text: 'Skipping Filters',
                                 link: '/en/core/filter-ignore'
                             },
+                            {
+                                text: 'Context Propagation',
+                                link: '/en/core/context-propagation'
+                            },
                             { text: 'Batch Operations', link: '/en/core/batch' },
                             {
                                 text: 'Dynamic Data Sources',
@@ -265,6 +269,7 @@ export default defineConfig({
                     { text: '多租户', link: '/core/tenant' },
                     { text: '行级数据权限', link: '/core/data-permission' },
                     { text: '过滤跳过', link: '/core/filter-ignore' },
+                    { text: '跨线程上下文传播', link: '/core/context-propagation' },
                     { text: '批量操作', link: '/core/batch' },
                     { text: '动态数据源', link: '/core/datasource' },
                     { text: '指标监控', link: '/core/metrics' },

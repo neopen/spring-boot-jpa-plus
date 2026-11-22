@@ -96,7 +96,7 @@ P3 按「查询表达力 → 流式处理 → 上下文一致性」推进，同�
 | --- | --- | --- | --- |
 | K1 | 游标（keyset）分页 | 新增 `KeysetPageParams` / `KeysetPage`，基于 Criteria 生成 `WHERE (sortKey, id) > (?, ?)`；排序键非空，并以唯一列作为 tiebreaker | 单键与复合键翻页无重复、无遗漏；同数据下与 offset 分页结果一致；H2 与 MySQL 用例通过 |
 | K2 | 流式分批消费 | 在 Spec / HQL / SQL 执行器上增加 `forEachBatch(int, Consumer<List<T>>)`；回调内按批 `flush` / `clear`，不隐式提交事务 | 批次边界正确；十万行导出时一级缓存不随总量增长；异常与提前退出均能关闭流 |
-| K3 | 跨线程上下文传播 | 新增 `JpaPlusContext` 快照（作用域、三类 ignore 深度、数据源路由栈）与 `TaskDecorator`；自动配置条件装配、可关闭 | 异步任务内过滤链结果与提交线程一致；任务结束 ThreadLocal 全部清理；嵌套 ignore 深度正确恢复 |
+| K3 | 跨线程上下文传播 | 新增 `JpaPlusContext` 快照（作用域、两类 ignore 深度、数据源路由栈）与 `TaskDecorator`；自动配置条件装配、可关闭 | 异步任务内过滤链结果与提交线程一致；任务结束 ThreadLocal 全部清理；嵌套 ignore 深度正确恢复 |
 
 K3 边界：库只传播**作用域与过滤开关**；租户值本身仍由 `TenantProvider` 决定，需使用方保证线程安全或自行传播请求上下文。
 
@@ -104,6 +104,7 @@ P3 进展（2026-11-22）：
 
 - K1 已完成：新增 `KeysetPageParams`、`KeysetCursor`、`KeysetPage` 与 `JpaPlusSpecExecutor#keyset(...)`，自动追加主键 tiebreaker，禁止忽略大小写与显式空值排序，复合主键直接拒绝；H2 集成用例覆盖单键 ASC/DESC、复合键混合方向、排序值重复时跨页推进以及与 offset 分页结果一致。core 行覆盖率由 70.83% 提升至 72.28%。
 - K2 已完成：Spec / HQL / SQL 执行器新增 `forEachBatch(...)`，按批聚合流式结果并在每批回调后执行 `flush` / `clear`，不提交事务；回调异常或提前退出时通过 try-with-resources 关闭流。单元测试覆盖整除与余数批次、空结果、异常关闭与参数校验；H2 集成用例覆盖三个执行器、十万行导出时持久化上下文保持有界，并断言上一批实体已脱离上下文。
+- K3 已完成：新增 `JpaPlusContext` 快照（作用域、数据权限与租户过滤跳过深度、数据源路由栈）与 `JpaPlusContextTaskDecorator`；`run` / `call` 在 `finally` 中恢复执行线程原状态，支持嵌套与异常退出。自动配置按 `neopen.jpa.context-propagation.enabled`（默认开启）注册 `TaskDecorator`，已有自定义 Bean 时不覆盖。单元测试覆盖捕获/恢复、降深、跨线程、并发隔离与装饰器提交时捕获；自动配置测试覆盖默认注册、关闭与自定义优先。新增公开类型已登记 `API-REVIEW.md`。
 
 ### 二、P2 收尾项（并入 P3）
 

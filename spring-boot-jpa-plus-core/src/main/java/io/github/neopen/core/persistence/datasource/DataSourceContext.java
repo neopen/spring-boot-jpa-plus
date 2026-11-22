@@ -2,6 +2,7 @@ package io.github.neopen.core.persistence.datasource;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.List;
 import java.util.function.Supplier;
 
 /**
@@ -58,6 +59,19 @@ public final class DataSourceContext {
      */
     public static String current() {
         return TARGETS.get().peek();
+    }
+
+    /**
+     * 获取当前线程的数据源名称栈快照。
+     *
+     * <p>返回顺序为栈顶在前；快照创建后不受后续压栈、弹栈影响，
+     * 用于 {@link io.github.neopen.core.context.JpaPlusContext} 的
+     * 跨线程传播。</p>
+     *
+     * @return 栈顶在前的只读列表；栈为空时返回空列表
+     */
+    public static List<String> snapshot() {
+        return List.copyOf(TARGETS.get());
     }
 
     /**

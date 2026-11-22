@@ -31,6 +31,25 @@ class JpaPlusPropertiesTest {
         assertThat(properties.getEncryption().getActiveKeyId()).isNull();
         assertThat(properties.getSlowSql().isEnabled()).isFalse();
         assertThat(properties.getSlowSql().getThresholdMs()).isEqualTo(1000L);
+        assertThat(properties.getContextPropagation().isEnabled()).isTrue();
+    }
+
+    /**
+     * 验证上下文传播开关可关闭与重置。
+     */
+    @Test
+    void shouldToggleContextPropagation() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+
+        properties.getContextPropagation().setEnabled(false);
+
+        assertThat(properties.getContextPropagation().isEnabled()).isFalse();
+
+        properties.setContextPropagation(
+                new JpaPlusProperties.ContextPropagation()
+        );
+
+        assertThat(properties.getContextPropagation().isEnabled()).isTrue();
     }
 
     /**
