@@ -39,7 +39,7 @@ Instead of replacing JPA, it extends the existing development experience with re
 ### Features
 
 - **CRUD Operations** - Simplified common database operations.
-- **Batch Processing** - Convenient batch save, update, and delete operations, upsert by business key, and optional Hibernate JDBC batching.
+- **Batch Processing** - Convenient batch save, update, and delete operations, upsert by business key, optional Hibernate JDBC batching, and batch-wise stream consumption with `forEachBatch`.
 - **Dynamic Queries** - Flexible query conditions powered by JPA Criteria API.
 - **Query Utilities** - Annotation-driven conditions, safe sorting, logical deletion, a specification executor, and DTO projection.
 - **Auditing** - `@CreatedAt` / `@UpdatedAt` / `@CreatedBy` / `@UpdatedBy` fields maintained automatically, with an `AuditorProvider` SPI for the current user.
@@ -56,8 +56,9 @@ Instead of replacing JPA, it extends the existing development experience with re
 - **Reliability Aspects** - Optimistic-lock retry, slow-method logging, and slow SQL logging.
 - **Stream Queries** - Stream large result sets from the Specification, HQL, and native SQL executors.
 - **Metrics** - Optional Micrometer counters for data source routes and slow SQL, plus an asynchronous audit publisher.
+- **Context Propagation** - `JpaPlusContext` and a `TaskDecorator` carry the scope and filter switches into async tasks and restore them afterwards.
 - **Entity-VO Conversion** - Reusable object conversion and mapping.
-- **Pagination** - Simplified paginated queries, validated request paging parameters, and response handling.
+- **Pagination** - Simplified paginated queries, cursor (keyset) pagination, validated request paging parameters, and response handling.
 - **HQL & SQL** - Chained query builders with grouping, parameterized subqueries, union, pagination with automatic count, batch updates, and native SQL access.
 - **Auto Configuration** - Seamless Spring Boot integration.
 - **Modular Architecture** - Independent modules and optional extensions.
@@ -109,11 +110,12 @@ Add the starter dependency to your `pom.xml`:
 Replace `${version}` with the desired release version.
 
 > **Version notice**: this documentation describes version **0.8**.
-> The current Maven release is **0.4.x**, which does not include the 0.5 / 0.6 / 0.7 features
+> The current Maven release is **0.4.x**, which does not include the 0.5–0.8 features
 > (enum conversion, field encryption, tree utilities, snowflake IDs, desensitization,
 > optimistic-lock retry, slow logging, query builder enhancements, multi-tenancy,
 > data permission, change history, dynamic data sources, logical-delete restoration,
-> batch upsert, filter skipping, stream queries, JDBC batching and metrics).
+> batch upsert, filter skipping, stream queries, JDBC batching, metrics,
+> cursor pagination, batch streaming and context propagation).
 > See the [release page](https://jpa.helpenx.com/version) for details.
 
 ## Quick Start

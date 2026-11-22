@@ -107,6 +107,7 @@ P3 进展（2026-11-22）：
 - K3 已完成：新增 `JpaPlusContext` 快照（作用域、数据权限与租户过滤跳过深度、数据源路由栈）与 `JpaPlusContextTaskDecorator`；`run` / `call` 在 `finally` 中恢复执行线程原状态，支持嵌套与异常退出。自动配置按 `neopen.jpa.context-propagation.enabled`（默认开启）注册 `TaskDecorator`，已有自定义 Bean 时不覆盖。单元测试覆盖捕获/恢复、降深、跨线程、并发隔离与装饰器提交时捕获；自动配置测试覆盖默认注册、关闭与自定义优先。新增公开类型已登记 `API-REVIEW.md`。
 - F2 已完成：新增 `MetricsOverheadBenchmark`，在同一 H2 数据集上对比开启 `neopen.jpa.metrics` 前后的单语句 JDBC、JPA 计数与 100 实体分页查询耗时，并单独度量路由/慢 SQL 计数器成本；关闭时自动配置不注册任何 Bean，开销为零。基准数据与「日志仅按注解与阈值触发」的结论写入中英文性能文档。
 - D2 已完成：新增中英文 FAQ 页面，覆盖过滤链顺序、事务边界、跳过过滤、异步传播与流式关闭，并补充逻辑删除与租户上下文两个高频问题；侧边栏已注册。
+- D3 已完成：README（中英文）、`docs/version.md`（中英文）与 `CHANGELOG.md` 统一到 0.8.0 口径，补齐游标分页、流式分批、上下文传播与质量项；CHANGELOG 新增 0.8.0 段落，并将未发布的 0.5.0 更正为开发中。
 
 ### 二、P2 收尾项（并入 P3）
 

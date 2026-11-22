@@ -9,6 +9,66 @@
 
 
 
+## 0.8.0 (开发中)
+
+0.8.0 是首个功能完整版本，整合 0.5–0.7 的能力，并补齐游标分页、流式分批与跨线程上下文传播，同时完成发布前的质量收尾。模块结构与 Maven 坐标保持不变。
+
+### 依赖坐标
+
+```xml
+<dependency>
+    <groupId>io.github.neopen</groupId>
+    <artifactId>spring-boot-jpa-plus-starter</artifactId>
+    <version>0.8.0-SNAPSHOT</version>
+</dependency>
+```
+
+### 版本亮点
+
+- **翻页更稳定**：新增游标（keyset）分页，深分页不再随 offset 增大而变慢。
+- **导出更省内存**：执行器新增 `forEachBatch`，按批消费流式结果并及时清理一级缓存。
+- **异步上下文一致**：`JpaPlusContextTaskDecorator` 把作用域与过滤开关传播到异步任务。
+- **发布就绪**：兼容性矩阵、API 审查、覆盖率门槛、性能基线与 FAQ 全部落地。
+
+### 新增能力
+
+#### 1. 游标分页
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 游标参数 | `KeysetPageParams`、`KeysetCursor` | 单键或复合键定位，必须提供非空排序键 |
+| 游标结果 | `KeysetPage` | 返回当前页数据与下一页游标 |
+| 查询入口 | `JpaPlusSpecExecutor#keyset` | 自动追加主键 tiebreaker，禁止忽略大小写与空值排序列 |
+
+#### 2. 流式分批
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 分批消费 | `JpaPlusSpecExecutor#forEachBatch`、`JpaPlusHqlExecutor#forEachBatch`、`JpaPlusSqlExecutor#forEachBatch` | 每批回调后 `flush` / `clear`，不隐式提交事务；异常或提前退出时关闭流 |
+
+#### 3. 跨线程上下文传播
+
+| 能力 | 入口 | 说明 |
+| --- | --- | --- |
+| 上下文快照 | `JpaPlusContext` | 作用域、数据权限与租户过滤跳过深度、数据源路由栈 |
+| 任务装饰器 | `JpaPlusContextTaskDecorator` | 提交时捕获、结束时恢复，支持嵌套与异常退出 |
+| 配置开关 | `neopen.jpa.context-propagation.enabled` | 默认开启；容器已有自定义 `TaskDecorator` 时不覆盖 |
+
+### 质量与文档
+
+- 覆盖率门槛接入 `verify`：core 行覆盖率不低于 70%，autoconfigure 不低于 72%。
+- 新增 `MetricsOverheadBenchmark`，中英文性能文档补充指标与日志开销数据。
+- 新增中英文 FAQ，覆盖过滤链顺序、事务边界、跳过过滤、异步传播与流式关闭。
+- 新增公开类型已登记 `API-REVIEW.md`。
+
+### 兼容性
+
+- 不引入破坏性变更；`stream(...)` 的返回类型与语义保持不变。
+- 指标、上下文传播均可通过配置关闭，关闭时不注册任何 Bean。
+- 0.5.0 起的能力均未单独发布，随本版本一并交付。
+
+------
+
 ## 0.7.0 (开发中)
 
 0.7.0 在 0.6.0 的数据隔离与可观测能力上继续补齐**过滤控制、查询效率与运维可观测性**，模块结构与 Maven 坐标保持不变。
@@ -175,7 +235,7 @@
 
 ------
 
-## 0.5.0 (2026-11-15)
+## 0.5.0 (开发中)
 
 0.5.0 是一次较大的能力扩充，围绕**数据安全、查询表达力、多数据源治理与可观测性**补齐了多项长期需求，同时保持模块结构与 Maven 坐标不变。
 
@@ -185,7 +245,7 @@
 <dependency>
     <groupId>io.github.neopen</groupId>
     <artifactId>spring-boot-jpa-plus-starter</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.0-SNAPSHOT</version>
 </dependency>
 ```
 
@@ -195,7 +255,7 @@
 <dependency>
     <groupId>io.github.neopen</groupId>
     <artifactId>spring-boot-jpa-plus-extension</artifactId>
-    <version>0.5.0</version>
+    <version>0.5.0-SNAPSHOT</version>
 </dependency>
 ```
 

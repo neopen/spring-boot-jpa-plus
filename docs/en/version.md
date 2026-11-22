@@ -2,8 +2,8 @@
 
 ::: warning Important notice
 - The current official release is **0.4.0**, available as a Maven dependency.
-- The `main` branch corresponds to **0.5.0**, which is not released yet and will be published later.
-- The `dev` branch corresponds to **0.8.0**, the release-preparation version after 0.7.0. Its capabilities match 0.7.0 and focus on compatibility, API review and release validation.
+- The `main` branch keeps the earlier development line and is not released; capabilities from 0.5 onward will ship with **0.8.0**.
+- The `dev` branch corresponds to **0.8.0**, the release-preparation version after 0.7.0. It adds cursor pagination, streaming batches and cross-thread context propagation on top of 0.7.0, with a focus on compatibility, API review and release validation.
 - This documentation is written for **0.8.0** and describes the latest behavior of `dev`.
 - As a result, the **0.4.0 release installed from Maven does not support** the 0.5 / 0.6 / 0.7 / 0.8 capabilities described here.
 :::
@@ -12,7 +12,7 @@
 
 | Version | Status | Date | Summary |
 | --- | --- | --- | --- |
-| `0.8.0` | In development | — | Release preparation: compatibility matrix, API review, performance baseline and first official release; no new features |
+| `0.8.0` | In development | — | Release preparation: cursor pagination, streaming batches, cross-thread context propagation, plus the compatibility matrix, API review and performance baseline |
 | `0.7.0` | In development | — | Filter skipping, `OR` rules with association paths, stream queries, JDBC batch, Micrometer metrics, asynchronous audit publishing |
 | `0.6.0` | In development | — | Multi-tenancy, row-level data permission, change history, dynamic data sources and read/write splitting, logical-delete restoration, batch upsert |
 | `0.5.0` | In development | — | Adds enum conversion, field encryption, desensitization, retry, slow logging, tree building and snowflake IDs |
@@ -37,6 +37,32 @@
 | Coordinates | `io.github.neopen:*` | Same as 0.4.0 |
 
 `starter` only brings in `core`, `convert` and `autoconfigure`; `extension` has to be added separately in every version.
+
+## 0.8.0 (in development)
+
+0.8.0 adds pagination, streaming consumption and context consistency on top of 0.7.0, and completes the pre-release quality work. Module structure and Maven coordinates stay unchanged.
+
+### New: pagination and streaming
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Cursor pagination | `KeysetPageParams`, `KeysetCursor`, `KeysetPage`, `JpaPlusSpecExecutor#keyset` | Keyset query on `(sort key, primary key)` with an automatic unique tiebreaker; case-insensitive and nullable sort columns are rejected |
+| Streaming batches | `JpaPlusSpecExecutor#forEachBatch`, `JpaPlusHqlExecutor#forEachBatch`, `JpaPlusSqlExecutor#forEachBatch` | Aggregates streamed rows into batches, runs `flush` / `clear` after each callback and closes the stream on failure or early exit |
+
+### New: context propagation
+
+| Capability | Entry point | Description |
+| --- | --- | --- |
+| Context snapshot | `JpaPlusContext` | Scope, data-permission and tenant ignore depths, and the data-source routing stack |
+| Task decorator | `JpaPlusContextTaskDecorator` | Captures on submit and restores on completion, supporting nesting and exceptional exits |
+| Property switch | `neopen.jpa.context-propagation.enabled` | Enabled by default; an existing custom `TaskDecorator` is never overridden |
+
+### Quality and documentation
+
+- Coverage gates in `verify`: core line coverage at least 70%, autoconfigure at least 72%.
+- New `MetricsOverheadBenchmark`; both performance pages now include metrics and logging overhead data.
+- New FAQ pages in Chinese and English covering filter order, transaction boundaries, skipping filters, async propagation and stream closing.
+- New public types are registered in `API-REVIEW.md`.
 
 ## 0.7.0 (in development)
 
@@ -242,5 +268,5 @@
 ## Choosing a version
 
 - **Stable usage**: depend on 0.4.0 and use the capabilities documented for 0.4.0.
-- **Try 0.5 early**: clone the repository, run `mvn install -DskipTests` to install into the local repository, then point the dependency version at the locally built artifact.
-- **Wait for the release**: once 0.5.0 is published, this documentation and the Maven artifacts will match.
+- **Try 0.5 / 0.6 / 0.7 / 0.8 early**: clone the repository, run `mvn install -DskipTests` to install into the local repository, then point the dependency version at the locally built artifact.
+- **Wait for the release**: capabilities from 0.5.0 onward will ship together with 0.8.0, and this documentation will then match the Maven artifacts.
