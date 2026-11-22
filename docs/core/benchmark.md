@@ -46,6 +46,33 @@
 - 批量 upsert 的吞吐按「每次 500 行」计：新增约 139.5 次/秒（约 7 万行/秒），更新约 102.8 次/秒（约 5.1 万行/秒）。实体使用 `IDENTITY` 主键时 Hibernate 无法合并 JDBC batch，是新增路径的主要瓶颈；更新路径则以 500 条 `UPDATE` 为主。
 - H2 内存库没有网络与磁盘开销，MySQL / PostgreSQL 的绝对值会明显低于本页数据。
 
+## 指标与日志开销
+
+指标默认关闭：`JpaPlusMetricsAutoConfiguration` 带 `@ConditionalOnProperty(neopen.jpa.metrics.enabled=true)`，关闭时不会注册 `JpaPlusMetrics`、数据源后处理器或慢 SQL 代理，查询、过滤链与批量写入路径与未引入指标时完全一致，因此关闭状态的开销为零。
+
+开启后，`SlowSqlMetricsDataSource` 为每个连接与语句生成 JDK 动态代理，每次 JDBC 调用增加一次反射转发，并对 `execute*` 计时。下表在同一份 10,000 行数据上对比开启前后的耗时（5×2s 预热 + 10×2s 采样，其余环境同上）：
+
+| 基准 | 场景 | 结果 |
+| --- | --- | --- |
+| `MetricsOverheadBenchmark.jdbcPlain` | 未开启指标，单条 `SELECT 1` | 2.89 ± 0.18 µs/op |
+| `MetricsOverheadBenchmark.jdbcWithMetrics` | 开启指标，单条 `SELECT 1` | 3.33 ± 0.39 µs/op |
+| `MetricsOverheadBenchmark.jpaCountPlain` | 未开启指标，JPA 计数查询 | 10.63 ± 0.62 µs/op |
+| `MetricsOverheadBenchmark.jpaCountWithMetrics` | 开启指标，JPA 计数查询 | 18.45 ± 2.69 µs/op |
+| `MetricsOverheadBenchmark.jpaPagePlain` | 未开启指标，分页查询 100 个实体 | 211.31 ± 18.76 µs/op |
+| `MetricsOverheadBenchmark.jpaPageWithMetrics` | 开启指标，分页查询 100 个实体 | 211.13 ± 18.81 µs/op |
+| `MetricsOverheadBenchmark.recordRoute` | 记录一次数据源路由 | 118 ± 25 ns/op |
+| `MetricsOverheadBenchmark.recordSlowSql` | 记录一次慢 SQL | 231 ± 23 ns/op |
+
+解读：
+
+- 代理成本是「每条语句的固定开销」：单条 JDBC 约增加 0.4 µs，JPA 计数查询约增加 5–8 µs，与结果集大小基本无关。
+- 结果集越大，固定开销被摊得越薄：100 个实体的分页查询两次结果落在误差范围内（约 ±19 µs），指标不再是可观测的瓶颈。
+- 计数查询在 H2 内存库上只需约 10 µs，固定开销占比因此偏高；换成真实数据库（一次往返数百微秒到数毫秒）后占比会降到个位数。
+- 计数器写入约 0.12–0.23 µs/次，路由与慢 SQL 都按事件计数，不存在按行累加的成本。
+- 慢 SQL 分支只在耗时超过 `neopen.jpa.metrics.slow-threshold-ms` 时触发；基准把阈值设为 1 秒，H2 语句不会命中。
+
+日志方面，核心模块与自动配置在查询路径上不写业务日志，SQL 日志仍由 Hibernate 自身的 `show_sql` 与日志级别控制，库不额外增加日志点。扩展模块的 `@SlowLog` 切面按注解生效：未标注的方法不进入切面，没有开销；标注方法每次调用只增加两次 `System.nanoTime()` 与一次注解解析，只有耗时达到阈值才输出 WARN。设置 `neopen.extension.slow-log.enabled=false` 可以完全不注册该切面。
+
 ## 复现
 
 ```bash
@@ -58,6 +85,10 @@ java -jar spring-boot-jpa-plus-benchmarks/target/jpa-plus-benchmarks.jar
 # 快速冒烟（约 1 分钟）
 java -jar spring-boot-jpa-plus-benchmarks/target/jpa-plus-benchmarks.jar \
   -wi 1 -i 1 -f 1 -w 1s -r 1s
+
+# 指标与日志开销
+java -jar spring-boot-jpa-plus-benchmarks/target/jpa-plus-benchmarks.jar \
+  MetricsOverheadBenchmark -wi 5 -i 10 -f 1 -w 2 -r 2
 ```
 
 ## 回归使用

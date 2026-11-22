@@ -46,6 +46,33 @@ Errors are 99.9% confidence intervals. An earlier run with 3×2s warmup + 5×3s 
 - Batch upsert throughput is measured per 500 rows: about 139.5 inserts/s (about 70k rows/s) and 102.8 updates/s (about 51k rows/s). With an `IDENTITY` primary key Hibernate cannot merge inserts into a JDBC batch, which dominates the insert path; the update path issues 500 `UPDATE` statements.
 - The H2 in-memory database has no network or disk latency, so MySQL / PostgreSQL numbers will be noticeably lower.
 
+## Metrics and logging overhead
+
+Metrics are off by default: `JpaPlusMetricsAutoConfiguration` is guarded by `@ConditionalOnProperty(neopen.jpa.metrics.enabled=true)`. When disabled, no `JpaPlusMetrics`, data-source post-processor, or slow-SQL proxy is registered, so the query, filter-chain, and batch paths are identical to a build without the metrics feature. Overhead in the disabled state is therefore zero.
+
+When enabled, `SlowSqlMetricsDataSource` creates a JDK dynamic proxy for every connection and statement, adding one reflective delegation per JDBC call and timing each `execute*` invocation. The table below compares both states on the same 10,000-row dataset (5×2s warmup + 10×2s measurement; all other conditions as above):
+
+| Benchmark | Scenario | Result |
+| --- | --- | --- |
+| `MetricsOverheadBenchmark.jdbcPlain` | Metrics off, single `SELECT 1` | 2.89 ± 0.18 µs/op |
+| `MetricsOverheadBenchmark.jdbcWithMetrics` | Metrics on, single `SELECT 1` | 3.33 ± 0.39 µs/op |
+| `MetricsOverheadBenchmark.jpaCountPlain` | Metrics off, JPA count query | 10.63 ± 0.62 µs/op |
+| `MetricsOverheadBenchmark.jpaCountWithMetrics` | Metrics on, JPA count query | 18.45 ± 2.69 µs/op |
+| `MetricsOverheadBenchmark.jpaPagePlain` | Metrics off, page query of 100 entities | 211.31 ± 18.76 µs/op |
+| `MetricsOverheadBenchmark.jpaPageWithMetrics` | Metrics on, page query of 100 entities | 211.13 ± 18.81 µs/op |
+| `MetricsOverheadBenchmark.recordRoute` | Record one data-source route | 118 ± 25 ns/op |
+| `MetricsOverheadBenchmark.recordSlowSql` | Record one slow SQL statement | 231 ± 23 ns/op |
+
+Interpretation:
+
+- Proxy cost is a fixed per-statement overhead: about 0.4 µs for a single JDBC statement and 5–8 µs for a JPA query, largely independent of result-set size.
+- Larger result sets amortize that fixed cost: the 100-entity page query lands within the error bars (about ±19 µs), so metrics are no longer an observable bottleneck.
+- The count query needs only about 10 µs on the in-memory H2 database, which inflates the relative share; against a real database (hundreds of microseconds to milliseconds per round trip) the share drops to single digits.
+- Writing a counter costs about 0.12–0.23 µs per event. Routes and slow SQL are counted per event, never per row.
+- The slow-SQL branch runs only when a statement exceeds `neopen.jpa.metrics.slow-threshold-ms`; the benchmark sets it to one second, which H2 statements never reach.
+
+For logging, the core and autoconfigure modules do not emit business logs on the query path, and SQL logging is still controlled by Hibernate's own `show_sql` and log levels. The extension module's `@SlowLog` aspect is annotation-driven: unannotated methods never enter the advice and pay nothing, while annotated methods add two `System.nanoTime()` calls and one annotation lookup per invocation, emitting a WARN only when the threshold is exceeded. Setting `neopen.extension.slow-log.enabled=false` skips registering the aspect entirely.
+
 ## Reproduce
 
 ```bash
@@ -58,6 +85,10 @@ java -jar spring-boot-jpa-plus-benchmarks/target/jpa-plus-benchmarks.jar
 # Quick smoke run (about one minute)
 java -jar spring-boot-jpa-plus-benchmarks/target/jpa-plus-benchmarks.jar \
   -wi 1 -i 1 -f 1 -w 1s -r 1s
+
+# Metrics and logging overhead
+java -jar spring-boot-jpa-plus-benchmarks/target/jpa-plus-benchmarks.jar \
+  MetricsOverheadBenchmark -wi 5 -i 10 -f 1 -w 2 -r 2
 ```
 
 ## Regression Guidance

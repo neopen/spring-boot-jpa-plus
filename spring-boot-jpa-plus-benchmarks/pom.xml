@@ -33,6 +33,18 @@
             <artifactId>spring-boot-jpa-plus-core</artifactId>
         </dependency>
 
+        <!-- 指标开销基准：复用自动配置中的指标实现 -->
+        <dependency>
+            <groupId>io.github.neopen</groupId>
+            <artifactId>spring-boot-jpa-plus-autoconfigure</artifactId>
+        </dependency>
+
+        <!-- 指标注册表：使用内存实现即可 -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-core</artifactId>
+        </dependency>
+
         <!-- JMH 运行时 -->
         <dependency>
             <groupId>org.openjdk.jmh</groupId>

@@ -5,6 +5,7 @@ import jakarta.persistence.EntityManager;
 import jakarta.persistence.EntityManagerFactory;
 import jakarta.persistence.Persistence;
 
+import javax.sql.DataSource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -46,6 +47,28 @@ final class BenchSupport {
                 "jakarta.persistence.jdbc.url",
                 "jdbc:h2:mem:" + database + ";DB_CLOSE_DELAY=-1;"
                         + "DB_CLOSE_ON_EXIT=FALSE"
+        );
+
+        return Persistence.createEntityManagerFactory(
+                "jpa-plus-benchmarks",
+                overrides
+        );
+    }
+
+    /**
+     * 创建绑定指定数据源的实体管理器工厂。
+     *
+     * @param dataSource 数据源
+     * @param ddlAuto    建表策略
+     * @return 实体管理器工厂
+     */
+    static EntityManagerFactory createEntityManagerFactory(
+            DataSource dataSource,
+            String ddlAuto
+    ) {
+        Map<String, Object> overrides = Map.<String, Object>of(
+                "hibernate.connection.datasource", dataSource,
+                "hibernate.hbm2ddl.auto", ddlAuto
         );
 
         return Persistence.createEntityManagerFactory(

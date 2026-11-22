@@ -105,6 +105,7 @@ P3 进展（2026-11-22）：
 - K1 已完成：新增 `KeysetPageParams`、`KeysetCursor`、`KeysetPage` 与 `JpaPlusSpecExecutor#keyset(...)`，自动追加主键 tiebreaker，禁止忽略大小写与显式空值排序，复合主键直接拒绝；H2 集成用例覆盖单键 ASC/DESC、复合键混合方向、排序值重复时跨页推进以及与 offset 分页结果一致。core 行覆盖率由 70.83% 提升至 72.28%。
 - K2 已完成：Spec / HQL / SQL 执行器新增 `forEachBatch(...)`，按批聚合流式结果并在每批回调后执行 `flush` / `clear`，不提交事务；回调异常或提前退出时通过 try-with-resources 关闭流。单元测试覆盖整除与余数批次、空结果、异常关闭与参数校验；H2 集成用例覆盖三个执行器、十万行导出时持久化上下文保持有界，并断言上一批实体已脱离上下文。
 - K3 已完成：新增 `JpaPlusContext` 快照（作用域、数据权限与租户过滤跳过深度、数据源路由栈）与 `JpaPlusContextTaskDecorator`；`run` / `call` 在 `finally` 中恢复执行线程原状态，支持嵌套与异常退出。自动配置按 `neopen.jpa.context-propagation.enabled`（默认开启）注册 `TaskDecorator`，已有自定义 Bean 时不覆盖。单元测试覆盖捕获/恢复、降深、跨线程、并发隔离与装饰器提交时捕获；自动配置测试覆盖默认注册、关闭与自定义优先。新增公开类型已登记 `API-REVIEW.md`。
+- F2 已完成：新增 `MetricsOverheadBenchmark`，在同一 H2 数据集上对比开启 `neopen.jpa.metrics` 前后的单语句 JDBC、JPA 计数与 100 实体分页查询耗时，并单独度量路由/慢 SQL 计数器成本；关闭时自动配置不注册任何 Bean，开销为零。基准数据与「日志仅按注解与阈值触发」的结论写入中英文性能文档。
 
 ### 二、P2 收尾项（并入 P3）
 
