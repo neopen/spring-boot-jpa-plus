@@ -59,6 +59,7 @@
 - 覆盖率门槛接入 `verify`：core 行覆盖率不低于 70%，autoconfigure 不低于 72%。
 - 兼容性验证：JDK 17 / 21 与 Spring Boot 3.2 / 3.3 / 3.4 / 3.5（Hibernate 6.4 / 6.5 / 6.6）下全量 `mvn verify` 通过，并由 `compatibility.yml` 在 CI 中按矩阵执行。
 - 新增 MySQL 8.4 / PostgreSQL 16 方言集成用例（Testcontainers），覆盖过滤链、批量 upsert、流式分批与 JSON 字段。
+- `spring-boot-jpa-plus-starter` 改为 `pom` 打包（模块本身不含代码），发布时不再产出空 jar 与缺失的 javadoc。
 - Javadoc 开启严格模式（`doclint=all`、告警即失败），五个发布模块零告警。
 - `neopen.jpa.datasource.*` 逻辑名称补齐空白校验。
 - 新增 `MetricsOverheadBenchmark`，中英文性能文档补充指标与日志开销数据。

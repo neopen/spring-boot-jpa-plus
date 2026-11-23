@@ -42,8 +42,9 @@
 
 R1 进展（2026-11-23）：
 
-- 全量 `mvn verify` 通过：8 个模块、411 个测试全部成功，SpotBugs 零高危，JaCoCo 门槛达标；版本号与模块坐标一致。
+- 全量 `mvn verify` 通过：8 个模块、421 个测试（10 个方言用例无 Docker 时跳过），SpotBugs 零高危，JaCoCo 门槛达标；版本号与模块坐标一致。
 - R3 已完成：`docs/guide/migration-0.4-to-0.8.md` 与英文版补齐 0.8 新增配置（指标、上下文传播）、游标分页 / 流式分批 / 上下文传播的启用方式、行为变化与回滚说明。
+- R2 部分完成：本地 `altDeploymentRepository` staging 产出父 POM 与 5 个模块；core / autoconfigure / convert / extension 含 jar + sources + javadoc，starter 改为 pom 打包仅含 POM，避免空 jar 与缺失 javadoc。签名与 Central 上传待 CI Secrets 就绪后执行。
 
 ### 二、兼容性矩阵（P1）
 
