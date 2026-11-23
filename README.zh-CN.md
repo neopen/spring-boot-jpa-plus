@@ -852,6 +852,22 @@ mvn clean install
 
 ## 许可证
 
-Spring Boot JPA Plus 基于 [MIT License](https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE) 开源。
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+本项目基于 **Apache License 2.0** 开源。完整协议文本见 [LICENSE](LICENSE)，第三方组件声明见 [NOTICE](NOTICE)。
+
+版权所有 2026 <你的名字或组织名>。
+
+### 这对你意味着什么
+
+- 你可以将 Spring Boot JPA Plus 用于**商业项目和闭源项目**，无需公开你自己的源代码。
+- 你需要保留版权声明和许可证声明。
+- 本协议包含贡献者授予的**明确专利许可**。
+- Hibernate ORM（LGPL-2.1）作为标准 JPA 依赖被调用，本项目**未修改、未重新分发**其源码，因此其 copyleft 条款不会影响你的应用。详见 [NOTICE](NOTICE)。
+
+### 商标
+
+"Spring Boot JPA Plus" 及项目 Logo 为项目所有者的商标，**不在** Apache License 2.0 的授权范围内。
+
 
 <p align="center">如果这个项目对你有帮助，欢迎点一个 ⭐</p>

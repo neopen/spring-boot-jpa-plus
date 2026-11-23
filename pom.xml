@@ -17,6 +17,44 @@
     </description>
     <url>https://github.com/neopen/spring-boot-jpa-plus</url>
 
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+            <comments>Copyright 2026 neopen</comments>
+        </license>
+    </licenses>
+
+
+    <developers>
+        <developer>
+            <id>neopen</id>
+            <name>NeoPen</name>
+            <url>https://github.com/neopen</url>
+        </developer>
+    </developers>
+
+    <scm>
+        <connection>
+            scm:git:https://github.com/neopen/spring-boot-jpa-plus.git
+        </connection>
+        <developerConnection>
+            scm:git:ssh://[email protected]/neopen/spring-boot-jpa-plus.git
+        </developerConnection>
+        <url>https://github.com/neopen/spring-boot-jpa-plus</url>
+    </scm>
+
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/neopen/spring-boot-jpa-plus</url>
+        </repository>
+    </distributionManagement>
+
+
     <properties>
         <java.version>17</java.version>
         <maven.compiler.release>${java.version}</maven.compiler.release>
@@ -43,39 +81,6 @@
 <!--        <module>examples/spring-boot-jpa-plus-demo</module>-->
     </modules>
 
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/neopen/spring-boot-jpa-plus</url>
-        </repository>
-    </distributionManagement>
-
-    <licenses>
-        <license>
-            <name>MIT License</name>
-            <url>https://opensource.org/licenses/MIT</url>
-            <distribution>repo</distribution>
-        </license>
-    </licenses>
-
-    <developers>
-        <developer>
-            <id>neopen</id>
-            <name>NeoPen</name>
-            <url>https://github.com/neopen</url>
-        </developer>
-    </developers>
-
-    <scm>
-        <connection>
-            scm:git:https://github.com/neopen/spring-boot-jpa-plus.git
-        </connection>
-        <developerConnection>
-            scm:git:ssh://[email protected]/neopen/spring-boot-jpa-plus.git
-        </developerConnection>
-        <url>https://github.com/neopen/spring-boot-jpa-plus</url>
-    </scm>
 
     <dependencyManagement>
         <dependencies>
@@ -150,6 +155,57 @@
                             <autoPublish>true</autoPublish>
                             <waitUntil>published</waitUntil>
                         </configuration>
+                    </plugin>
+
+                    <!-- 依赖协议扫描（CI 用） -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>2.4.0</version>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/licenses</outputDirectory>
+                            <licensesOutputFile>${project.build.directory}/licenses/third-party.txt</licensesOutputFile>
+                            <excludedScopes>test</excludedScopes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>aggregate-licenses</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>aggregate-add-third-party</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- 源文件头自动插入（可选但推荐） -->
+                    <plugin>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>4.5</version>
+                        <configuration>
+                            <header>${project.basedir}/HEADER.txt</header>
+                            <properties>
+                                <owner>neopen</owner>
+                                <year>2026</year>
+                            </properties>
+                            <includes>
+                                <include>src/main/java/**/*.java</include>
+                                <include>src/main/resources/**/*</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/target/**</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>check-license-header</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
                     </plugin>
                 </plugins>
             </build>
