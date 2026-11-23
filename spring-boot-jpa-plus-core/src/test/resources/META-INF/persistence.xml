@@ -28,4 +28,21 @@
 
     </persistence-unit>
 
+    <!-- 方言集成测试：连接信息由 Testcontainers 在运行时覆盖 -->
+    <persistence-unit name="jpa-plus-dialect-test"
+                      transaction-type="RESOURCE_LOCAL">
+
+        <class>io.github.neopen.core.persistence.dialect.DialectDocument</class>
+        <exclude-unlisted-classes>true</exclude-unlisted-classes>
+
+        <properties>
+            <property name="hibernate.hbm2ddl.auto" value="create-drop"/>
+            <property name="hibernate.show_sql" value="false"/>
+            <property name="hibernate.format_sql" value="false"/>
+
+            <property name="jakarta.persistence.validation.mode" value="none"/>
+        </properties>
+
+    </persistence-unit>
+
 </persistence>

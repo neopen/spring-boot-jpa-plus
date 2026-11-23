@@ -1,6 +1,6 @@
 # 从 0.4 迁移到 0.8
 
-0.8 是 0.4 之后第一个功能完整的发布版本，包含 0.5、0.6、0.7 累积的能力。本文给出升级步骤、新能力启用方式、行为变化与回滚方案。
+0.8 是 0.4 之后第一个功能完整的发布版本，包含 0.5、0.6、0.7 累积的能力，以及游标分页、流式分批与跨线程上下文传播。本文给出升级步骤、新能力启用方式、行为变化与回滚方案。
 
 ## 前置条件
 
@@ -47,6 +47,8 @@
 - 批量：`neopen.jpa.batch-size`
 - 加密：`neopen.jpa.encryption.*`
 - 慢 SQL：`neopen.jpa.slow-sql.*`
+- 指标：`neopen.jpa.metrics.*`
+- 上下文传播：`neopen.jpa.context-propagation.enabled`
 
 完整列表见[配置参考](/reference/configuration)。
 
@@ -74,6 +76,9 @@
 | 指标监控 | 引入 Micrometer + `neopen.jpa.metrics.enabled=true` | [指标监控](/core/metrics) |
 | 异步审计发布 | `AsyncAuditLogPublisher` | [变更历史](/core/audit-trail) |
 | PostgreSQL JSONB | 自定义类型映射 | [PostgreSQL JSONB](/core/jsonb) |
+| 游标分页 | `JpaPlusSpecExecutor#keyset(...)` + `KeysetPageParams` | [游标分页](/core/keyset-pagination) |
+| 流式分批 | `forEachBatch(int, Consumer)`（Spec / HQL / SQL 执行器） | [执行器](/core/executor) |
+| 跨线程上下文传播 | 默认开启；可用 `neopen.jpa.context-propagation.enabled=false` 关闭 | [上下文传播](/core/context-propagation) |
 
 ## 行为与注意事项
 
@@ -103,18 +108,25 @@
 
 `stream(...)` 返回的流绑定当前持久化上下文，需在事务中通过 try-with-resources 使用，离开事务后再消费会失败。
 
+`forEachBatch(...)` 同样需要在事务内调用：回调内按批 `flush` / `clear`，但不会提交事务；提前退出请抛出异常，流会在关闭时释放。
+
+### 上下文传播默认开启
+
+0.8 默认注册 `JpaPlusContextTaskDecorator`，提交到线程池的任务会自动继承作用域与过滤开关。容器中已有自定义 `TaskDecorator` 时不会被覆盖；需要完全关闭时设置 `neopen.jpa.context-propagation.enabled=false`。任务结束后 ThreadLocal 会恢复为提交线程的状态，不会泄漏到池中其他任务。
+
 ## 验证清单
 
 - [ ] 依赖树中只有 0.8.0 一个版本（`mvn dependency:tree | findstr jpa-plus`）
 - [ ] 应用启动无自动配置报错
 - [ ] 核心查询 SQL 与升级前一致
 - [ ] 批量任务、定时任务执行结果一致
+- [ ] 异步任务中的过滤结果与提交线程一致
 - [ ] 启用的新能力逐项按文档冒烟
 
 ## 回滚
 
 - 将 starter / extension 版本降回 0.4.x 即可恢复原行为。
-- 若已使用 0.5–0.7 的新注解或 API，回滚前必须一并移除相关注解、配置与代码，否则会因类不存在而启动失败。
+- 若已使用 0.5–0.8 的新注解或 API，回滚前必须一并移除相关注解、配置与代码，否则会因类不存在而启动失败。
 - 新能力大多不改变表结构；多租户、逻辑删除新增的列需要自行保留（对 0.4 无副作用）。
 
 ## 常见问题

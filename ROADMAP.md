@@ -6,11 +6,11 @@
 
 | 项 | 当前状态 |
 | --- | --- |
-| 代码版本 | `0.8.0-SNAPSHOT`（`dev` 分支，未推送） |
+| 代码版本 | `0.8.0-SNAPSHOT`（`dev` 分支，已推送） |
 | Maven 已发布版本 | `0.4.x`（0.5 / 0.6 / 0.7 能力均未对外发布） |
 | 模块 | core / autoconfigure / convert / starter / extension / examples |
 | 技术基线 | JDK 17、Spring Boot 3.4.13、Hibernate 6.6.x |
-| 测试 | 355 个单元与集成测试，全量构建通过 |
+| 测试 | 421 个单元与集成测试（MySQL / PostgreSQL 用例需 Docker，无 Docker 时跳过 10 个），全量构建通过 |
 | 文档 | 中英文 VitePress 站点，构建通过 |
 | 发布链路 | `.github/workflows/publish-maven.yml`（打 `v*` 标签触发 Central + GitHub Packages + Release） |
 | 文档发布 | `.github/workflows/deploy-docs.yml` |
@@ -40,6 +40,11 @@
 | R3 | 发布说明与 `0.4 → 0.8` 迁移指南 | 迁移指南覆盖新增配置、行为变更与升级步骤 |
 | R4 | 打 `v0.8.0` 标签完成首次正式发布 | Central 可拉取依赖，GitHub Release 生成 |
 
+R1 进展（2026-11-23）：
+
+- 全量 `mvn verify` 通过：8 个模块、411 个测试全部成功，SpotBugs 零高危，JaCoCo 门槛达标；版本号与模块坐标一致。
+- R3 已完成：`docs/guide/migration-0.4-to-0.8.md` 与英文版补齐 0.8 新增配置（指标、上下文传播）、游标分页 / 流式分批 / 上下文传播的启用方式、行为变化与回滚说明。
+
 ### 二、兼容性矩阵（P1）
 
 | 编号 | 任务 | 验收标准 |
@@ -48,6 +53,17 @@
 | C2 | Spring Boot 3.2 / 3.3 / 3.4 / 3.5 兼容验证 | 至少覆盖 3.2 与 3.5，自动配置正常加载 |
 | C3 | Hibernate 6.4 / 6.5 / 6.6 兼容验证 | 过滤链、批量、流式查询在三个版本下行为一致 |
 | C4 | H2 / MySQL / PostgreSQL 方言集成测试 | 逻辑删除、JSONB、批量 upsert、流式查询各有集成用例 |
+
+C1 – C3 进展（2026-11-23）：
+
+- C1 已完成：JDK 21.0.2 与 JDK 17.0.13 下全量 `mvn verify` 均通过，测试、SpotBugs 与覆盖率门槛结果一致。
+- C2 已完成：Spring Boot 3.2.12、3.3.5、3.5.0 下全量 `mvn verify` 均通过；Boot 3.2 的 Javadoc 严格模式需为 Spring 6.1 `@Nullable` 提供 JSR-305 注解，已通过 `additionalDependencies` 固定。
+- C3 已完成：Hibernate 6.4.10（Boot 3.2.12）、6.5.3（Boot 3.3.5）、6.6.39（Boot 3.4.13）下全量 `mvn verify` 均通过，过滤链、批量与流式查询用例在三个版本下结果一致。
+
+C4 进展（2026-11-23）：
+
+- 新增 MySQL 8.4 与 PostgreSQL 16 的 Testcontainers 方言用例，覆盖逻辑删除 / 租户 / 数据权限过滤、批量 upsert、HQL 流式分批与 JSON 字段往返；未检测到 Docker 时整类跳过（本地 10 个用例跳过，构建通过）。
+- 新增 `.github/workflows/compatibility.yml`：JDK 17 / 21 × Spring Boot 3.2.12 / 3.3.5 / 3.4.13 / 3.5.0 矩阵执行全量 `verify`，CI 运行器自带 Docker，方言用例会真实执行。
 
 ### 三、API 一致性（P1）
 
@@ -58,8 +74,10 @@
 | A3 | 配置项命名与校验统一 | `neopen.jpa.*` 全部有默认值、说明与非法值校验 |
 | A4 | javadoc 完整度 | `maven-javadoc-plugin` 严格模式下无警告失败 |
 
-A3 / A4 进展（2026-11-23）：
+A1 – A4 进展（2026-11-23）：
 
+- A1 已完成：`API-REVIEW.md` 盘点 core / autoconfigure / convert / extension 的 124 个 public 类型，按稳定 / 扩展点 / 内部三级归类，并列出 6 项待冻结问题。
+- A2 已完成：异常语义在 0.8 统一为参数非法 `IllegalArgumentException`、状态不满足 `IllegalStateException`、限流 `RateLimitException`、实体元数据与转换失败 `JpaPlusException`，变更点记录在 `API-REVIEW.md`。
 - A4 已完成：`maven-javadoc-plugin` 开启 `doclint=all` 与 `failOnWarnings=true`，五个发布模块在严格模式下零告警；benchmarks 与 demo 不对外提供 API，跳过 javadoc。
 - A3 已完成：盘点 `neopen.jpa.*` 全部配置项，确认均有默认值与 Javadoc 说明；补齐 `neopen.jpa.datasource.primary / read-target / write-target` 的空白校验，并新增对应用例。
 

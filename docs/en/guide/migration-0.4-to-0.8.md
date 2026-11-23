@@ -1,6 +1,6 @@
 # Migrating from 0.4 to 0.8
 
-0.8 is the first feature-complete release after 0.4 and includes everything accumulated in 0.5, 0.6 and 0.7. This guide covers upgrade steps, how to enable new capabilities, behavior changes and rollback.
+0.8 is the first feature-complete release after 0.4 and includes everything accumulated in 0.5, 0.6 and 0.7, plus cursor pagination, batch streaming and cross-thread context propagation. This guide covers upgrade steps, how to enable new capabilities, behavior changes and rollback.
 
 ## Prerequisites
 
@@ -47,6 +47,8 @@ Upgrade the extension module in the same pass when it is used:
 - Batch: `neopen.jpa.batch-size`
 - Encryption: `neopen.jpa.encryption.*`
 - Slow SQL: `neopen.jpa.slow-sql.*`
+- Metrics: `neopen.jpa.metrics.*`
+- Context propagation: `neopen.jpa.context-propagation.enabled`
 
 See the [configuration reference](/en/reference/configuration) for the full list.
 
@@ -74,6 +76,9 @@ Every new capability is **explicitly enabled**: without the annotation, provider
 | Metrics | Add Micrometer + `neopen.jpa.metrics.enabled=true` | [Metrics](/en/core/metrics) |
 | Asynchronous audit publishing | `AsyncAuditLogPublisher` | [Change history](/en/core/audit-trail) |
 | PostgreSQL JSONB | Custom type mapping | [PostgreSQL JSONB](/en/core/jsonb) |
+| Cursor pagination | `JpaPlusSpecExecutor#keyset(...)` + `KeysetPageParams` | [Cursor pagination](/en/core/keyset-pagination) |
+| Batch streaming | `forEachBatch(int, Consumer)` (Spec / HQL / SQL executors) | [Executor](/en/core/executor) |
+| Cross-thread context propagation | Enabled by default; disable with `neopen.jpa.context-propagation.enabled=false` | [Context propagation](/en/core/context-propagation) |
 
 ## Behavior and Caveats
 
@@ -103,18 +108,25 @@ With `neopen.jpa.metrics.enabled=true` but no Micrometer on the classpath, the m
 
 The stream returned by `stream(...)` is bound to the current persistence context. Consume it inside a transaction with try-with-resources; consuming it after the transaction ends fails.
 
+`forEachBatch(...)` must also run inside a transaction: it flushes and clears per batch but never commits. To stop early, throw an exception so the stream is closed and released.
+
+### Context propagation is enabled by default
+
+0.8 registers `JpaPlusContextTaskDecorator` by default, so tasks submitted to thread pools inherit the scope and filter switches. An existing custom `TaskDecorator` is never overridden; set `neopen.jpa.context-propagation.enabled=false` to disable it entirely. When a task completes, thread locals are restored to the submitting thread's state and do not leak into later tasks.
+
 ## Verification Checklist
 
 - [ ] Only one 0.8.0 version in the dependency tree (`mvn dependency:tree | findstr jpa-plus`)
 - [ ] Application starts without auto-configuration errors
 - [ ] Core query SQL matches the pre-upgrade statements
 - [ ] Batch and scheduled jobs produce identical results
+- [ ] Async tasks see the same filtered results as the submitting thread
 - [ ] Each enabled capability passes a smoke test following its documentation
 
 ## Rollback
 
 - Downgrading the starter / extension to 0.4.x restores the previous behavior.
-- If 0.5–0.7 annotations or APIs are already in use, remove them (and their configuration) before rolling back, otherwise startup fails on missing classes.
+- If 0.5–0.8 annotations or APIs are already in use, remove them (and their configuration) before rolling back, otherwise startup fails on missing classes.
 - Most capabilities do not change the schema; extra columns added for multi-tenancy or logical deletion can stay and are harmless to 0.4.
 
 ## FAQ

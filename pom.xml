@@ -221,6 +221,14 @@
                     <!-- 严格模式：doclint 检查全部类型，出现告警即失败 -->
                     <doclint>all</doclint>
                     <failOnWarnings>true</failOnWarnings>
+                    <!-- Spring 6.1 的 @Nullable 引用 JSR-305 注解，需显式加入 javadoc 类路径 -->
+                    <additionalDependencies>
+                        <additionalDependency>
+                            <groupId>com.google.code.findbugs</groupId>
+                            <artifactId>jsr305</artifactId>
+                            <version>3.0.2</version>
+                        </additionalDependency>
+                    </additionalDependencies>
                 </configuration>
                 <executions>
                     <execution>
