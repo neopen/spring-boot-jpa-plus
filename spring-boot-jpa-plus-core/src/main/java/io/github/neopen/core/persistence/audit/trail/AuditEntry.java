@@ -30,6 +30,14 @@ public record AuditEntry(
 
     /**
      * 校验并复制变更明细。
+     *
+     * @param entityName 实体名称（简单类名）
+     * @param entityType 实体类型
+     * @param entityId   实体主键
+     * @param action     变更类型
+     * @param changes    字段变更明细
+     * @param actor      操作人
+     * @param occurredAt 发生时间
      */
     public AuditEntry {
         changes = changes == null ? List.of() : List.copyOf(changes);

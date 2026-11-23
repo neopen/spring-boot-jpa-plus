@@ -26,6 +26,12 @@ public record QueryConditionEntry(
 
     /**
      * 规范化分组名。
+     *
+     * @param group    条件分组名，为空时归一为空字符串
+     * @param field    字段名或列名
+     * @param operator 条件运算符
+     * @param value    条件值；无参运算符为 {@code null}
+     * @param second   区间结束值；仅 {@link ConditionOperator#BETWEEN} 使用
      */
     public QueryConditionEntry {
         group = group == null ? "" : group.trim();

@@ -54,6 +54,10 @@ public record DataRule(String field, Collection<?> values, Logic logic) {
 
     /**
      * 校验字段、取值与组合方式。
+     *
+     * @param field  实体字段名
+     * @param values 允许的字段值
+     * @param logic  规则组合方式
      */
     public DataRule {
         if (field == null || field.isBlank()) {

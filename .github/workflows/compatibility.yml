@@ -16,6 +16,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # 限制并发，避免多个组合同时下载依赖触发 Maven Central 429
+      max-parallel: 2
       matrix:
         include:
           - java: 17
@@ -40,5 +42,10 @@ jobs:
 
       # 覆盖 CI 构建缓存的 Spring Boot 版本，执行全量 verify。
       # 运行器自带 Docker，MySQL / PostgreSQL 的 Testcontainers 用例会真实执行。
+      # 重试参数用于缓解 Maven Central 偶发 429。
       - name: Verify
-        run: mvn -B -ntp verify -Dgpg.skip=true -Dspring-boot.version=${{ matrix.boot }}
+        run: >
+          mvn -B -ntp verify -Dgpg.skip=true
+          -Dspring-boot.version=${{ matrix.boot }}
+          -Dmaven.wagon.http.retryHandler.count=5
+          -Daether.connector.http.retryHandler.count=5
