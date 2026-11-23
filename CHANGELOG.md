@@ -57,6 +57,8 @@
 ### 质量与文档
 
 - 覆盖率门槛接入 `verify`：core 行覆盖率不低于 70%，autoconfigure 不低于 72%。
+- Javadoc 开启严格模式（`doclint=all`、告警即失败），五个发布模块零告警。
+- `neopen.jpa.datasource.*` 逻辑名称补齐空白校验。
 - 新增 `MetricsOverheadBenchmark`，中英文性能文档补充指标与日志开销数据。
 - 新增中英文 FAQ，覆盖过滤链顺序、事务边界、跳过过滤、异步传播与流式关闭。
 - 新增公开类型已登记 `API-REVIEW.md`。

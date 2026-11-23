@@ -100,4 +100,30 @@ class JpaPlusPropertiesTest {
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("batch-size must be greater than zero");
     }
+
+    /**
+     * 验证数据源逻辑名称不能为空白。
+     */
+    @Test
+    void shouldRejectBlankDatasourceTarget() {
+        JpaPlusProperties properties = new JpaPlusProperties();
+
+        assertThatThrownBy(() -> properties.getDatasource().setPrimary(" "))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("neopen.jpa.datasource.primary");
+
+        assertThatThrownBy(() -> properties.getDatasource().setReadTarget(""))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("neopen.jpa.datasource.read-target");
+
+        assertThatThrownBy(
+                () -> properties.getDatasource().setWriteTarget(null)
+        )
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessageContaining("neopen.jpa.datasource.write-target");
+
+        properties.getDatasource().setPrimary("main");
+
+        assertThat(properties.getDatasource().getPrimary()).isEqualTo("main");
+    }
 }

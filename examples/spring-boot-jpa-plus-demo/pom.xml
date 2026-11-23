@@ -19,6 +19,8 @@
         <!-- Demo 不发布到 Maven 仓库 -->
         <maven.deploy.skip>true</maven.deploy.skip>
         <skipPublishing>true</skipPublishing>
+        <!-- Demo 不对外提供 API，跳过 javadoc 与严格检查 -->
+        <maven.javadoc.skip>true</maven.javadoc.skip>
     </properties>
 
     <dependencies>

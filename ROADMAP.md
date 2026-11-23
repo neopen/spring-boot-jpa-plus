@@ -58,6 +58,11 @@
 | A3 | 配置项命名与校验统一 | `neopen.jpa.*` 全部有默认值、说明与非法值校验 |
 | A4 | javadoc 完整度 | `maven-javadoc-plugin` 严格模式下无警告失败 |
 
+A3 / A4 进展（2026-11-23）：
+
+- A4 已完成：`maven-javadoc-plugin` 开启 `doclint=all` 与 `failOnWarnings=true`，五个发布模块在严格模式下零告警；benchmarks 与 demo 不对外提供 API，跳过 javadoc。
+- A3 已完成：盘点 `neopen.jpa.*` 全部配置项，确认均有默认值与 Javadoc 说明；补齐 `neopen.jpa.datasource.primary / read-target / write-target` 的空白校验，并新增对应用例。
+
 ### 四、性能与质量（P2）
 
 | 编号 | 任务 | 验收标准 |

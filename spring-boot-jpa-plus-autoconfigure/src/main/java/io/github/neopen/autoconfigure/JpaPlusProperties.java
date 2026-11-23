@@ -1247,10 +1247,14 @@ public class JpaPlusProperties {
         /**
          * 设置默认数据源逻辑名称。
          *
-         * @param primary 默认数据源逻辑名称
+         * @param primary 默认数据源逻辑名称，不能为空白
+         * @throws IllegalArgumentException 名称为空或空白时抛出
          */
         public void setPrimary(String primary) {
-            this.primary = primary;
+            this.primary = requireText(
+                    primary,
+                    "neopen.jpa.datasource.primary"
+            );
         }
 
         /**
@@ -1265,10 +1269,14 @@ public class JpaPlusProperties {
         /**
          * 设置只读数据源逻辑名称。
          *
-         * @param readTarget 只读数据源逻辑名称
+         * @param readTarget 只读数据源逻辑名称，不能为空白
+         * @throws IllegalArgumentException 名称为空或空白时抛出
          */
         public void setReadTarget(String readTarget) {
-            this.readTarget = readTarget;
+            this.readTarget = requireText(
+                    readTarget,
+                    "neopen.jpa.datasource.read-target"
+            );
         }
 
         /**
@@ -1283,10 +1291,14 @@ public class JpaPlusProperties {
         /**
          * 设置读写数据源逻辑名称。
          *
-         * @param writeTarget 读写数据源逻辑名称
+         * @param writeTarget 读写数据源逻辑名称，不能为空白
+         * @throws IllegalArgumentException 名称为空或空白时抛出
          */
         public void setWriteTarget(String writeTarget) {
-            this.writeTarget = writeTarget;
+            this.writeTarget = requireText(
+                    writeTarget,
+                    "neopen.jpa.datasource.write-target"
+            );
         }
 
         /**
@@ -1687,5 +1699,21 @@ public class JpaPlusProperties {
         public void setEnabled(boolean enabled) {
             this.enabled = enabled;
         }
+    }
+
+    /**
+     * 校验配置文本非空白。
+     *
+     * @param value 配置值
+     * @param key   配置键，用于错误信息
+     * @return 原配置值
+     * @throws IllegalArgumentException 值为 {@code null} 或空白时抛出
+     */
+    private static String requireText(String value, String key) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException(key + " must not be blank");
+        }
+
+        return value;
     }
 }
