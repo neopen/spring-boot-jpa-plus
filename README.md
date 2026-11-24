@@ -748,6 +748,27 @@ Contributions are welcome!
 
 ## License
 
-Spring Boot JPA Plus is licensed under the [MIT License](https://github.com/neopen/spring-boot-jpa-plus/blob/main/LICENSE).
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+
+This project is licensed under the **Apache License 2.0**. See the
+[LICENSE](LICENSE) file for the full text, and [NOTICE](NOTICE) for
+third-party attributions.
+
+Copyright 2026 neopen.
+
+### What this means for you
+
+- You may use Spring Boot JPA Plus in **commercial and closed-source**
+  applications without releasing your own source code.
+- You must retain the copyright and license notices.
+- The license includes an **express patent grant** from contributors.
+- Hibernate ORM (LGPL-2.1) is used as a standard JPA dependency and is
+  **not modified or redistributed** by this project, so its copyleft
+  terms do not affect your application. See [NOTICE](NOTICE).
+
+### Trademarks
+
+"Spring Boot JPA Plus" and the project logo are trademarks of the project
+owner and are **not** covered by the Apache License 2.0.
 
 <p align="center">  If you find this project useful, please consider giving it a ⭐</p>

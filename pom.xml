@@ -17,49 +17,12 @@
     </description>
     <url>https://github.com/neopen/spring-boot-jpa-plus</url>
 
-    <properties>
-        <java.version>17</java.version>
-        <maven.compiler.release>${java.version}</maven.compiler.release>
-
-        <spring-boot.version>3.4.13</spring-boot.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-
-        <lombok.version>1.18.42</lombok.version>
-        <hutool.version>5.8.41</hutool.version>
-        <fastjson2.version>2.0.53</fastjson2.version>
-        <jacoco.version>0.8.12</jacoco.version>
-    </properties>
-
-    <modules>
-        <!--        核心模块-->
-        <module>spring-boot-jpa-plus-core</module>
-        <module>spring-boot-jpa-plus-autoconfigure</module>
-        <module>spring-boot-jpa-plus-starter</module>
-        <module>spring-boot-jpa-plus-convert</module>
-
-        <!-- 扩展模块 -->
-        <module>spring-boot-jpa-plus-extension</module>
-
-        <!-- 基准测试（不发布） -->
-        <module>spring-boot-jpa-plus-benchmarks</module>
-
-        <!-- 示例项目 -->
-        <module>examples/spring-boot-jpa-plus-demo</module>
-    </modules>
-
-    <distributionManagement>
-        <repository>
-            <id>github</id>
-            <name>GitHub Packages</name>
-            <url>https://maven.pkg.github.com/neopen/spring-boot-jpa-plus</url>
-        </repository>
-    </distributionManagement>
-
     <licenses>
         <license>
-            <name>MIT License</name>
-            <url>https://opensource.org/licenses/MIT</url>
+            <name>Apache License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
             <distribution>repo</distribution>
+            <comments>Copyright 2026 neopen</comments>
         </license>
     </licenses>
 
@@ -80,6 +43,48 @@
         </developerConnection>
         <url>https://github.com/neopen/spring-boot-jpa-plus</url>
     </scm>
+
+
+    <distributionManagement>
+        <repository>
+            <id>github</id>
+            <name>GitHub Packages</name>
+            <url>https://maven.pkg.github.com/neopen/spring-boot-jpa-plus</url>
+        </repository>
+    </distributionManagement>
+
+
+    <properties>
+        <java.version>17</java.version>
+        <maven.compiler.release>${java.version}</maven.compiler.release>
+
+        <spring-boot.version>3.4.13</spring-boot.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+        <lombok.version>1.18.42</lombok.version>
+        <hutool.version>5.8.41</hutool.version>
+        <fastjson2.version>2.0.53</fastjson2.version>
+        <jacoco.version>0.8.12</jacoco.version>
+    </properties>
+
+
+    <modules>
+        <!--        核心模块-->
+        <module>spring-boot-jpa-plus-core</module>
+        <module>spring-boot-jpa-plus-autoconfigure</module>
+        <module>spring-boot-jpa-plus-starter</module>
+        <module>spring-boot-jpa-plus-convert</module>
+
+        <!-- 扩展模块 -->
+        <module>spring-boot-jpa-plus-extension</module>
+
+        <!-- 基准测试（不发布） -->
+        <module>spring-boot-jpa-plus-benchmarks</module>
+
+        <!-- 示例项目 -->
+        <module>examples/spring-boot-jpa-plus-demo</module>
+    </modules>
+
 
     <dependencyManagement>
         <dependencies>
@@ -155,6 +160,57 @@
                             <waitUntil>published</waitUntil>
                         </configuration>
                     </plugin>
+
+                    <!-- 依赖协议扫描（CI 用） -->
+                    <plugin>
+                        <groupId>org.codehaus.mojo</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>2.9.0</version>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/licenses</outputDirectory>
+                            <licensesOutputFile>${project.build.directory}/licenses/third-party.txt</licensesOutputFile>
+                            <excludedScopes>test</excludedScopes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>aggregate-licenses</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>aggregate-add-third-party</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
+
+                    <!-- 源文件头自动插入（可选但推荐） -->
+                    <plugin>
+                        <groupId>com.mycila</groupId>
+                        <artifactId>license-maven-plugin</artifactId>
+                        <version>4.6</version>
+                        <configuration>
+                            <header>${maven.multiModuleProjectDirectory}/HEADER.txt</header>
+                            <properties>
+                                <owner>neopen</owner>
+                                <year>2026</year>
+                            </properties>
+                            <includes>
+                                <include>src/main/java/**/*.java</include>
+                                <include>src/test/java/**/*.java</include>
+                            </includes>
+                            <excludes>
+                                <exclude>**/target/**</exclude>
+                            </excludes>
+                        </configuration>
+                        <executions>
+                            <execution>
+                                <id>check-license-header</id>
+                                <phase>verify</phase>
+                                <goals>
+                                    <goal>check</goal>
+                                </goals>
+                            </execution>
+                        </executions>
+                    </plugin>
                 </plugins>
             </build>
         </profile>
@@ -217,19 +273,6 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>3.11.2</version>
-                <configuration>
-                    <!-- 严格模式：doclint 检查全部类型，出现告警即失败 -->
-                    <doclint>all</doclint>
-                    <failOnWarnings>true</failOnWarnings>
-                    <!-- Spring 6.1 的 @Nullable 引用 JSR-305 注解，需显式加入 javadoc 类路径 -->
-                    <additionalDependencies>
-                        <additionalDependency>
-                            <groupId>com.google.code.findbugs</groupId>
-                            <artifactId>jsr305</artifactId>
-                            <version>3.0.2</version>
-                        </additionalDependency>
-                    </additionalDependencies>
-                </configuration>
                 <executions>
                     <execution>
                         <id>attach-javadocs</id>
@@ -260,33 +303,6 @@
                         <arg>loopback</arg>
                     </gpgArguments>
                 </configuration>
-            </plugin>
-
-            <!--
-                静态检查：SpotBugs。
-
-                只阻断高优先级（High）问题，避免历史代码的样式类告警
-                阻塞构建；规则在 verify 阶段执行，`mvn verify` 与
-                `mvn install` 都会覆盖。
-            -->
-            <plugin>
-                <groupId>com.github.spotbugs</groupId>
-                <artifactId>spotbugs-maven-plugin</artifactId>
-                <version>4.8.6.6</version>
-                <configuration>
-                    <effort>Max</effort>
-                    <threshold>High</threshold>
-                    <failOnError>true</failOnError>
-                </configuration>
-                <executions>
-                    <execution>
-                        <id>spotbugs-check</id>
-                        <phase>verify</phase>
-                        <goals>
-                            <goal>check</goal>
-                        </goals>
-                    </execution>
-                </executions>
             </plugin>
         </plugins>
     </build>

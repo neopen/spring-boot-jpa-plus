@@ -1,0 +1,50 @@
+Spring Boot JPA Plus
+Copyright 2026 neopen
+
+This product is licensed under the Apache License, Version 2.0.
+See the LICENSE file for the full license text.
+
+---------------------------------------------------------------------------
+Third-Party Components
+---------------------------------------------------------------------------
+
+This product depends on the following third-party components. They are
+used as-is (linked as dependencies) and have not been modified by this
+project, unless explicitly stated otherwise.
+
+- Spring Boot / Spring Framework
+  License: Apache License 2.0
+  Copyright: Spring Authors / VMware, Inc. / Broadcom Inc.
+  https://spring.io/
+
+- Spring Data JPA
+  License: Apache License 2.0
+  Copyright: Spring Authors / VMware, Inc. / Broadcom Inc.
+  https://spring.io/projects/spring-data-jpa
+
+- Hibernate ORM (JPA implementation)
+  License: GNU Lesser General Public License 2.1 (LGPL-2.1)
+  Copyright: Red Hat, Inc. and individual contributors
+  https://hibernate.org/orm/
+  NOTE: This project calls Hibernate through the standard JPA API and
+  does NOT modify, embed, or redistribute Hibernate source code.
+  The LGPL-2.1 obligations therefore do not extend to this project's
+  source code or to downstream applications that use this library.
+
+- Jakarta Persistence API (jakarta.persistence)
+  License: Eclipse Public License 2.0 / Eclipse Distribution License 1.0
+  Copyright: Eclipse Foundation
+  https://jakarta.ee/specifications/persistence/
+
+- Other dependencies
+  See the dependency manifest (pom.xml / build.gradle) and the
+  generated third-party license report for the full list.
+
+---------------------------------------------------------------------------
+Trademarks
+---------------------------------------------------------------------------
+
+"Spring Boot JPA Plus" and the project logo are trademarks of the project
+owner. The Apache License 2.0 does not grant permission to use these
+names or marks, except for reasonable and customary use in describing
+the origin of the work.
