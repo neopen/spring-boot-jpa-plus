@@ -1,11 +1,5 @@
 # Getting Started
 
-::: warning Version notice
-The documentation on this site corresponds to **version 0.5** and describes the latest behaviour of the `main` branch.
-The current officially released Maven version is **0.4.x** and does not include the capabilities added in 0.5.
-When the dependency version does not match the documentation, refer to [Releases](/en/version).
-:::
-
 ## Requirements
 
 | Item | Requirement |

@@ -31,11 +31,6 @@ features:
     details: "Idempotency, rate limiting and the unified pagination response are independent of each other and enabled by configuration property; when they are not included, the core modules stay untouched."
 ---
 
-::: warning Version notice
-The documentation on this site corresponds to **version 0.5**. The current officially released Maven version is **0.4.x**, which does not support the capabilities added in 0.5.
-See [Releases](/en/version) for details.
-:::
-
 ## Design boundaries
 
 Spring Boot JPA Plus is an enhancement layer built on top of Spring Data JPA, not a new ORM:
