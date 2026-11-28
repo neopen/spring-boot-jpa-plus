@@ -1,6 +1,6 @@
 # 配置项
 
-所有配置项由 `JpaPlusProperties` 绑定，前缀为 `neopen.jpa`。扩展组件的开关使用 `neopen.extension` 前缀。
+除特别说明外，配置项由 `JpaPlusProperties` 绑定，前缀为 `neopen.jpa`。扩展组件的开关使用 `neopen.extension` 前缀。
 
 ## JPA Plus
 
@@ -20,6 +20,7 @@
 | `neopen.jpa.encryption.active-key-id` | `String` | 空 | 当前加密使用的密钥编号；配置多把密钥时必须指定 |
 | `neopen.jpa.slow-sql.enabled` | `boolean` | `false` | 是否记录慢 SQL，开启后通过 Hibernate 阈值输出 |
 | `neopen.jpa.slow-sql.threshold-ms` | `long` | `1000` | 慢 SQL 阈值，单位毫秒，必须大于 0 |
+| `neopen.jpa.convert.date-validation.enabled` | `boolean` | `true` | 是否注册日期字符串校验切面；由自动配置条件直接读取，convert 模块不存在时自动跳过 |
 | `neopen.jpa.scopes.<name>` | `object` | 空 | 按数据源作用域覆盖上述开关，见下文「多数据源作用域隔离」 |
 
 ## 扩展组件
@@ -58,6 +59,9 @@ neopen:
     slow-sql:
       enabled: true
       threshold-ms: 1000
+    convert:
+      date-validation:
+        enabled: true
   extension:
     idempotent:
       enabled: true
@@ -79,6 +83,7 @@ neopen:
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`、`EncryptedFields.setKey(...)`（仅在配置了密钥时写入） |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)`（配置了多密钥时优先使用） |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | 注册 `SlowSqlHibernateCustomizer`，写入 Hibernate 慢查询阈值 |
+| `convert.date-validation.enabled` | 注册 `DateStrAspect`（convert 模块存在时） |
 
 这些值在应用启动时写入静态开关，因此同一 JVM 内的所有使用方共享。运行期也可以通过对应工具类的 setter 调整。
 

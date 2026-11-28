@@ -115,6 +115,10 @@ export default defineConfig({
                                 link: '/en/convert/param-mapper'
                             },
                             {
+                                text: 'Date Validation',
+                                link: '/en/convert/date-validation'
+                            },
+                            {
                                 text: 'Idempotency',
                                 link: '/en/extension/idempotent'
                             },
@@ -245,6 +249,7 @@ export default defineConfig({
                 items: [
                     { text: 'Entity → VO 转换', link: '/convert/entity-vo' },
                     { text: '参数 → 实体映射', link: '/convert/param-mapper' },
+                    { text: '日期字符串校验', link: '/convert/date-validation' },
                     { text: '幂等控制', link: '/extension/idempotent' },
                     { text: '接口限流', link: '/extension/rate-limit' },
                     { text: '操作日志注解', link: '/extension/logging' },
