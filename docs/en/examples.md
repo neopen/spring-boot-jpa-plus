@@ -39,6 +39,37 @@ neopen:
 - Phone numbers use `DeterministicEncryptedFieldConverter`, so encrypt the plaintext before querying; ID cards use a random IV, so the same plaintext produces different ciphertext each time.
 - `AuditConfiguration` registers an `AuditorProvider` that reads the `X-Demo-User` header and falls back to `demo-user` outside a web request.
 
+## Param mapping examples
+
+`ConvertDemoController` collects `ParamMapper` and `ParamMapping` examples. See `service/ConvertDemoService`; these endpoints only preview the mapping and do not persist anything:
+
+| Method | Path | Demonstration |
+| --- | --- | --- |
+| POST | `/convert/order/preview` | Column aliases, nested paths, reference resolution, renaming, custom conversion, JPA-managed field skipping, plus unknown/converted field reports |
+| POST | `/convert/order/strict` | Strict mode rejects unmatched fields |
+| POST | `/convert/order/null-policy` | Compares `IGNORE` and `SET_NULL` null policies |
+| POST | `/convert/order/validate` | `@DateStrValid` + `@DateStrFormat` date validation |
+
+Sample request:
+
+```json
+{
+  "id": 123,
+  "version": 5,
+  "orderNo": "NO-1",
+  "amount": "99.50",
+  "orderDate": "2026-01-02",
+  "city": "Shanghai",
+  "detail": "Pudong",
+  "productId": 1,
+  "memo": "rush",
+  "clientVersion": "1.0",
+  "unknownField": "x"
+}
+```
+
+Expected result: `id`, `version` and `createTime` keep the server-side preset values; `orderNo` is written through the column alias; `amount`, `orderDate` and `productId` appear in `convertedFields`; `memo` is renamed to `remark` and wrapped by a custom conversion; `unknownField` appears in `unknownFields`.
+
 ## 0.6 feature examples
 
 `DocumentFeatureController` collects the capabilities added in 0.6. See `bean/entity/DocumentRecord` and `config/FeatureDataConfiguration`:

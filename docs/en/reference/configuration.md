@@ -1,6 +1,6 @@
 # Configuration Properties
 
-All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Switches of extension components use the `neopen.extension` prefix.
+Unless stated otherwise, properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Switches of extension components use the `neopen.extension` prefix.
 
 ## JPA Plus
 
@@ -28,6 +28,7 @@ All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Sw
 | `neopen.jpa.encryption.active-key-id` | `String` | empty | Key id used for new ciphertext; required when multiple keys are configured |
 | `neopen.jpa.slow-sql.enabled` | `boolean` | `false` | Whether to log slow SQL through Hibernate's threshold |
 | `neopen.jpa.slow-sql.threshold-ms` | `long` | `1000` | Slow SQL threshold in milliseconds, must be greater than 0 |
+| `neopen.jpa.convert.date-validation.enabled` | `boolean` | `true` | Whether to register the date validation aspect; read directly by the auto-configuration condition and skipped when the convert module is absent |
 | `neopen.jpa.scopes.<name>` | `object` | empty | Overrides the switches above per datasource scope, see "Multi-datasource scope isolation" below |
 
 ## Extension Components
@@ -80,6 +81,9 @@ neopen:
     slow-sql:
       enabled: true
       threshold-ms: 1000
+    convert:
+      date-validation:
+        enabled: true
   extension:
     idempotent:
       enabled: true
@@ -105,6 +109,7 @@ neopen:
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`, `EncryptedFields.setKey(...)` (written only when the key is configured) |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)` (used when multiple keys are configured) |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | Registers `SlowSqlHibernateCustomizer` with Hibernate's slow query threshold |
+| `convert.date-validation.enabled` | Registers `DateStrAspect` when the convert module is present |
 
 These values are written to static switches when the application starts, so all consumers in the same JVM share them. They can also be adjusted at runtime through the setters of the corresponding utility classes.
 
