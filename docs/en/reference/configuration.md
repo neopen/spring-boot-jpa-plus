@@ -1,6 +1,6 @@
 # Configuration Properties
 
-All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Switches of extension components use the `neopen.extension` prefix.
+Unless stated otherwise, properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Switches of extension components use the `neopen.extension` prefix.
 
 ## JPA Plus
 
@@ -28,6 +28,7 @@ All properties are bound by `JpaPlusProperties` with the prefix `neopen.jpa`. Sw
 | `neopen.jpa.encryption.active-key-id` | `String` | empty | Key id used for new ciphertext; required when multiple keys are configured |
 | `neopen.jpa.slow-sql.enabled` | `boolean` | `false` | Whether to log slow SQL through Hibernate's threshold |
 | `neopen.jpa.slow-sql.threshold-ms` | `long` | `1000` | Slow SQL threshold in milliseconds, must be greater than 0 |
+| `neopen.jpa.convert.date-validation.enabled` | `boolean` | `true` | Whether to register the date validation aspect; read directly by the auto-configuration condition and skipped when the convert module is absent |
 | `neopen.jpa.jdbc-batch.enabled` | `boolean` | `false` | Whether to apply Hibernate JDBC batch settings automatically |
 | `neopen.jpa.jdbc-batch.batch-size` | `int` | `50` | Written to `hibernate.jdbc.batch_size`, must be greater than 0 |
 | `neopen.jpa.jdbc-batch.order-inserts` | `boolean` | `true` | Whether to order INSERTs by entity type for efficient batching |
@@ -86,6 +87,9 @@ neopen:
     slow-sql:
       enabled: true
       threshold-ms: 1000
+    convert:
+      date-validation:
+        enabled: true
   extension:
     idempotent:
       enabled: true
@@ -111,6 +115,7 @@ neopen:
 | `encryption.enabled` / `encryption.key` | `EncryptedFields.setEnabled(...)`, `EncryptedFields.setKey(...)` (written only when the key is configured) |
 | `encryption.keys` / `encryption.active-key-id` | `EncryptedFields.setKeys(...)` (used when multiple keys are configured) |
 | `slow-sql.enabled` / `slow-sql.threshold-ms` | Registers `SlowSqlHibernateCustomizer` with Hibernate's slow query threshold |
+| `convert.date-validation.enabled` | Registers `DateStrAspect` when the convert module is present |
 | `jdbc-batch.*` | Registers `JdbcBatchHibernateCustomizer` with Hibernate JDBC batch settings |
 | `metrics.enabled` / `metrics.slow-threshold-ms` | Registers `JpaPlusMetrics` and wraps the datasource with `SlowSqlMetricsDataSource`; requires Micrometer |
 

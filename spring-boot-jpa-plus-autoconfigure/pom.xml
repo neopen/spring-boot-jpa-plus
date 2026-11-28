@@ -42,6 +42,18 @@
         </dependency>
 
         <!--
+            参数映射与日期校验扩展。
+
+            该依赖为可选：业务项目未引入 convert 模块时，
+            日期校验自动配置会通过条件判断自动跳过。
+        -->
+        <dependency>
+            <groupId>io.github.neopen</groupId>
+            <artifactId>spring-boot-jpa-plus-convert</artifactId>
+            <optional>true</optional>
+        </dependency>
+
+        <!--
             Spring Boot 自动配置基础能力。
 
             提供：

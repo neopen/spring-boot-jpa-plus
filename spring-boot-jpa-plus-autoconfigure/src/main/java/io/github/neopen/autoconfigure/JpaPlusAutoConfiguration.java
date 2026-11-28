@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 neopen
+ * Copyright 2026 neopen (余一叶知秋尽)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package io.github.neopen.autoconfigure;
 
+import io.github.neopen.convert.aspect.DateStrAspect;
 import io.github.neopen.core.context.JpaPlusContextTaskDecorator;
 import io.github.neopen.core.persistence.audit.AuditorProvider;
 import io.github.neopen.core.persistence.audit.trail.AuditLogPublisher;
@@ -335,6 +336,41 @@ public class JpaPlusAutoConfiguration {
                 EntityManager entityManager
         ) {
             return new JpaPlusSqlExecutor(entityManager);
+        }
+    }
+
+    /**
+     * 日期字符串校验自动配置。
+     *
+     * <p>
+     * convert 模块存在时注册 {@link DateStrAspect}，业务项目无需
+     * 手动扫描 {@code io.github.neopen.convert} 包。
+     * </p>
+     *
+     * <p>
+     * 可通过 {@code neopen.jpa.convert.date-validation.enabled=false}
+     * 关闭该切面。
+     * </p>
+     */
+    @Configuration(proxyBeanMethods = false)
+    @ConditionalOnClass(DateStrAspect.class)
+    @ConditionalOnProperty(
+            prefix = "neopen.jpa.convert.date-validation",
+            name = "enabled",
+            havingValue = "true",
+            matchIfMissing = true
+    )
+    static class DateValidationConfiguration {
+
+        /**
+         * 创建日期字符串校验切面。
+         *
+         * @return 日期字符串校验切面
+         */
+        @Bean
+        @ConditionalOnMissingBean(DateStrAspect.class)
+        public DateStrAspect dateStrAspect() {
+            return new DateStrAspect();
         }
     }
 }

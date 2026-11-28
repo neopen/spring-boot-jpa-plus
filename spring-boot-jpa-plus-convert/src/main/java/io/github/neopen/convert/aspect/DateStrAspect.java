@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 neopen
+ * Copyright 2026 neopen (余一叶知秋尽)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,27 +15,37 @@
  */
 package io.github.neopen.convert.aspect;
 
-import com.alibaba.fastjson2.JSONArray;
-import com.alibaba.fastjson2.JSONObject;
 import io.github.neopen.convert.annotation.DateStrFormat;
+import io.github.neopen.convert.annotation.DateStrValid;
+import io.github.neopen.core.exception.JpaPlusException;
+import io.github.neopen.core.persistence.mapping.BeanIntrospector;
+import io.github.neopen.core.persistence.mapping.PropertyAccessor;
 import org.aspectj.lang.JoinPoint;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
 import org.aspectj.lang.annotation.Pointcut;
 import org.springframework.stereotype.Component;
-import org.springframework.util.ObjectUtils;
 
+import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.text.ParseException;
-import java.text.SimpleDateFormat;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import java.time.DateTimeException;
+import java.time.temporal.TemporalAccessor;
+import java.time.format.DateTimeFormatter;
+import java.util.Collections;
+import java.util.IdentityHashMap;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 日期字符串校验切面。
  *
- * <p>在带有日期校验注解的方法执行前，检查参数对象字段上的
- * {@link DateStrFormat} 配置。</p>
+ * <p>在带有 {@link DateStrValid} 注解的方法、类或参数执行前，递归检查
+ * 参数对象中标注 {@link DateStrFormat} 的字段。支持父类字段、嵌套对象、
+ * 集合与 Map，并限制递归深度与访问次数，避免循环引用导致栈溢出。</p>
+ *
+ * <p>校验使用线程安全的 {@link DateTimeFormatter} 并缓存格式，
+ * 不再对参数做 JSON 序列化。</p>
  *
  * @author neopen
  * @see <a href="https://github.com/neopen/spring-boot-jpa-plus">GitHub 源码</a>
@@ -45,127 +55,238 @@ import java.util.regex.Pattern;
 @Component
 public class DateStrAspect {
 
+    /** 匹配方法、类型或参数上的日期校验注解。 */
+    private static final String AOP_POINTCUT_EXPRESSION =
+            "@annotation(io.github.neopen.convert.annotation.DateStrValid)"
+                    + " || @within(io.github.neopen.convert.annotation"
+                    + ".DateStrValid)"
+                    + " || execution(* *(.., @io.github.neopen.convert"
+                    + ".annotation.DateStrValid (*), ..))";
+
+    /** 日期格式缓存。 */
+    private static final Map<String, DateTimeFormatter> FORMATTERS =
+            new ConcurrentHashMap<>();
+
+    /** 最大递归深度。 */
+    private static final int MAX_DEPTH = 8;
+
+    /** 无需递归扫描的包前缀。 */
+    private static final String[] SKIPPED_PACKAGES = {
+            "java.",
+            "javax.",
+            "jakarta.",
+            "org.springframework.",
+            "org.aspectj.",
+            "org.hibernate.",
+            "com.alibaba."
+    };
+
     /**
-     * 创建默认实例。
+     * 定义日期校验注解切点。
      */
-    public DateStrAspect() {
-    }
-
-    /** 匹配带有日期校验注解的方法。 */
-    private static final String AOP_POINTCUT_EXPRESSION = "@annotation(io.github.neopen.convert.annotation.DateStrValid)";
-
-    /** 定义日期校验注解切点。 */
     @Pointcut(AOP_POINTCUT_EXPRESSION)
     public void paramAspect() {
     }
 
     /**
-     * 在目标方法执行前校验日期参数。
+     * 在目标方法执行前校验参数。
      *
      * @param joinPoint 当前连接点
-     * @throws Exception 参数访问或日期校验失败时抛出
+     * @throws JpaPlusException 参数访问或日期校验失败时抛出
      */
     @Before("paramAspect()")
-    public void doBefore(JoinPoint joinPoint) throws Exception {
+    public void doBefore(JoinPoint joinPoint) {
         Object[] args = joinPoint.getArgs();
-        if (args == null || args.length <= 0) {
+
+        if (args == null || args.length == 0) {
             return;
         }
 
-        String argStr = JSONObject.toJSONString(args);
-        JSONArray objects = JSONArray.parseArray(argStr);
+        Set<Object> visited = Collections.newSetFromMap(
+                new IdentityHashMap<>()
+        );
 
         for (Object arg : args) {
-            Class<?> aClass = arg.getClass();
-            Field[] fields = aClass.getDeclaredFields();
+            validate(arg, visited, 0);
+        }
+    }
 
-            for (Field field : fields) {
-                // 私有字段也需要读取注解并参与校验。
-                if (!field.isAccessible()) {
-                    field.setAccessible(true);
-                }
+    /**
+     * 递归校验对象中的日期字段。
+     *
+     * @param value   待校验对象，允许为 {@code null}
+     * @param visited 已访问对象集合
+     * @param depth   当前深度
+     * @throws JpaPlusException 日期格式非法时抛出
+     */
+    void validate(Object value, Set<Object> visited, int depth) {
+        if (value == null || depth > MAX_DEPTH || !visited.add(value)) {
+            return;
+        }
 
-                for (Object object : objects) {
-                    if (ObjectUtils.isEmpty(object))
-                        return;
+        Class<?> type = value.getClass();
 
-                    JSONObject jsonObject = JSONObject.parseObject(object.toString());
-                    if (jsonObject == null || jsonObject.isEmpty())
-                        return;
+        if (type.isArray()) {
+            int length = Array.getLength(value);
 
-                    Object param = jsonObject.get(field.getName());
-                    if (param != null)
-                        isAnnoType(field, param);
-                }
+            for (int i = 0; i < length; i++) {
+                validate(Array.get(value, i), visited, depth + 1);
+            }
+
+            return;
+        }
+
+        if (value instanceof Iterable<?> iterable) {
+            for (Object item : iterable) {
+                validate(item, visited, depth + 1);
+            }
+
+            return;
+        }
+
+        if (value instanceof Map<?, ?> map) {
+            for (Object item : map.values()) {
+                validate(item, visited, depth + 1);
+            }
+
+            return;
+        }
+
+        if (shouldSkip(type)) {
+            return;
+        }
+
+        for (PropertyAccessor property
+                : BeanIntrospector.metadata(type).properties()) {
+
+            Field field = property.field();
+            DateStrFormat format = field.getAnnotation(
+                    DateStrFormat.class
+            );
+            Object fieldValue = property.read(value);
+
+            if (format != null) {
+                validateFormat(format, fieldValue);
+            } else {
+                validate(fieldValue, visited, depth + 1);
             }
         }
     }
 
     /**
-     * 按字段上的日期注解校验参数值。
+     * 判断类型是否无需继续扫描。
      *
-     * @param field 待检查字段；为 {@code null} 时直接返回
-     * @param param 字段对应的参数值
-     * @throws IllegalArgumentException 必填值为空或格式非法
+     * @param type 类型
+     * @return 跳过时返回 {@code true}
      */
-    private void isAnnoType(Field field, Object param) {
-        if (field == null)
+    private static boolean shouldSkip(Class<?> type) {
+        if (type.isPrimitive() || type.isEnum()) {
+            return true;
+        }
+
+        if (Number.class.isAssignableFrom(type)
+                || CharSequence.class.isAssignableFrom(type)
+                || Boolean.class == type
+                || Character.class == type
+                || java.util.UUID.class == type
+                || java.util.Date.class.isAssignableFrom(type)
+                || TemporalAccessor.class.isAssignableFrom(type)
+                || Class.class == type
+                || ClassLoader.class.isAssignableFrom(type)) {
+            return true;
+        }
+
+        String name = type.getName();
+
+        for (String prefix : SKIPPED_PACKAGES) {
+            if (name.startsWith(prefix)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * 按字段注解校验日期值。
+     *
+     * @param format 日期格式注解
+     * @param value  字段值
+     * @throws JpaPlusException 必填值为空或格式非法时抛出
+     */
+    private static void validateFormat(
+            DateStrFormat format,
+            Object value
+    ) {
+        if (format.required() && value == null) {
+            throw new JpaPlusException("日期/时间不能为空");
+        }
+
+        if (format.ignore() || value == null) {
             return;
+        }
 
-        DateStrFormat annotation = field.getAnnotation(DateStrFormat.class);
-        if (annotation == null)
+        if (!(value instanceof CharSequence text)) {
             return;
+        }
 
-        if (annotation.annotationType().equals(DateStrFormat.class)) {
-            if (annotation.required() && param == null)
-                throw new IllegalArgumentException("日期/时间不能为空");
-
-            if (!annotation.ignore() && !isValidDate(param, annotation.value()))
-                throw new IllegalArgumentException("日期/时间格式非法（" + annotation.value() + "）");
+        if (!isValidDate(text.toString(), format.value())) {
+            throw new JpaPlusException(
+                    "日期/时间格式非法（" + format.value() + "）"
+            );
         }
     }
 
     /**
-     * 使用正则表达式完整匹配日期字符串。
+     * 校验字符串是否符合日期格式。
      *
-     * @param str     待校验字符串
-     * @param pattern 正则表达式
-     * @return 完整匹配时返回 {@code true}
-     */
-    private static boolean validDateStr(String str, String pattern) {
-        Pattern pat = Pattern.compile(pattern);
-        Matcher matcher = pat.matcher(str);
-        return matcher.matches();
-    }
-
-    /**
-     * 校验参数是否符合指定日期格式。
-     *
-     * <p>参数或格式为空时视为合法；非空值还会检查字符串长度。</p>
-     *
-     * @param param   待校验参数
+     * @param value   待校验字符串
      * @param pattern 日期格式
-     * @return 参数符合格式时返回 {@code true}
+     * @return 符合格式时返回 {@code true}
+     * @throws JpaPlusException 日期格式非法时抛出
      */
-    private static boolean isValidDate(Object param, String pattern) {
-        boolean convertSuccess = true;
-        if (pattern == null || pattern.isEmpty() || param == null)
-            return convertSuccess;
-
-        String str = param.toString();
-
-        if (str.length() != pattern.length())
-            return false;
-
-        // 格式字母区分大小写，例如 MM 表示月份，mm 表示分钟。
-        SimpleDateFormat format = new SimpleDateFormat(pattern);
-        try {
-            // 禁用宽松解析，避免无效日期被自动进位为其他日期。
-            format.setLenient(false);
-            format.parse(str);
-        } catch (ParseException e) {
-            convertSuccess = false;
+    private static boolean isValidDate(String value, String pattern) {
+        if (pattern == null || pattern.isEmpty()) {
+            return true;
         }
-        return convertSuccess;
+
+        if (value.length() != pattern.length()) {
+            return false;
+        }
+
+        DateTimeFormatter formatter = formatter(pattern);
+
+        try {
+            TemporalAccessor parsed = formatter.parse(value);
+
+            return formatter.format(parsed).equals(value);
+        } catch (DateTimeException ex) {
+            return false;
+        }
+    }
+
+    /**
+     * 获取或创建日期格式。
+     *
+     * @param pattern 日期格式
+     * @return 日期格式
+     * @throws JpaPlusException 格式非法时抛出
+     */
+    private static DateTimeFormatter formatter(String pattern) {
+        DateTimeFormatter formatter = FORMATTERS.get(pattern);
+
+        if (formatter != null) {
+            return formatter;
+        }
+
+        try {
+            formatter = DateTimeFormatter.ofPattern(pattern);
+        } catch (IllegalArgumentException ex) {
+            throw new JpaPlusException("日期格式非法（" + pattern + "）", ex);
+        }
+
+        FORMATTERS.putIfAbsent(pattern, formatter);
+
+        return formatter;
     }
 }

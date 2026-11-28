@@ -64,6 +64,37 @@ neopen:
 - 手机号使用 `DeterministicEncryptedFieldConverter`，查询前把明文加密为密文即可匹配；身份证号使用随机 IV，相同明文每次密文不同。
 - `AuditConfiguration` 注册 `AuditorProvider`，优先读取 `X-Demo-User` 请求头，非 Web 场景回退为 `demo-user`。
 
+## 参数映射示例
+
+`ConvertDemoController` 集中演示 `ParamMapper` 与 `ParamMapping`，代码见 `service/ConvertDemoService`，接口只做映射预览、不落库：
+
+| 方法 | 路径 | 演示内容 |
+| --- | --- | --- |
+| POST | `/convert/order/preview` | 列名别名、嵌套路径、外键引用、字段重命名、自定义转换、JPA 托管字段跳过，并返回未匹配与转换字段 |
+| POST | `/convert/order/strict` | 严格模式拒绝未匹配字段 |
+| POST | `/convert/order/null-policy` | 对比 `IGNORE` 与 `SET_NULL` 两种空值策略 |
+| POST | `/convert/order/validate` | `@DateStrValid` + `@DateStrFormat` 日期字符串校验 |
+
+请求示例：
+
+```json
+{
+  "id": 123,
+  "version": 5,
+  "orderNo": "NO-1",
+  "amount": "99.50",
+  "orderDate": "2026-01-02",
+  "city": "Shanghai",
+  "detail": "Pudong",
+  "productId": 1,
+  "memo": "rush",
+  "clientVersion": "1.0",
+  "unknownField": "x"
+}
+```
+
+预期结果：`id`、`version`、`createTime` 保持服务端预设值；`orderNo` 通过列名别名写入；`amount`、`orderDate`、`productId` 出现在 `convertedFields`；`memo` 重命名为 `remark` 并追加一层转换；`unknownField` 出现在 `unknownFields`。
+
 ## 路由划分
 
 | 前缀 | 实现 |
