@@ -743,7 +743,7 @@ This project is licensed under the **Apache License 2.0**. See the
 [LICENSE](LICENSE) file for the full text, and [NOTICE](NOTICE) for
 third-party attributions.
 
-Copyright 2026 neopen.
+Copyright 2026 neopen (余一叶知秋尽).
 
 ### What this means for you
 
